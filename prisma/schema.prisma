@@ -37,7 +37,25 @@ model Game {
 
 model SteamGame {
   appId  BigInt    @id
-  name   String
   gameId Int    @unique
   game   Game   @relation(fields: [gameId], references: [id])
+  
+  name   String
+
+  playtimeForever Int?
+  playtime2weeks Int?
+  playtimeWindowsForever Int?
+  playtimeMacForever Int?
+  playtimeLinuxForever Int?
+  playtimeDeckForever Int?
+  playtimeDisconnected Int?
+  rTimeLastPlayed Int?
+
+  imgIconUrl String
+  capsuleFilename String
+
+  hasCommunityVisibleStats Boolean @default(false)
+  hasWorkshop Boolean @default(false)
+  hasDlc Boolean @default(false)
+  hasLeaderboards Boolean @default(false)
 }

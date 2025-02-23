@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 import { SteamApiError } from "~/lib/steam";
+import createUnknownError from "./createUnknownError";
 
 export default function createErrorFromSteamApiError(error: any): any {
     if (error instanceof SteamApiError) {
@@ -25,11 +26,5 @@ export default function createErrorFromSteamApiError(error: any): any {
         };
     }
 
-    // Unknown error
-    console.error(`Error name: ${error.name}`);
-    console.error(error);
-    return {
-        statusCode: 500,
-        statusMessage: "Unhandled error"
-    };
+    return createUnknownError(error);
 }

@@ -33,7 +33,8 @@ export async function getServerInfo(): Promise<ServerInfo> {
 }
 
 const userInfoSchema = z.object({
-    steamid: z.string(),
+    // steamid is string from server but we want it as number
+    steamid: z.string().transform(Number),
     personaname: z.string(),
     profileurl: z.string(),
     communityvisibilitystate: z.number(),

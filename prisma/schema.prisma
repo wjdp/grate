@@ -11,6 +11,33 @@ datasource db {
 }
 
 model User {
-  id   Int    @id @default(autoincrement())
-  name String
+  id        Int        @id @default(autoincrement())
+  steamUser SteamUser?
+}
+
+model SteamUser {
+  steamId BigInt    @id
+  userId  Int    @unique
+  user    User   @relation(fields: [userId], references: [id])
+  personaName    String
+  realName       String?
+  profileUrl     String
+  avatar         String
+  avatarMedium   String
+  avatarFull     String
+  avatarHash     String
+  lastLogoff     Int
+}
+
+model Game {
+  id        Int        @id @default(autoincrement())
+  name      String
+  steamGame SteamGame?
+}
+
+model SteamGame {
+  appId  BigInt    @id
+  name   String
+  gameId Int    @unique
+  game   Game   @relation(fields: [gameId], references: [id])
 }

@@ -4,7 +4,7 @@ FROM node:${NODE_VERSION}-slim AS base
 ARG PORT=3000
 WORKDIR /app
 
-# Stage to build the app
+# --- Stage to build the app ---
 FROM base AS build
 
 # Prisma needs openssl at build time to build against
@@ -17,7 +17,7 @@ COPY --link . .
 RUN pnpm build
 RUN pnpm prisma generate
 
-# Stage to release the app
+# --- Stage to release the app ---
 FROM base AS release
 
 ENV PORT=$PORT
@@ -25,6 +25,9 @@ ENV NODE_ENV=production
 
 # Prisma needs openssl at runtime
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# This does copy *everything* but we only really need Prisma, could reduce
+COPY --from=build /app/node_modules /app/node_modules
 
 COPY --from=build /app/.output /app/.output
 
@@ -34,8 +37,6 @@ ENV DATABASE_URL="file:/app/data/db.sqlite"
 # e.g. for Prisma
 COPY --from=build /app/package.json /app/package.json
 COPY --from=build /app/prisma /app/prisma
-# This does copy *everything* but we only really need Prisma, could reduce
-COPY --from=build /app/node_modules /app/node_modules
 
 # Run script
 COPY --from=build /app/run.sh /app/run.sh

@@ -4,6 +4,10 @@ on:
   push:
     branches: [master]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 defaults:
   run:
     working-directory: ./src
@@ -11,6 +15,11 @@ defaults:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - name: Set up QEMU
@@ -20,24 +29,30 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GH_PAT }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Pull latest from GitHub Container Registry
         uses: docker/build-push-action@v6
         with:
           pull: true
           context: ./src
-          tags: ghcr.io/wjdp/grate:latest
+          tags: ghcr.io/wjdp/${{ env.IMAGE_NAME }}:latest
       - name: Build & push to GitHub Container Registry
         uses: docker/build-push-action@v6
         with:
           push: true
           context: ./src
-          tags: ghcr.io/wjdp/grate:${{ env.GITHUB_REF_SLUG }},ghcr.io/wjdp/grate:latest
+          tags: ghcr.io/wjdp/${{ env.IMAGE_NAME }}:${{ env.GITHUB_REF_SLUG }},ghcr.io/wjdp/${{ env.IMAGE_NAME }}:latest
           cache-from: |
-            type=registry,ref=ghcr.io/wjdp/grate:${{ env.GITHUB_REF_SLUG }}
-            type=registry,ref=ghcr.io/wjdp/grate:latest
+            type=registry,ref=ghcr.io/wjdp/${{ env.IMAGE_NAME }}:${{ env.GITHUB_REF_SLUG }}
+            type=registry,ref=ghcr.io/wjdp/${{ env.IMAGE_NAME }}:latest
           cache-to: type=inline
           build-args: |
             VCS_REV=${{ env.GITHUB_REF_SLUG }}
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

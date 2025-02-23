@@ -7,6 +7,9 @@ WORKDIR /app
 # Stage to build the app
 FROM base AS build
 
+# Prisma needs openssl at build time to build against
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 RUN npm install -g pnpm
 COPY --link package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -19,9 +22,21 @@ FROM base AS release
 ENV PORT=$PORT
 ENV NODE_ENV=production
 
+# Prisma needs openssl at runtime
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/.output /app/.output
 
-# Optional, only needed if you rely on unbundled dependencies
-# COPY --from=build /src/node_modules /src/node_modules
+ENV DATABASE_URL="file:/app/data/db.sqlite"
 
-CMD [ "node", ".output/server/index.mjs" ]
+# Optional, only needed if you rely on unbundled dependencies
+# e.g. for Prisma
+COPY --from=build /app/package.json /app/package.json
+COPY --from=build /app/prisma /app/prisma
+# This does copy *everything* but we only really need Prisma, could reduce
+COPY --from=build /app/node_modules /app/node_modules
+
+# Run script
+COPY --from=build /app/run.sh /app/run.sh
+
+CMD [ "bash", "/app/run.sh" ]

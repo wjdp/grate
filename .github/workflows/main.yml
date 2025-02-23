@@ -34,6 +34,7 @@ jobs:
           pull: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
       - name: Build & push to GitHub Container Registry
+        id: push
         uses: docker/build-push-action@v6
         with:
           push: true

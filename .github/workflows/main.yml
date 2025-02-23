@@ -4,8 +4,6 @@ on:
   push:
     branches: [master]
 
-env:
-
 defaults:
   run:
     working-directory: ./src

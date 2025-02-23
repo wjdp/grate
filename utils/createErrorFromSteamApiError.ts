@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { SteamApiError } from "~/lib/steam";
+import { SteamApiError } from "~/lib/steam/api";
 import createUnknownError from "./createUnknownError";
 
 export default function createErrorFromSteamApiError(error: any): any {

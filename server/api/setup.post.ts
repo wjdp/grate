@@ -1,6 +1,6 @@
 import {z} from "zod";
 import { createErrorFromRequestValidation } from "~/utils/createErrorFromRequestValidation";
-import * as steam from "~/lib/steam";
+import * as steam from "~/lib/steam/api";
 import createErrorFromSteamApiError from "~/utils/createErrorFromSteamApiError";
 import prisma from "~/lib/prisma";
 

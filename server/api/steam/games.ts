@@ -1,4 +1,4 @@
-import { getUserGames } from '~/lib/steam';
+import { getUserGames } from '~/lib/steam/api';
 import createErrorFromSteamApiError from '~/utils/createErrorFromSteamApiError';
 export default defineEventHandler(async (event) => {
     try {

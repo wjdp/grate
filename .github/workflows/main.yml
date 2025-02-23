@@ -28,11 +28,13 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Echo the image name
+        run: echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       - name: Pull latest from GitHub Container Registry
         uses: docker/build-push-action@v6
         with:
           pull: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          tags: ghcr.io/wjdp/grate:latest
       - name: Build & push to GitHub Container Registry
         id: push
         uses: docker/build-push-action@v6

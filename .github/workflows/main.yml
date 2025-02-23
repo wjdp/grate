@@ -1,0 +1,45 @@
+name: backend
+
+on:
+  push:
+    branches: [master]
+
+env:
+
+defaults:
+  run:
+    working-directory: ./src
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GH_PAT }}
+      - name: Pull latest from GitHub Container Registry
+        uses: docker/build-push-action@v6
+        with:
+          pull: true
+          context: ./src
+          tags: ghcr.io/wjdp/grate:latest
+      - name: Build & push to GitHub Container Registry
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: ./src
+          tags: ghcr.io/wjdp/grate:${{ env.GITHUB_REF_SLUG }},ghcr.io/wjdp/grate:latest
+          cache-from: |
+            type=registry,ref=ghcr.io/wjdp/grate:${{ env.GITHUB_REF_SLUG }}
+            type=registry,ref=ghcr.io/wjdp/grate:latest
+          cache-to: type=inline
+          build-args: |
+            VCS_REV=${{ env.GITHUB_REF_SLUG }}

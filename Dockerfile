@@ -15,6 +15,7 @@ COPY --link package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY --link . .
 RUN pnpm build
+RUN pnpm prisma generate
 
 # Stage to release the app
 FROM base AS release

@@ -65,7 +65,7 @@ export async function getUserInfo(): Promise<UserInfo> {
 }
 
 const userGameSchema = z.object({
-    appid: z.number(),
+    appid: z.number().transform(BigInt),
     name: z.string(),
 
     playtime_forever: z.number().optional(),

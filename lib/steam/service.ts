@@ -102,3 +102,31 @@ export async function updateGames() {
     }
     return games;
 }
+
+export async function recordPlaytimes() {
+    const steamGamesInDb = await prisma.steamGame.findMany();
+    const userOwnedGames = await getUserGames();
+    const timestamp = new Date();
+    for (const game of userOwnedGames) {
+        const dbGame = steamGamesInDb.find(g => g.appId === game.appid);
+        if (!dbGame) {
+            console.error(`Game ${game.name} not found in db`);
+            continue;
+        }
+        await prisma.steamGamePlaytime.create({
+            data: {
+                steamGame: { connect: { appId: game.appid } },
+                timestamp,
+                playtimeForever: game.playtime_forever,
+                playtime2weeks: game.playtime_2weeks,
+                playtimeWindowsForever: game.playtime_windows_forever,
+                playtimeMacForever: game.playtime_mac_forever,
+                playtimeLinuxForever: game.playtime_linux_forever,
+                playtimeDeckForever: game.playtime_deck_forever,
+                playtimeDisconnected: game.playtime_disconnected,
+                rTimeLastPlayed: game.rtime_last_played,
+            }
+        });
+        console.log(`Recorded playtime for ${game.name}`);
+    }
+}

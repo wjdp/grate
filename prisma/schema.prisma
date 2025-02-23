@@ -58,4 +58,23 @@ model SteamGame {
   hasWorkshop Boolean @default(false)
   hasDlc Boolean @default(false)
   hasLeaderboards Boolean @default(false)
+
+  playtimeRecords SteamGamePlaytime[]
+}
+
+model SteamGamePlaytime {
+  id        Int        @id @default(autoincrement())
+  steamAppId BigInt
+  steamGame SteamGame @relation(fields: [steamAppId], references: [appId])
+  
+  timestamp DateTime
+  
+  playtimeForever Int?
+  playtime2weeks Int?
+  playtimeWindowsForever Int?
+  playtimeMacForever Int?
+  playtimeLinuxForever Int?
+  playtimeDeckForever Int?
+  playtimeDisconnected Int?
+  rTimeLastPlayed Int?
 }

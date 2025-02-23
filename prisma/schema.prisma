@@ -67,7 +67,8 @@ model SteamGamePlaytime {
   steamAppId BigInt
   steamGame SteamGame @relation(fields: [steamAppId], references: [appId])
   
-  timestamp DateTime
+  timestampStart DateTime?
+  timestampEnd DateTime
   
   playtimeForever Int?
   playtime2weeks Int?

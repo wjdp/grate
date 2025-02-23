@@ -32,15 +32,14 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           pull: true
-          tags: ghcr.io/wjdp/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
       - name: Build & push to GitHub Container Registry
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: ghcr.io/wjdp/${{ env.IMAGE_NAME }}:${{ env.GITHUB_REF_SLUG }},ghcr.io/wjdp/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-from: |
-            type=registry,ref=ghcr.io/wjdp/${{ env.IMAGE_NAME }}:${{ env.GITHUB_REF_SLUG }}
-            type=registry,ref=ghcr.io/wjdp/${{ env.IMAGE_NAME }}:latest
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-to: type=inline
           build-args: |
             VCS_REV=${{ env.GITHUB_REF_SLUG }}

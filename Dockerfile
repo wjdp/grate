@@ -10,12 +10,11 @@ FROM base AS build
 # Prisma needs openssl at build time to build against
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g pnpm
-COPY --link package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY --link package.json package-lock.json ./
+RUN npm ci
 COPY --link . .
-RUN pnpm build
-RUN pnpm prisma generate
+RUN npm run build
+RUN npx prisma generate
 
 # --- Stage to release the app ---
 FROM base AS release

@@ -1,47 +1,46 @@
-import { H3Event } from "h3"
+import { H3Event, createEventStream } from "h3"
 import { createHooks } from "hookable"
+import type { SseMessageMap, SseMessageType } from "~/lib/hooks"
+
+const defaultBusName = 'default'
 
 export interface ServerSentEvent {
-    [key: string]: <T, R>(data: T) => R | void
+    [key: string]: <T extends SseMessageType, R>(type: T, data: SseMessageMap[T]) => R | void
 }
 
 export const sseHooks = createHooks<ServerSentEvent>()
 
-type HookName = 'default'
 
-export const useSse = (event: H3Event, hookName: HookName) => {
-    setHeader(event, 'content-type', 'text/event-stream')
-    setHeader(event, 'cache-control', 'no-cache')
-    setHeader(event, 'connection', 'keep-alive')
-    setResponseStatus(event, 200)
+export const useSse = (event: H3Event, busName: string = defaultBusName) => {
+    const eventStream = createEventStream(event);
+    let counter = 0
 
-    let id = 0
-
-    sseHooks.hook(hookName, (data: any) => {
-        event.node.res.write(`id: ${id += 1}\n`)
-        event.node.res.write(`data: ${JSON.stringify(data)}\n\n`)
-        event.node.res.flushHeaders()
+    sseHooks.hook(busName, (type, data) => {
+        console.log('got', type, data, 'on', busName)
+        eventStream.push({
+            id: (counter++).toString(),
+            event: type,
+            retry: 2,
+            data: JSON.stringify(data)
+        })
     })
+
+    const {push} = useSseEvent(busName);
     
-    
-    const send = (callback: (id: number) => any) => {
-        sseHooks.callHook(hookName, callback(id))
+    return {
+        eventStream,
+        push,
+        close: (callback: () => void) => eventStream.onClosed(callback)
+
     }
-    
-    const close = () => {
-        event.node.res.end()
-    }
-    
-    event._handled = true
-    event.node.req.on("close", close)
-    
-    return { send, close }
 }
 
-export const useSseEvent = (hookName: HookName) => {
+
+export const useSseEvent = (busName: string = defaultBusName) => {
     return {
-        send: (data: any) => {
-            sseHooks.callHook(hookName, data)
+        push: <T extends SseMessageType>(name: T, data: SseMessageMap[T]) => {
+            console.log('pushing', name, data, 'on', busName)
+            sseHooks.callHook(busName, name, data)
         }
     }
 }

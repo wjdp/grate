@@ -11,9 +11,9 @@ const formatTimestamp = (timestamp: string) => new Date(timestamp).toLocaleStrin
 
 <template>
   <div>
-    <h1>
-      <GameIcon :game='game' />
-      {{game?.name ?? id}}
+    <h1 class="mt-2 font-bold text-2xl">
+      <GameIcon :game='game' class="inline"/>
+      {{game?.name ?? id }}
     </h1>
     <div v-if="game?.steamGame">
       <p>appid {{game.steamGame.appId}}</p>

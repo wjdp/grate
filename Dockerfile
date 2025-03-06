@@ -37,19 +37,12 @@ ENV NODE_ENV=production
 # Prisma needs openssl at runtime
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
-# This does copy *everything* but we only really need Prisma, could reduce
 COPY --from=runtime /app/node_modules /app/node_modules
-
+COPY --from=build /app/package.json /app/package.json
+COPY --from=build /app/prisma /app/prisma
+COPY --from=build /app/run.sh /app/run.sh
 COPY --from=build /app/.output /app/.output
 
 ENV DATABASE_URL="file:/app/data/db.sqlite"
-
-# Optional, only needed if you rely on unbundled dependencies
-# e.g. for Prisma
-COPY --from=build /app/package.json /app/package.json
-COPY --from=build /app/prisma /app/prisma
-
-# Run script
-COPY --from=build /app/run.sh /app/run.sh
 
 CMD [ "bash", "/app/run.sh" ]

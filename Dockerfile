@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile
 COPY --link . .
 RUN pnpm build
 
-FROM base as runtime
+FROM base AS runtime
 
 # Prisma needs openssl at build time to build against
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*

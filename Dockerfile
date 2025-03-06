@@ -15,7 +15,18 @@ COPY --link package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY --link . .
 RUN pnpm build
+
+FROM base as runtime
+
+# Prisma needs openssl at build time to build against
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g pnpm
+COPY --link package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
+COPY --link . .
 RUN pnpm prisma generate
+
 
 # --- Stage to release the app ---
 FROM base AS release
@@ -27,7 +38,7 @@ ENV NODE_ENV=production
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 # This does copy *everything* but we only really need Prisma, could reduce
-COPY --from=build /app/node_modules /app/node_modules
+COPY --from=runtime /app/node_modules /app/node_modules
 
 COPY --from=build /app/.output /app/.output
 

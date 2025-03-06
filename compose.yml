@@ -1,0 +1,14 @@
+services:
+  grate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wjdp/grate
+    container_name: grate
+    volumes:
+      - ./data:/app/data
+    ports:
+      - 3000:3000
+    env_file:
+      - path: .env.docker
+        required: true

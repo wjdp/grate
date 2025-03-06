@@ -14,6 +14,13 @@ importers:
       '@prisma/nuxt':
         specifier: 0.3.0
         version: 0.3.0(magicast@0.3.5)(prisma@6.3.1(typescript@5.7.3))(typescript@5.7.3)(vite@6.1.0(@types/node@22.13.1)(jiti@2.4.2)(terser@5.38.1)(yaml@2.7.0))
+      prisma:
+        specifier: 6.3.1
+        version: 6.3.1(typescript@5.7.3)
+    devDependencies:
+      '@nuxtjs/tailwindcss':
+        specifier: ^6.13.1
+        version: 6.13.1(magicast@0.3.5)
       '@trpc/client':
         specifier: ^10.45.2
         version: 10.45.2(@trpc/server@10.45.2)
@@ -23,6 +30,9 @@ importers:
       nuxt:
         specifier: ^3.15.4
         version: 3.15.4(@parcel/watcher@2.5.1)(@types/node@22.13.1)(db0@0.2.3)(ioredis@5.5.0)(magicast@0.3.5)(rollup@4.34.6)(terser@5.38.1)(typescript@5.7.3)(vite@6.1.0(@types/node@22.13.1)(jiti@2.4.2)(terser@5.38.1)(yaml@2.7.0))(yaml@2.7.0)
+      nuxt-cron:
+        specifier: ^1.8.0
+        version: 1.8.0(magicast@0.3.5)
       trpc-nuxt:
         specifier: ^0.10.22
         version: 0.10.22(@trpc/client@10.45.2(@trpc/server@10.45.2))(@trpc/server@10.45.2)(ofetch@1.4.1)
@@ -35,16 +45,6 @@ importers:
       zod:
         specifier: ^3.24.2
         version: 3.24.2
-    devDependencies:
-      '@nuxtjs/tailwindcss':
-        specifier: ^6.13.1
-        version: 6.13.1(magicast@0.3.5)
-      nuxt-cron:
-        specifier: ^1.8.0
-        version: 1.8.0(magicast@0.3.5)
-      prisma:
-        specifier: 6.3.1
-        version: 6.3.1(typescript@5.7.3)
 
 packages:
 

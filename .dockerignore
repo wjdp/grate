@@ -5,6 +5,7 @@
 .nitro
 .cache
 dist
+data
 
 # Node dependencies
 node_modules
@@ -21,5 +22,10 @@ logs
 # Database
 prisma/dev.db
 
+# Github
+.github
+
 # Docker
 Dockerfile
+.env*
+compose.yml

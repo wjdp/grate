@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 const { $client } = useNuxtApp();
 const route = useRoute();
-const id = parseInt(route.params.id);
+const id = parseIntRouteParam(route.params.id);
 const { data } = await $client.game.useQuery({ id });
 const game = computed(() => data.value?.game);
 const { data: playtimeData} = await $client.gamePlaytimes.useQuery({ id });
@@ -11,7 +11,10 @@ const formatTimestamp = (timestamp: string) => new Date(timestamp).toLocaleStrin
 
 <template>
   <div>
-    <h1>{{game?.name ?? id}}</h1>
+    <h1>
+      <GameIcon :game='game' />
+      {{game?.name ?? id}}
+    </h1>
     <div v-if="game?.steamGame">
       <p>appid {{game.steamGame.appId}}</p>
       <p>Playtime: {{game.steamGame.playtimeForever}}</p>

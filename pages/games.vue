@@ -54,7 +54,7 @@ const totalRecentGames = computed(() => {
 
 <template>
   <div>
-    <h1 class="mt-2 font-bold text-2xl">Games</h1>
+    <h1 class="mt-2 text-2xl font-bold">Games</h1>
     <div class="my-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
       <p>Total playtime: {{ totalPlaytimeFormatted }}</p>
       <p>Total games: {{ totalGames }}</p>

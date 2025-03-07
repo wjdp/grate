@@ -12,7 +12,7 @@ const formatTimestamp = (timestamp: string) =>
 
 <template>
   <div>
-    <h1 class="mt-2 font-bold text-2xl">
+    <h1 class="mt-2 text-2xl font-bold">
       <GameIcon :game="game" class="inline" />
       {{ game?.name ?? id }}
     </h1>

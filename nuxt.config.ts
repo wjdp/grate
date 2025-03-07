@@ -13,7 +13,7 @@ export default defineNuxtConfig({
   resolve: {
     alias: {
       // https://github.com/nuxt/nuxt/issues/24690#issuecomment-2254528534
-      ".prisma/client/index-browser": "./node_modules/prisma/prisma-client/index-browser.js"
+      ".prisma/client/index-browser": "./node_modules/.prisma/client/index-browser.js"
     }
   },
 }

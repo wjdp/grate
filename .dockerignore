@@ -1,3 +1,7 @@
+# Git
+.git
+.gitignore
+
 # Nuxt dev/build outputs
 .output
 .data
@@ -22,10 +26,14 @@ logs
 # Database
 prisma/dev.db
 
-# Github
+# Repo bits
 .github
+.husky
+.prettierignore
+.prettierrc
 
 # Docker
+.dockerignore
 Dockerfile
 .env*
 compose.yml

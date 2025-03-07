@@ -8,11 +8,10 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "lint": "prettier --write .",
-    "lint:ci": "prettier --check .",
-    "prepare": "husky"
+    "lint:ci": "prettier --check ."
   },
   "lint-staged": {
-    "**/*": "prettier --write --ignore-unknown"
+    "**/*": "prettier --write"
   },
   "dependencies": {
     "@prisma/client": "6.3.1",

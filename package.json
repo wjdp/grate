@@ -29,6 +29,7 @@
     "nuxt": "^3.15.4",
     "nuxt-cron": "^1.8.0",
     "prettier": "3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.11",
     "trpc-nuxt": "^0.10.22",
     "vue": "latest",
     "vue-router": "latest",

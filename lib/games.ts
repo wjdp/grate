@@ -1,3 +1,4 @@
+import type { GameState } from "@prisma/client";
 import prisma from "./prisma";
 
 export async function getGames() {
@@ -29,4 +30,17 @@ export async function getGamePlaytimes(id: number) {
     where: { steamAppId: game.steamGame.appId },
     orderBy: { timestampStart: "desc" },
   });
+}
+
+export async function setGameState(id: number, state: GameState | null) {
+  const now = new Date();
+  console.log(`setGameState(${id}, ${state})`);
+  const game = await prisma.game.update({
+    where: { id },
+    data: { state },
+  });
+  await prisma.gameStateChange.create({
+    data: { gameId: game.id, state: state, timestamp: now },
+  });
+  return game;
 }

@@ -2,3 +2,4 @@ pnpm-lock.yaml
 .dockerignore
 .prettierignore
 prisma/migrations/
+run.sh

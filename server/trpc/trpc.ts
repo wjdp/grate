@@ -7,9 +7,9 @@
  * @see https://trpc.io/docs/server/routers
  * @see https://trpc.io/docs/server/procedures
  */
-import { initTRPC } from '@trpc/server'
+import { initTRPC } from "@trpc/server";
 
-const t = initTRPC.create()
+const t = initTRPC.create();
 
 /**
  * Unprotected procedure

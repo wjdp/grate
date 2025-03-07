@@ -6,7 +6,9 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
-    "preview": "nuxt preview"
+    "preview": "nuxt preview",
+    "lint": "prettier --write .",
+    "lint:ci": "prettier --check ."
   },
   "dependencies": {
     "@prisma/client": "6.3.1",
@@ -16,14 +18,14 @@
   "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92",
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.13.1",
-    "nuxt-cron": "^1.8.0",
     "@trpc/client": "^10.45.2",
     "@trpc/server": "^10.45.2",
     "nuxt": "^3.15.4",
+    "nuxt-cron": "^1.8.0",
+    "prettier": "3.5.3",
     "trpc-nuxt": "^0.10.22",
     "vue": "latest",
     "vue-router": "latest",
     "zod": "^3.24.2"
-
   }
 }

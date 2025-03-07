@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { publicProcedure, router } from '../trpc'
+import { z } from "zod";
+import { publicProcedure, router } from "../trpc";
 
 export const debugRouter = router({
   hello: publicProcedure
@@ -9,9 +9,9 @@ export const debugRouter = router({
       }),
     )
     .query(({ input }) => {
-        const time = new Date().toLocaleTimeString()
+      const time = new Date().toLocaleTimeString();
       return {
-        greeting: `hello ${input?.text ?? 'world'}, the time is ${time}`,
-      }
+        greeting: `hello ${input?.text ?? "world"}, the time is ${time}`,
+      };
     }),
-})
+});

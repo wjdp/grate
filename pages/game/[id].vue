@@ -8,6 +8,18 @@ const { data: playtimeData } = await $client.gamePlaytimes.useQuery({ id });
 const playtimes = computed(() => playtimeData.value?.playtimes);
 const formatTimestamp = (timestamp: string) =>
   new Date(timestamp).toLocaleString();
+const state = ref(game.value?.state);
+
+const updateGameState = async (state: GameState) => {
+  const previousState = game.value.state;
+  game.value.state = state;
+  try {
+    await $client.setGameState.mutate({ id, state });
+  } catch (error) {
+    console.error(error);
+    game.value.state = previousState;
+  }
+};
 </script>
 
 <template>
@@ -19,6 +31,10 @@ const formatTimestamp = (timestamp: string) =>
     <div v-if="game?.steamGame">
       <p>appid {{ game.steamGame.appId }}</p>
       <p>Playtime: {{ game.steamGame.playtimeForever }}</p>
+    </div>
+    <div>
+      <GameStateControl v-model="state" @change="updateGameState(state)" />
+      {{ state }}
     </div>
     <table v-if="playtimes">
       <thead>

@@ -8,7 +8,11 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "lint": "prettier --write .",
-    "lint:ci": "prettier --check ."
+    "lint:ci": "prettier --check .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
   },
   "dependencies": {
     "@prisma/client": "6.3.1",
@@ -20,6 +24,8 @@
     "@nuxtjs/tailwindcss": "^6.13.1",
     "@trpc/client": "^10.45.2",
     "@trpc/server": "^10.45.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
     "nuxt": "^3.15.4",
     "nuxt-cron": "^1.8.0",
     "prettier": "3.5.3",

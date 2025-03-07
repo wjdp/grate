@@ -3,7 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output = "../node_modules/.prisma/client"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -17,66 +17,89 @@ model User {
 }
 
 model SteamUser {
-  steamId BigInt    @id
-  userId  Int    @unique
-  user    User   @relation(fields: [userId], references: [id])
-  personaName    String
-  realName       String?
-  profileUrl     String
-  avatar         String
-  avatarMedium   String
-  avatarFull     String
-  avatarHash     String
-  lastLogoff     Int
+  steamId      BigInt  @id
+  userId       Int     @unique
+  user         User    @relation(fields: [userId], references: [id])
+  personaName  String
+  realName     String?
+  profileUrl   String
+  avatar       String
+  avatarMedium String
+  avatarFull   String
+  avatarHash   String
+  lastLogoff   Int
+}
+
+enum GameState {
+  Backlog // Not started, want to play
+
+  Playing // Currently playing
+  Periodic // Game that you come back to every now and then
+  Shelved // Paused, not currently playing
+
+  Played // Nothing specific
+  Completed // Completed whatever you wanted to
+  Retired // Finished with, for games that lack an ending
+  Abandoned // Unfinished, not going back
 }
 
 model Game {
-  id        Int        @id @default(autoincrement())
-  name      String
-  steamGame SteamGame?
+  id           Int               @id @default(autoincrement())
+  name         String
+  steamGame    SteamGame?
+  state        GameState?
+  stateChanges GameStateChange[]
+}
+
+model GameStateChange {
+  id        Int       @id @default(autoincrement())
+  gameId    Int
+  game      Game      @relation(fields: [gameId], references: [id])
+  state     GameState
+  timestamp DateTime
 }
 
 model SteamGame {
-  appId  BigInt    @id
+  appId  BigInt @id
   gameId Int    @unique
   game   Game   @relation(fields: [gameId], references: [id])
-  
-  name   String
 
-  playtimeForever Int?
-  playtime2weeks Int?
+  name String
+
+  playtimeForever        Int?
+  playtime2weeks         Int?
   playtimeWindowsForever Int?
-  playtimeMacForever Int?
-  playtimeLinuxForever Int?
-  playtimeDeckForever Int?
-  playtimeDisconnected Int?
-  rTimeLastPlayed Int?
+  playtimeMacForever     Int?
+  playtimeLinuxForever   Int?
+  playtimeDeckForever    Int?
+  playtimeDisconnected   Int?
+  rTimeLastPlayed        Int?
 
-  imgIconUrl String
+  imgIconUrl      String
   capsuleFilename String
 
   hasCommunityVisibleStats Boolean @default(false)
-  hasWorkshop Boolean @default(false)
-  hasDlc Boolean @default(false)
-  hasLeaderboards Boolean @default(false)
+  hasWorkshop              Boolean @default(false)
+  hasDlc                   Boolean @default(false)
+  hasLeaderboards          Boolean @default(false)
 
   playtimeRecords SteamGamePlaytime[]
 }
 
 model SteamGamePlaytime {
-  id        Int        @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   steamAppId BigInt
-  steamGame SteamGame @relation(fields: [steamAppId], references: [appId])
-  
+  steamGame  SteamGame @relation(fields: [steamAppId], references: [appId])
+
   timestampStart DateTime?
-  timestampEnd DateTime
-  
-  playtimeForever Int?
-  playtime2weeks Int?
+  timestampEnd   DateTime
+
+  playtimeForever        Int?
+  playtime2weeks         Int?
   playtimeWindowsForever Int?
-  playtimeMacForever Int?
-  playtimeLinuxForever Int?
-  playtimeDeckForever Int?
-  playtimeDisconnected Int?
-  rTimeLastPlayed Int?
+  playtimeMacForever     Int?
+  playtimeLinuxForever   Int?
+  playtimeDeckForever    Int?
+  playtimeDisconnected   Int?
+  rTimeLastPlayed        Int?
 }

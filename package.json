@@ -6,7 +6,9 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
-    "preview": "nuxt preview"
+    "preview": "nuxt preview",
+    "lint": "prettier --write .",
+    "lint:ci": "prettier --check ."
   },
   "dependencies": {
     "@prisma/client": "6.3.1",

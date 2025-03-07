@@ -1,4 +1,3 @@
 export default defineAppConfig({
-    title: 'grate',
-})
-
+  title: "grate",
+});

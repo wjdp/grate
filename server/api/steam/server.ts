@@ -1,4 +1,4 @@
-import { getServerInfo } from '~/lib/steam/api';
+import { getServerInfo } from "~/lib/steam/api";
 export default defineEventHandler(async (event) => {
-    return getServerInfo();
+  return getServerInfo();
 });

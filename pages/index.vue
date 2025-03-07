@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const appConfig = useAppConfig()
+const appConfig = useAppConfig();
 
-const {data} = useFetch(() => '/api/setup')
+const { data } = useFetch(() => "/api/setup");
 </script>
 
 <template>

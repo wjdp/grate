@@ -1,7 +1,7 @@
-import { useSseEvent } from "~/composables/useSse"
+import { useSseEvent } from "~/composables/useSse";
 
 export default defineEventHandler(async (event) => {
-  const {push} = useSseEvent()
-  push('message', { message: "Hello World" })
-  push('notification', { title: "Hello", message: "World" })
-})
+  const { push } = useSseEvent();
+  push("message", { message: "Hello World" });
+  push("notification", { title: "Hello", message: "World" });
+});

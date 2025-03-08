@@ -93,5 +93,10 @@ export function parseReleaseDate(date: string) {
     return null;
   }
   // date from steam is like: 25 Mar, 2013
-  return new Date(date);
+  try {
+    return new Date(date);
+  } catch (error) {
+    console.error(`Error parsing date: ${date}`);
+    throw error;
+  }
 }

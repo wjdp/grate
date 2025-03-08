@@ -1,8 +1,11 @@
 <script lang="ts" setup>
+import type { GameState } from "@prisma/client";
+
 const { $client } = useNuxtApp();
 const route = useRoute();
+const router = useRouter();
 const id = parseIntRouteParam(route.params.id);
-const { data } = await $client.game.useQuery({ id });
+const { data } = await useGame(id);
 const game = computed(() => data.value?.game);
 const { data: playtimeData } = await $client.gamePlaytimes.useQuery({ id });
 const playtimes = computed(() => playtimeData.value?.playtimes);
@@ -24,14 +27,14 @@ const updateGameState = async (state: GameState) => {
 
 <template>
   <div>
-    <h1 class="mt-2 text-2xl font-bold">
+    <h1 v-if="game" class="mt-2 text-2xl font-bold">
       <GameIcon :game="game" class="inline" />
       {{ game?.name ?? id }}
     </h1>
-    <div v-if="game?.steamGame">
+    <!-- <div v-if="game?.steamGame">
       <p>appid {{ game.steamGame.appId }}</p>
       <p>Playtime: {{ game.steamGame.playtimeForever }}</p>
-    </div>
+    </div> -->
     <div>
       <GameStateControl v-model="state" @change="updateGameState(state)" />
       {{ state }}

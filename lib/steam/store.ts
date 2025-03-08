@@ -89,6 +89,9 @@ export async function getAppDetails(appId: number) {
 }
 
 export function parseReleaseDate(date: string) {
+  if (!date) {
+    return null;
+  }
   // date from steam is like: 25 Mar, 2013
   return new Date(date);
 }

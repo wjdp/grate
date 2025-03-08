@@ -1,6 +1,6 @@
 import createFetchMock from "vitest-fetch-mock";
 import { vi, beforeEach, describe, expect, it, afterAll } from "vitest";
-import { getAppDetails, parseReleaseDate } from "./store";
+import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
 
 import Response7670 from "./fixtures/store/7670.json";
 import Response443080 from "./fixtures/store/443080.json";
@@ -22,10 +22,37 @@ describe("getAppDetails", () => {
     fetchMocker.mockResponseOnce(JSON.stringify(Response7670));
     const appDetails = await getAppDetails(BIOSHOCK_APP_ID);
     expect(appDetails).toHaveProperty("name", "BioShock™");
+    expect(appDetails).toMatchSnapshot();
   });
   it("should handle an invalid app ID", async () => {
-    fetchMocker.mockResponseOnce(JSON.stringify(Response443080));
-    await expect(getAppDetails(INVALID_APP_ID)).rejects.toThrow();
+    fetchMocker.mockResponse(JSON.stringify(Response443080));
+    await expect(getAppDetails(INVALID_APP_ID)).rejects.toThrow(
+      SteamStoreError,
+    );
+    try {
+      await getAppDetails(INVALID_APP_ID);
+    } catch (error) {
+      if (error instanceof SteamStoreError) {
+        expect(error.retriable).toBe(false);
+      } else {
+        throw error;
+      }
+    }
+  });
+  it("should handle too many requests", async () => {
+    fetchMocker.mockResponse("", { status: 429 });
+    await expect(getAppDetails(BIOSHOCK_APP_ID)).rejects.toThrowError(
+      SteamStoreError,
+    );
+    try {
+      await getAppDetails(INVALID_APP_ID);
+    } catch (error) {
+      if (error instanceof SteamStoreError) {
+        expect(error.retriable).toBe(true);
+      } else {
+        throw error;
+      }
+    }
   });
 });
 

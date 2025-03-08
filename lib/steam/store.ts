@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export class SteamStoreError extends Error {
+  retriable: boolean;
+  constructor(message: string, retriable = false) {
+    super(message);
+    this.name = "SteamStoreError";
+    this.retriable = retriable;
+  }
+}
+
 const SteamAppInfo = z.object({
   type: z.string(),
   name: z.string(),
@@ -66,12 +75,15 @@ export async function getAppDetails(appId: number) {
     `http://store.steampowered.com/api/appdetails/?appids=${appId}`,
   );
   if (!response.ok) {
-    throw new Error(response.statusText);
+    if (response.status === 429) {
+      throw new SteamStoreError("Too many requests", true);
+    }
+    throw new SteamStoreError(response.statusText, true);
   }
   const data = await response.json();
   const appData = data[appId.toString()];
   if (!appData.success) {
-    throw new Error("Failed to fetch app details");
+    throw new SteamStoreError("App details unavailable", false);
   }
   return SteamAppInfo.parse(appData.data);
 }

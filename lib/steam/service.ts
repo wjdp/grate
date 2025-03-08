@@ -1,7 +1,7 @@
 import type { SteamGame } from "@prisma/client";
 import prisma from "../prisma";
 import { getUserGames, getUserInfo, type UserGame } from "./api";
-import { getAppDetails, parseReleaseDate } from "./store";
+import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
 
 export class SteamServiceError extends Error {
   constructor(message: string) {
@@ -124,6 +124,17 @@ export async function populateStoreData(appId: number): Promise<SteamGame> {
   try {
     storeAppInfo = await getAppDetails(appId);
   } catch (error) {
+    if (error instanceof SteamStoreError) {
+      if (!error.retriable) {
+        // Handle non-retriable errors
+        // This will be when the app is no longer available on the store so we cannot fetch its details
+        const steamApp = await prisma.steamGame.update({
+          where: { appId },
+          data: { appInfoState: "UNAVAILABLE" },
+        });
+        return steamApp;
+      }
+    }
     throw new SteamServiceError(
       `Failed to fetch app details for ${appId}: ${error}`,
     );

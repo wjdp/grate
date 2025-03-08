@@ -112,6 +112,15 @@ export async function updateGames() {
   return games;
 }
 
+export async function findGameNeedingStoreData(): Promise<SteamGame | null> {
+  const game = await prisma.steamGame.findFirst({
+    where: {
+      appInfoState: "NOT_FETCHED",
+    },
+  });
+  return game;
+}
+
 export async function populateStoreData(appId: number): Promise<SteamGame> {
   const now = new Date();
   const game = await prisma.steamGame.findFirst({

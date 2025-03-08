@@ -60,6 +60,9 @@ importers:
       vitest:
         specifier: ^3.0.8
         version: 3.0.8(@types/node@22.13.1)(jiti@2.4.2)(terser@5.38.1)(yaml@2.7.0)
+      vitest-fetch-mock:
+        specifier: ^0.4.5
+        version: 0.4.5(vitest@3.0.8(@types/node@22.13.1)(jiti@2.4.2)(terser@5.38.1)(yaml@2.7.0))
       vue:
         specifier: latest
         version: 3.5.13(typescript@5.7.3)
@@ -3916,6 +3919,12 @@ packages:
 
   vitest-environment-nuxt@1.0.1:
     resolution: {integrity: sha512-eBCwtIQriXW5/M49FjqNKfnlJYlG2LWMSNFsRVKomc8CaMqmhQPBS5LZ9DlgYL9T8xIVsiA6RZn2lk7vxov3Ow==}
+
+  vitest-fetch-mock@0.4.5:
+    resolution: {integrity: sha512-nhWdCQIGtaSEUVl96pMm0WggyDGPDv5FUy/Q9Hx3cs2RGmh3Q/uRsLClGbdG3kXBkJ3br5yTUjB2MeW25TwdOA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      vitest: '>=2.0.0'
 
   vitest@3.0.8:
     resolution: {integrity: sha512-dfqAsNqRGUc8hB9OVR2P0w8PZPEckti2+5rdZip0WIz9WW0MnImJ8XiR61QhqLa92EQzKP2uPkzenKOAHyEIbA==}
@@ -8327,6 +8336,10 @@ snapshots:
       - typescript
       - vitest
       - yaml
+
+  vitest-fetch-mock@0.4.5(vitest@3.0.8(@types/node@22.13.1)(jiti@2.4.2)(terser@5.38.1)(yaml@2.7.0)):
+    dependencies:
+      vitest: 3.0.8(@types/node@22.13.1)(jiti@2.4.2)(terser@5.38.1)(yaml@2.7.0)
 
   vitest@3.0.8(@types/node@22.13.1)(jiti@2.4.2)(terser@5.38.1)(yaml@2.7.0):
     dependencies:

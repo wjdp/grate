@@ -69,7 +69,7 @@ export async function getAppDetails(appId: number) {
     throw new Error(response.statusText);
   }
   const data = await response.json();
-  const appData = data[appId];
+  const appData = data[appId.toString()];
   if (!appData.success) {
     throw new Error("Failed to fetch app details");
   }

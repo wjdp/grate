@@ -59,10 +59,18 @@ model GameStateChange {
   timestamp DateTime
 }
 
+enum SteamAppInfoState {
+  FETCHED
+  NOT_FETCHED
+  UNAVAILABLE
+}
+
 model SteamGame {
-  appId  BigInt @id
-  gameId Int    @unique
-  game   Game   @relation(fields: [gameId], references: [id])
+  appId        BigInt            @id
+  gameId       Int               @unique
+  game         Game              @relation(fields: [gameId], references: [id])
+  appInfo      SteamAppInfo?
+  appInfoState SteamAppInfoState @default(NOT_FETCHED)
 
   name String
 
@@ -84,6 +92,37 @@ model SteamGame {
   hasLeaderboards          Boolean @default(false)
 
   playtimeRecords SteamGamePlaytime[]
+}
+
+model SteamAppInfo {
+  appId               BigInt    @id
+  fetchedAt           DateTime
+  SteamGame           SteamGame @relation(fields: [appId], references: [appId])
+  type                String
+  name                String
+  requiredAge         Int?
+  isFree              Boolean
+  detailedDescription String
+  aboutTheGame        String
+  shortDescription    String
+  headerImage         String
+  capsuleImage        String
+  capsuleImagev5      String
+  website             String?
+  developers          Json
+  publishers          Json
+  platformWindows     Boolean
+  platformMac         Boolean
+  platformLinux       Boolean
+  metacriticScore     Int?
+  metacriticUrl       String?
+  categories          Json
+  genres              Json
+  screenshots         Json
+  releaseDate         DateTime?
+  comingSoon          Boolean?
+  background          String
+  backgroundRaw       String
 }
 
 model SteamGamePlaytime {

@@ -1,6 +1,14 @@
 import type { SteamGame } from "@prisma/client";
 import prisma from "../prisma";
 import { getUserGames, getUserInfo, type UserGame } from "./api";
+import { getAppDetails, parseReleaseDate } from "./store";
+
+export class SteamServiceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SteamServiceError";
+  }
+}
 
 export async function updateUser() {
   const currentUser = await prisma.steamUser.findFirst();
@@ -102,6 +110,67 @@ export async function updateGames() {
     await updateOrCreateGame(game);
   }
   return games;
+}
+
+export async function populateStoreData(appId: number): Promise<SteamGame> {
+  const now = new Date();
+  const game = await prisma.steamGame.findFirst({
+    where: { appId },
+  });
+  if (!game) {
+    throw new SteamServiceError(`Game ${appId} not in database`);
+  }
+  let storeAppInfo;
+  try {
+    storeAppInfo = await getAppDetails(appId);
+  } catch (error) {
+    throw new SteamServiceError(
+      `Failed to fetch app details for ${appId}: ${error}`,
+    );
+  }
+  const steamApp = await prisma.steamGame.update({
+    where: { appId },
+    data: {
+      appInfoState: "FETCHED",
+      appInfo: {
+        create: {
+          fetchedAt: now,
+          type: storeAppInfo.type,
+          name: storeAppInfo.name,
+          requiredAge:
+            typeof storeAppInfo.required_age === "number"
+              ? storeAppInfo.required_age
+              : parseInt(storeAppInfo.required_age),
+          isFree: storeAppInfo.is_free,
+          detailedDescription: storeAppInfo.detailed_description,
+          aboutTheGame: storeAppInfo.about_the_game,
+          shortDescription: storeAppInfo.short_description,
+          headerImage: storeAppInfo.header_image,
+          capsuleImage: storeAppInfo.capsule_image,
+          capsuleImagev5: storeAppInfo.capsule_imagev5,
+          website: storeAppInfo.website,
+          developers: storeAppInfo.developers,
+          publishers: storeAppInfo.publishers ?? [],
+          platformWindows: storeAppInfo.platforms.windows,
+          platformMac: storeAppInfo.platforms.mac,
+          platformLinux: storeAppInfo.platforms.linux,
+          metacriticScore: storeAppInfo.metacritic?.score,
+          metacriticUrl: storeAppInfo.metacritic?.url,
+          categories: storeAppInfo.categories ?? [],
+          genres: storeAppInfo.genres ?? [],
+          screenshots: storeAppInfo.screenshots ?? [],
+          releaseDate: storeAppInfo.release_date
+            ? parseReleaseDate(storeAppInfo.release_date.date)
+            : undefined,
+          comingSoon: storeAppInfo.release_date?.coming_soon,
+          background: storeAppInfo.background,
+          backgroundRaw: storeAppInfo.background_raw,
+        },
+      },
+    },
+    include: { appInfo: true },
+  });
+  return steamApp;
 }
 
 export async function recordPlaytimes() {

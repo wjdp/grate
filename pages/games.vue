@@ -1,6 +1,5 @@
 <script lang="ts" setup>
-const { $client } = useNuxtApp();
-const { data } = $client.games.useQuery();
+const { data } = useGames();
 const games = computed(() => data.value?.games);
 type FilterOption = "all" | "played" | "unplayed" | "recent";
 const filter = ref<FilterOption>("all");

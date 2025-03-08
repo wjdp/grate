@@ -8,7 +8,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "lint": "prettier --write .",
-    "lint:ci": "prettier --check ."
+    "lint:ci": "prettier --check .",
+    "test": "vitest"
   },
   "lint-staged": {
     "**/*": "prettier --write"
@@ -20,9 +21,11 @@
   },
   "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92",
   "devDependencies": {
+    "@nuxt/test-utils": "^3.17.2",
     "@nuxtjs/tailwindcss": "^6.13.1",
     "@trpc/client": "^10.45.2",
     "@trpc/server": "^10.45.2",
+    "@vue/test-utils": "^2.4.6",
     "husky": "^9.1.7",
     "lint-staged": "^15.4.3",
     "nuxt": "^3.15.4",
@@ -31,6 +34,7 @@
     "prettier-plugin-prisma": "^5.0.0",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "trpc-nuxt": "^0.10.22",
+    "vitest": "^3.0.8",
     "vue": "latest",
     "vue-router": "latest",
     "zod": "^3.24.2"

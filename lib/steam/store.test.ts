@@ -59,6 +59,9 @@ describe("getAppDetails", () => {
 describe("parseReleaseDate", () => {
   it("should return a Date object for a valid steam release date", () => {
     const date = parseReleaseDate("25 Mar, 2013");
+    if (!date) {
+      throw new Error("Expected a date object");
+    }
     expect(date).toBeInstanceOf(Date);
     expect(date.getFullYear()).toBe(2013);
     expect(date.getMonth()).toBe(2);

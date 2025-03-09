@@ -11,7 +11,7 @@ export async function getGames() {
 export async function getGame(id: number) {
   return await prisma.game.findUnique({
     where: { id },
-    include: { steamGame: true },
+    include: { steamGame: { include: { appInfo: true } } },
   });
 }
 

@@ -24,6 +24,11 @@ defineProps<{
           </span>
           <span v-else> Unplayed </span>
         </div>
+        <div class="text-sm">
+          <span v-if="game.state">
+            {{ game.state }}
+          </span>
+        </div>
       </NuxtLink>
     </div>
   </li>

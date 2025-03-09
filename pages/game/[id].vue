@@ -39,6 +39,10 @@ const updateGameState = async (state: GameState) => {
       <GameStateControl v-model="state" @change="updateGameState(state)" />
       {{ state }}
     </div>
+    <p v-if="game?.steamGame?.appInfo">
+      {{ game.steamGame.appInfo.shortDescription }}
+      <img :src="game.steamGame.appInfo.headerImage" />
+    </p>
     <table v-if="playtimes">
       <thead>
         <tr>

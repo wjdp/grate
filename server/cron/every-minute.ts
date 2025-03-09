@@ -1,10 +1,12 @@
 import { defineCronHandler } from "#nuxt/cron";
+import { areBackgroundJobsEnabled } from "~/lib/background-jobs";
 import {
   findGameNeedingStoreData,
   populateStoreData,
 } from "~/lib/steam/service";
 
 export default defineCronHandler("everyMinute", async () => {
+  if (!areBackgroundJobsEnabled()) return;
   const game = await findGameNeedingStoreData();
   if (!game) {
     return;

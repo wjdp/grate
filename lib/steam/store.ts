@@ -88,15 +88,20 @@ export async function getAppDetails(appId: number) {
   return SteamAppInfo.parse(appData.data);
 }
 
-export function parseReleaseDate(date: string) {
-  if (!date) {
+export function parseReleaseDate(s: string) {
+  if (!s) {
     return null;
   }
   // date from steam is like: 25 Mar, 2013
+  let date;
   try {
-    return new Date(date);
+    date = new Date(s);
   } catch (error) {
     console.error(`Error parsing date: ${date}`);
     throw error;
   }
+  if (isNaN(date.getTime())) {
+    throw new Error(`Invalid date: ${date}`);
+  }
+  return date;
 }

@@ -64,6 +64,9 @@ describe("parseReleaseDate", () => {
     expect(date.getMonth()).toBe(2);
     expect(date.getDate()).toBe(25);
   });
+  it("throws on invalid date", async () => {
+    expect(() => parseReleaseDate("invalid date")).toThrow();
+  });
   it("handles empty string", () => {
     const date = parseReleaseDate("");
     expect(date).toBe(null);

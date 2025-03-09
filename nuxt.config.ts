@@ -7,6 +7,7 @@ export default defineNuxtConfig({
     "nuxt-cron",
     "@nuxtjs/tailwindcss",
     "@nuxt/test-utils/module",
+    "@nuxt/fonts",
   ],
   build: {
     transpile: ["trpc-nuxt"],

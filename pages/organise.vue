@@ -69,7 +69,9 @@ const skipGame = async () => {
           class="inline-block"
         />
       </div>
-      <h1 class="py-2 text-center text-2xl font-bold">{{ theGame.name }}</h1>
+      <h1 class="py-2 text-center text-3xl font-light tracking-tight">
+        {{ theGame.name }}
+      </h1>
       <p>{{ theGame.state }}</p>
       <p v-if="theGame.steamGame?.appInfo" class="py-1">
         {{ theGame.steamGame.appInfo.shortDescription }}

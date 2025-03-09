@@ -33,6 +33,7 @@
     "nuxt-cron": "^1.8.0",
     "prettier": "3.5.3",
     "prettier-plugin-prisma": "^5.0.0",
+    "prettier-plugin-sh": "^0.15.0",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "trpc-nuxt": "^0.10.22",
     "vitest": "^3.0.8",

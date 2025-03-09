@@ -97,11 +97,11 @@ export function parseReleaseDate(s: string) {
   try {
     date = new Date(s);
   } catch (error) {
-    console.error(`Error parsing date: ${date}`);
+    console.error(`Error parsing date: ${s}`);
     throw error;
   }
   if (isNaN(date.getTime())) {
-    throw new Error(`Invalid date: ${date}`);
+    throw new Error(`Invalid date: ${s}`);
   }
   return date;
 }

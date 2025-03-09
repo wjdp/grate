@@ -34,7 +34,15 @@ export async function getGamePlaytimes(id: number) {
 
 export async function setGameState(id: number, state: GameState | null) {
   const now = new Date();
-  console.log(`setGameState(${id}, ${state})`);
+  const gameBeforeUpdate = await prisma.game.findUnique({ where: { id } });
+  if (!gameBeforeUpdate) {
+    throw new Error("Game not found");
+  }
+  if (gameBeforeUpdate.state === state) {
+    // No change
+    console.log(`There is no change in state for game ${id}`);
+    return gameBeforeUpdate;
+  }
   const game = await prisma.game.update({
     where: { id },
     data: { state },

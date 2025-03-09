@@ -60,20 +60,34 @@ const skipGame = async () => {
 <template>
   <main>
     <h1>Organise</h1>
-    <div v-if="theGame" class="my-4 max-w-xl border-2 border-slate-500 p-4">
-      <h1 class="text-2xl font-bold">{{ theGame.name }}</h1>
-      <p>{{ theGame.state }}</p>
-      <p v-if="theGame.steamGame?.appInfo">
-        {{ theGame.steamGame.appInfo.shortDescription }}
+    <div v-if="theGame" class="my-4 max-w-xl border-2 border-slate-500 px-4">
+      <div class="py-2 text-center">
         <img
+          v-if="theGame.steamGame.appInfo"
           :src="theGame.steamGame.appInfo.headerImage"
           :alt="`${theGame.name}`"
+          class="inline-block"
         />
+      </div>
+      <h1 class="py-2 text-center text-2xl font-bold">{{ theGame.name }}</h1>
+      <p>{{ theGame.state }}</p>
+      <p v-if="theGame.steamGame?.appInfo" class="py-1">
+        {{ theGame.steamGame.appInfo.shortDescription }}
       </p>
-      <p>
-        You've played for
-        {{ formatPlaytime(theGame?.steamGame?.playtimeForever) }}
-      </p>
+      <div class="flex flex-row py-1 text-center">
+        <p class="grow">
+          Playtime
+          <span class="font-semibold">
+            {{ formatPlaytime(theGame?.steamGame?.playtimeForever) }}
+          </span>
+        </p>
+        <p class="grow">
+          Last played
+          <span class="font-semibold">
+            {{ formatLastPlayed(theGame?.steamGame?.rTimeLastPlayed) }}
+          </span>
+        </p>
+      </div>
       <div class="flex w-full flex-row space-x-4">
         <div class="basis-full">
           <h2 class="font-lg py-2 text-center font-bold">Playing</h2>

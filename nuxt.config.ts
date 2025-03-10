@@ -14,6 +14,7 @@ export default defineNuxtConfig({
   },
   nitro: {
     plugins: ["bigint.ts"],
+    experimental: { tasks: true },
   },
   vite: {
     resolve: {

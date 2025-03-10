@@ -14,6 +14,8 @@ export const useSseClient = () => {
     };
   }
 
+  const listeners = new Map<SseMessageType, (data: any) => void>();
+
   const reconnect = () => {
     if (eventSource) {
       eventSource.close();
@@ -23,6 +25,16 @@ export const useSseClient = () => {
       console.error("EventSource error:", event);
       eventSource.close();
       setTimeout(reconnect, 1000);
+    };
+    eventSource.onopen = () => {
+      open.value = true;
+      // Reattach listeners
+      listeners.forEach((callback, name) => {
+        eventSource.addEventListener(name, (event) => {
+          const message = JSON.parse(event.data);
+          callback(message);
+        });
+      });
     };
   };
 
@@ -36,6 +48,7 @@ export const useSseClient = () => {
       name: T,
       callback: (data: SseMessageMap[T]) => void,
     ) => {
+      listeners.set(name, callback);
       eventSource.addEventListener(name, (event) => {
         const message = JSON.parse(event.data);
         callback(message);

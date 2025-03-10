@@ -17,6 +17,9 @@ export const useSse = (event: H3Event, busName: string = defaultBusName) => {
   const eventStream = createEventStream(event);
   let counter = 0;
 
+  // Used by Nginx to disable response buffering
+  appendResponseHeader(event, "X-Accel-Buffering", "no");
+
   sseHooks.hook(busName, (type, data) => {
     console.log("got", type, data, "on", busName);
     eventStream.push({

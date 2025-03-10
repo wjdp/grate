@@ -29,6 +29,7 @@ export async function updateUser() {
       lastLogoff: steamUser.lastlogoff,
     },
   });
+  console.log(`Updated user ${updateUser.personaName}`);
   return updateUser;
 }
 
@@ -112,13 +113,13 @@ export async function updateGames() {
   return games;
 }
 
-export async function findGameNeedingStoreData(): Promise<SteamGame | null> {
-  const game = await prisma.steamGame.findFirst({
+export async function findGamesNeedingStoreData(): Promise<SteamGame[]> {
+  const games = await prisma.steamGame.findMany({
     where: {
       appInfoState: "NOT_FETCHED",
     },
   });
-  return game;
+  return games;
 }
 
 export async function populateStoreData(appId: number): Promise<SteamGame> {

@@ -1,4 +1,6 @@
-export default async function sleep() {
+import sleep from "~/utils/sleep";
+
+export default async function sleepHandler() {
   const ms = 2000;
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  await sleep(ms);
 }

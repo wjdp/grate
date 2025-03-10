@@ -1,4 +1,4 @@
-import { TaskName } from "~/server/tasks/router";
+import type { TaskName } from "#shared/tasks";
 
 const CURRENT_TASK_ID = "currentTaskId";
 const LAST_TASK_KEY = "lastTaskId";
@@ -18,7 +18,7 @@ async function getTask(id: number): Promise<Task> {
   return (await storage.get(getTaskKey(id))) as Task;
 }
 
-export async function getCurrentTask() {
+export async function getCurrentTask(): Promise<Task | null> {
   const storage = await useStorage();
   const currentTaskIdRaw = await storage.get(CURRENT_TASK_ID);
   if (!currentTaskIdRaw) {

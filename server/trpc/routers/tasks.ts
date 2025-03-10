@@ -1,15 +1,18 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../trpc";
-import { testTasks } from "~/server/tasks/queue";
+import { createTask } from "~/server/tasks/queue";
+import { TaskMap } from "~/server/tasks/router";
+
+const TaskNameEnum = z.enum(Object.keys(TaskMap) as [keyof typeof TaskMap]);
 
 export const tasksRouter = router({
   runTask: publicProcedure
     .input(
       z.object({
-        taskName: z.string(),
+        taskName: TaskNameEnum,
       }),
     )
     .mutation(({ input }) => {
-      testTasks();
+      createTask(input.taskName);
     }),
 });

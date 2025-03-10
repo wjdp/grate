@@ -1,9 +1,11 @@
+import { TaskName } from "~/server/tasks/router";
+
 const CURRENT_TASK_ID = "currentTaskId";
 const LAST_TASK_KEY = "lastTaskId";
 
 interface Task {
   id: number;
-  name: string;
+  name: TaskName;
   status: "pending" | "in_progress" | "done" | "failed";
 }
 
@@ -58,7 +60,7 @@ export async function completeTask(taskId: number, status: "done" | "failed") {
   return nextTask;
 }
 
-export async function createTask(taskName: string): Promise<Task> {
+export async function createTask(taskName: TaskName): Promise<Task> {
   const taskId = await getNewTaskId();
   const task: Task = {
     id: taskId,
@@ -71,6 +73,8 @@ export async function createTask(taskName: string): Promise<Task> {
   if (!currentTaskId) {
     await storage.set(CURRENT_TASK_ID, taskId);
   }
+  console.log(`Task ${taskId}:${taskName} created`);
+  runTask("handler");
   return task;
 }
 
@@ -79,11 +83,4 @@ async function getAllTasks() {
   return (await storage.getKeys("task:")).map((key) =>
     parseInt(key.split(":")[1]),
   );
-}
-
-// ---
-export async function testTasks() {
-  const task1 = await createTask("test-task");
-  console.log(await getAllTasks());
-  runTask("handler");
 }

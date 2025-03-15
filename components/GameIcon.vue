@@ -7,9 +7,7 @@ const props = defineProps<{
 }>();
 
 const imgIconUrl = computed(() =>
-  props.game.steamGame
-    ? `http://media.steampowered.com/steamcommunity/public/images/apps/${props.game.steamGame.appId}/${props.game.steamGame.imgIconUrl}.jpg`
-    : null,
+  props.game.steamGame ? `/art/steam/${props.game.steamGame.appId}/icon` : null,
 );
 </script>
 

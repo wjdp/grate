@@ -4,6 +4,7 @@ import populateStoreData from "./queueable/populateStoreData";
 import recordPlaytimes from "./queueable/recordPlaytimes";
 import updateGames from "./queueable/updateGames";
 import updateSteamUser from "./queueable/updateSteamUser";
+import cacheSteamArt from "./queueable/cacheSteamArt";
 
 import type { TaskName } from "#shared/tasks";
 
@@ -14,4 +15,5 @@ export const TaskMap: { [k in TaskName]: () => Promise<void> } = {
   recordPlaytimes,
   updateGames,
   updateSteamUser,
+  cacheSteamArt,
 };

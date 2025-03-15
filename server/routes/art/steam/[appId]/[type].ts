@@ -13,6 +13,11 @@ export default defineEventHandler(async (event) => {
     type: getRouterParam(event, "type"),
   });
 
+  if (params.error) {
+    setResponseStatus(event, 400);
+    return { error: "Invalid parameters" };
+  }
+
   const cachedArtFilePath = await checkAndReturnSteamArtPath(
     params.data.appId,
     params.data.type,

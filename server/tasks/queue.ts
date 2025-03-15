@@ -22,7 +22,7 @@ async function getTask(id: number): Promise<Task> {
 export async function getCurrentTask(): Promise<Task | null> {
   const storage = await useStorage();
   const currentTaskIdRaw = await storage.get(CURRENT_TASK_ID);
-  if (!currentTaskIdRaw) {
+  if (typeof currentTaskIdRaw !== "string") {
     return null;
   }
   const currentTaskId = parseInt(currentTaskIdRaw);
@@ -32,7 +32,8 @@ export async function getCurrentTask(): Promise<Task | null> {
 async function getNewTaskId() {
   const storage = await useStorage();
   const lastTaskId = await storage.get(LAST_TASK_KEY);
-  const newTaskId = lastTaskId ? parseInt(lastTaskId) + 1 : 1;
+  const newTaskId =
+    typeof lastTaskId === "string" ? parseInt(lastTaskId) + 1 : 1;
   await storage.set(LAST_TASK_KEY, newTaskId);
   return newTaskId;
 }

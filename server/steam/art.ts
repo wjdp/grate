@@ -1,4 +1,5 @@
-import { getSteamArtUrls, SteamArtUrls } from "~/lib/steam/art";
+import { getSteamArtUrls } from "~/lib/steam/art";
+import type { SteamArtUrls } from "~/lib/steam/art";
 import fs from "fs";
 import sleep from "~/utils/sleep";
 import { ART_DIR } from "~/server/constants";
@@ -49,7 +50,7 @@ export async function cacheSteamArtForApp(appId: number) {
 export async function checkAndReturnSteamArtPath(
   appId: number,
   type: keyof SteamArtUrls,
-): Promise<Buffer | null> {
+): Promise<string | null> {
   const filePath = getFilePathForArt(appId, type);
   const exists = await checkFileExists(filePath);
   if (!exists) {

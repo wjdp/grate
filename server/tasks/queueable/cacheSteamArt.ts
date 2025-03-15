@@ -3,7 +3,7 @@ import prisma from "~/lib/prisma";
 import { cacheSteamIconForApp, isSteamIconCached } from "~/server/steam/icon";
 import { updateInProgressTask } from "~/server/tasks/queue";
 import type { Task } from "~/server/tasks/queue";
-import { SteamGame } from "@prisma/client";
+import type { SteamGame } from "@prisma/client";
 
 async function cacheArtForSingleGame(task: Task, appId: number) {
   const isCached = await isSteamArtCached(appId);

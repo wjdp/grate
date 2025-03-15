@@ -11,9 +11,10 @@ const { data: playtimeData } = await $client.gamePlaytimes.useQuery({ id });
 const playtimes = computed(() => playtimeData.value?.playtimes);
 const formatTimestamp = (timestamp: string) =>
   new Date(timestamp).toLocaleString();
-const state = ref(game.value?.state);
+const state = ref(game.value?.state ?? null);
 
-const updateGameState = async (state: GameState) => {
+const updateGameState = async (state: GameState | null) => {
+  if (!game.value) throw new Error("Game not loaded");
   const previousState = game.value.state;
   game.value.state = state;
   try {

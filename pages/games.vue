@@ -5,10 +5,13 @@ type FilterOption = "all" | "played" | "unplayed" | "recent";
 const filter = ref<FilterOption>("all");
 const filteredGames = computed(() => {
   return games.value?.filter((game) => {
-    if (filter.value === "played") return game.steamGame?.playtimeForever > 0;
+    if (!game.steamGame) return false;
+    if (filter.value === "played")
+      return (game.steamGame.playtimeForever ?? 0) > 0;
     if (filter.value === "unplayed")
-      return game.steamGame?.playtimeForever === 0;
-    if (filter.value === "recent") return game.steamGame?.playtime2weeks > 0;
+      return (game.steamGame.playtimeForever ?? 0) === 0;
+    if (filter.value === "recent")
+      return (game.steamGame.playtime2weeks ?? 0) > 0;
     return true;
   });
 });
@@ -38,16 +41,19 @@ const totalPlaytimeFormatted = computed(() => {
 });
 const totalGames = computed(() => games.value?.length);
 const totalPlayedGames = computed(() => {
-  return games.value?.filter((game) => game.steamGame?.playtimeForever > 0)
-    .length;
+  return games.value?.filter(
+    (game) => (game.steamGame?.playtimeForever ?? 0) > 0,
+  ).length;
 });
 const totalUnplayedGames = computed(() => {
-  return games.value?.filter((game) => game.steamGame?.playtimeForever === 0)
-    .length;
+  return games.value?.filter(
+    (game) => (game.steamGame?.playtimeForever ?? 0) === 0,
+  ).length;
 });
 const totalRecentGames = computed(() => {
-  return games.value?.filter((game) => game.steamGame?.playtime2weeks > 0)
-    .length;
+  return games.value?.filter(
+    (game) => (game.steamGame?.playtime2weeks ?? 0) > 0,
+  ).length;
 });
 </script>
 

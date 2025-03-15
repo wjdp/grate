@@ -1,6 +1,6 @@
 import { ART_DIR } from "~/server/constants";
 import { checkFileExists } from "~/server/files";
-import { SteamGame } from "@prisma/client";
+import type { SteamGame } from "@prisma/client";
 import fs from "fs";
 
 function getFilePathForIcon(appId: number) {

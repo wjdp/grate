@@ -21,7 +21,7 @@ async function cacheIconForSingleGame(steamGame: SteamGame) {
 export default async function cacheSteamArt() {
   const steamGames = await prisma.steamGame.findMany();
   for (const game of steamGames) {
-    // await cacheArtForSingleGame(game.appId as number);
+    await cacheArtForSingleGame(game.appId as number);
     await cacheIconForSingleGame(game);
   }
 }

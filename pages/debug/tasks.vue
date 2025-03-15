@@ -50,7 +50,6 @@ onMessage("task", (event) => {
         >{{ taskName }}
       </Button>
     </div>
-    <div>{{ currentTasks }}</div>
     <div class="m-4 h-[20vh] overflow-y-auto bg-gray-800">
       <ol v-for="task in taskLogs.toReversed()" :key="task.id" class="m-4">
         <li>

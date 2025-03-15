@@ -5,7 +5,8 @@ import sleep from "~/utils/sleep";
 import { ART_DIR } from "~/server/constants";
 import { checkFileExists } from "~/server/files";
 
-const TIME_PER_ART_FETCH = 600;
+const ART_FETCH_PER_MINUTE = 600;
+const TIME_PER_ART_FETCH = 60_000 / ART_FETCH_PER_MINUTE;
 
 function getFilePathForArt(appId: bigint, type: keyof SteamArtUrls) {
   return `${ART_DIR}/steam/${appId}/${type}.jpg`;

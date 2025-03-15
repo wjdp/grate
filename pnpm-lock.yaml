@@ -36,6 +36,9 @@ importers:
       '@vue/test-utils':
         specifier: ^2.4.6
         version: 2.4.6
+      hookable:
+        specifier: ^5.5.3
+        version: 5.5.3
       husky:
         specifier: ^9.1.7
         version: 9.1.7

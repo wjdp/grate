@@ -56,8 +56,8 @@ onMessage("task", (event) => {
               max="1"
             ></progress>
           </div>
-          <div v-if="task.message" class="test-sm">
-            <pre>{{ task.message }}</pre>
+          <div v-if="task.message" class="my-2">
+            <pre class="text-xs">{{ task.message }}</pre>
           </div>
         </li>
       </ol>

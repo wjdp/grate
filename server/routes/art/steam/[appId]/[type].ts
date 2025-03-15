@@ -22,5 +22,6 @@ export default defineEventHandler(async (event) => {
     return { error: "Not found" };
   }
 
+  setResponseHeader(event, "Cache-Control", "public, max-age=3600");
   return sendStream(event, fs.createReadStream(cachedArtFilePath));
 });

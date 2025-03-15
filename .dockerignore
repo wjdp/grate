@@ -32,6 +32,7 @@ prisma/dev.db
 .prettierignore
 .prettierrc
 .vscode
+http/
 
 # Docker
 .dockerignore

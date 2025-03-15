@@ -6,3 +6,4 @@ run.sh
 *.snap
 .env*
 .idea/
+*.http

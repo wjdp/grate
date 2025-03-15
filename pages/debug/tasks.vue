@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TaskName } from "#shared/tasks";
 import { TASK_NAMES } from "#shared/tasks";
+import type { SseTask } from "~/lib/hooks";
 
 const { $client } = useNuxtApp();
 
@@ -17,6 +18,18 @@ onMessage("message", async (event) => {
     messageLog.value.scrollTop = messageLog.value.scrollHeight;
   }
 });
+
+const taskLogs = ref<SseTask[]>([]);
+onMessage("task", (event) => {
+  // Check if we already have a task with the same id
+  const existingTask = taskLogs.value.find((task) => task.id === event.id);
+  if (existingTask) {
+    // If we do, update the existing task
+    Object.assign(existingTask, event);
+    return;
+  }
+  taskLogs.value.push(event);
+});
 </script>
 
 <template>
@@ -30,9 +43,29 @@ onMessage("message", async (event) => {
         >{{ taskName }}
       </Button>
     </div>
+    <div class="m-4 h-[20vh] overflow-y-auto bg-gray-800">
+      <ol v-for="task in taskLogs.toReversed()" :key="task.id" class="m-4">
+        <li>
+          <div>
+            <TaskState :state="task.state" class="mr-2" />
+            <span class="mr-2 font-mono">{{ task.id }}</span>
+            <span class="mr-2 font-semibold">{{ task.name }}</span>
+            <progress
+              v-if="task.progress !== undefined && task.state === 'in_progress'"
+              :value="task.progress"
+              max="1"
+            ></progress>
+          </div>
+          <div v-if="task.message" class="test-sm">
+            <pre>{{ task.message }}</pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+
     <div>
       <ul
-        class="m-4 h-[60vh] overflow-y-auto bg-gray-600 p-4 font-mono font-semibold"
+        class="m-4 h-[20vh] overflow-y-auto bg-gray-600 p-4 font-mono font-semibold"
         ref="messageLog"
       >
         <li v-for="message in messages" :key="message">{{ message }}</li>

@@ -20,15 +20,18 @@ export const useSse = (event: H3Event, busName: string = defaultBusName) => {
   // Used by Nginx to disable response buffering
   appendResponseHeader(event, "X-Accel-Buffering", "no");
 
-  sseHooks.hook(busName, (type, data) => {
-    console.log("got", type, data, "on", busName);
-    eventStream.push({
-      id: (counter++).toString(),
-      event: type,
-      retry: 2,
-      data: JSON.stringify(data),
-    });
-  });
+  sseHooks.hook(
+    busName,
+    <T extends SseMessageType>(type: T, data: SseMessageMap[T]) => {
+      console.log("got", type, data, "on", busName);
+      eventStream.push({
+        id: (counter++).toString(),
+        event: type,
+        retry: 2,
+        data: JSON.stringify(data),
+      });
+    },
+  );
 
   const { push } = useSseEvent(busName);
 

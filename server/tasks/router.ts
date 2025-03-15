@@ -1,4 +1,5 @@
 import sleep from "./queueable/sleep";
+import sleepWithProgress from "./queueable/sleepWithProgress";
 import fail from "./queueable/fail";
 import populateStoreData from "./queueable/populateStoreData";
 import recordPlaytimes from "./queueable/recordPlaytimes";
@@ -10,6 +11,7 @@ import type { TaskName } from "#shared/tasks";
 
 export const TaskMap: { [k in TaskName]: () => Promise<void> } = {
   sleep,
+  sleepWithProgress,
   fail,
   populateStoreData,
   recordPlaytimes,

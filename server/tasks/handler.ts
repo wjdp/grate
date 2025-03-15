@@ -30,23 +30,41 @@ export default defineTask({
     if (!taskFunction) {
       console.error(`Task function not found for task ${taskNameLog}`);
       await updateTaskStatus(currentTask.id, "failed");
-      push("message", { message: `task ${taskNameLog} failed` });
+      push("task", {
+        id: currentTask.id,
+        name: currentTask.name,
+        state: "failed",
+      });
       return { result: "Task function not found" };
     }
     await updateTaskStatus(currentTask.id, "in_progress");
-    push("message", { message: `task ${taskNameLog} in progress` });
+    push("task", {
+      id: currentTask.id,
+      name: currentTask.name,
+      state: "in_progress",
+    });
     console.log(`Running task ${taskNameLog}`);
     try {
-      await taskFunction(currentTask.id);
-      await completeTask(currentTask.id, "done");
+      await taskFunction(currentTask);
     } catch (error) {
       console.error(`Task ${taskNameLog} failed: ${error}`);
       await completeTask(currentTask.id, "failed");
-      push("message", { message: `task ${taskNameLog} failed` });
+      push("task", {
+        id: currentTask.id,
+        name: currentTask.name,
+        state: "failed",
+        message: `${error}`,
+      });
       queueNextTask();
       return { result: "Task failed" };
     }
-    push("message", { message: `task ${taskNameLog} completed` });
+
+    await completeTask(currentTask.id, "done");
+    push("task", {
+      id: currentTask.id,
+      name: currentTask.name,
+      state: "done",
+    });
 
     console.log("Task completed, triggered new task handler");
     queueNextTask();

@@ -1,12 +1,13 @@
-import type { TaskName } from "#shared/tasks";
+import type { TaskName, TaskState } from "#shared/tasks";
+import { useSseEvent } from "~/composables/useSse";
 
 const CURRENT_TASK_ID = "currentTaskId";
 const LAST_TASK_KEY = "lastTaskId";
 
-interface Task {
+export interface Task {
   id: number;
   name: TaskName;
-  status: "pending" | "in_progress" | "done" | "failed";
+  status: TaskState;
 }
 
 function getTaskKey(taskId: number) {
@@ -68,11 +69,13 @@ export async function createTask(taskName: TaskName): Promise<Task> {
     status: "pending",
   };
   const storage = await useStorage();
+  const { push } = useSseEvent();
   await storage.set(getTaskKey(taskId), task);
   const currentTaskId = await storage.get(CURRENT_TASK_ID);
   if (!currentTaskId) {
     await storage.set(CURRENT_TASK_ID, taskId);
   }
+  push("task", { id: taskId, name: taskName, state: "pending" });
   console.log(`Task ${taskId}:${taskName} created`);
   runTask("handler");
   return task;
@@ -83,4 +86,12 @@ async function getAllTasks() {
   return (await storage.getKeys("task:")).map((key) =>
     parseInt(key.split(":")[1]),
   );
+}
+
+export function updateInProgressTask(
+  task: Task,
+  { progress, message }: { progress?: number; message?: string },
+) {
+  const { push } = useSseEvent();
+  push("task", { ...task, state: "in_progress", progress, message });
 }

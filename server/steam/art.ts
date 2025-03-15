@@ -7,11 +7,11 @@ import { checkFileExists } from "~/server/files";
 
 const TIME_PER_ART_FETCH = 600;
 
-function getFilePathForArt(appId: number, type: keyof SteamArtUrls) {
+function getFilePathForArt(appId: bigint, type: keyof SteamArtUrls) {
   return `${ART_DIR}/steam/${appId}/${type}.jpg`;
 }
 
-export async function isSteamArtCached(appId: number): Promise<boolean> {
+export async function isSteamArtCached(appId: bigint): Promise<boolean> {
   const art = getSteamArtUrls(appId);
   for (const key of Object.keys(art) as (keyof SteamArtUrls)[]) {
     const artPath = getFilePathForArt(appId, key);
@@ -22,7 +22,7 @@ export async function isSteamArtCached(appId: number): Promise<boolean> {
   return false;
 }
 
-async function cacheArt(appId: number, type: keyof SteamArtUrls) {
+async function cacheArt(appId: bigint, type: keyof SteamArtUrls) {
   const artUrl = getSteamArtUrls(appId)[type];
   const filePath = getFilePathForArt(appId, type);
   const fileDirectory = filePath.split("/").slice(0, -1).join("/");
@@ -32,7 +32,7 @@ async function cacheArt(appId: number, type: keyof SteamArtUrls) {
   await fs.promises.writeFile(filePath, buffer);
 }
 
-export async function cacheSteamArtForApp(appId: number) {
+export async function cacheSteamArtForApp(appId: bigint) {
   const art = getSteamArtUrls(appId);
   for (const key of Object.keys(art) as (keyof SteamArtUrls)[]) {
     const timeBefore = performance.now();
@@ -48,7 +48,7 @@ export async function cacheSteamArtForApp(appId: number) {
 }
 
 export async function checkAndReturnSteamArtPath(
-  appId: number,
+  appId: bigint,
   type: keyof SteamArtUrls,
 ): Promise<string | null> {
   const filePath = getFilePathForArt(appId, type);

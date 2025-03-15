@@ -3,11 +3,11 @@ import { checkFileExists } from "~/server/files";
 import type { SteamGame } from "@prisma/client";
 import fs from "fs";
 
-function getFilePathForIcon(appId: number) {
+function getFilePathForIcon(appId: bigint) {
   return `${ART_DIR}/steam/${appId}/icon.jpg`;
 }
 
-export async function isSteamIconCached(appId: number): Promise<boolean> {
+export async function isSteamIconCached(appId: bigint): Promise<boolean> {
   return await checkFileExists(getFilePathForIcon(appId));
 }
 

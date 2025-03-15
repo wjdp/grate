@@ -5,8 +5,8 @@ import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
 import Response7670 from "./fixtures/store/7670.json";
 import Response443080 from "./fixtures/store/443080.json";
 
-const BIOSHOCK_APP_ID = 7670;
-const INVALID_APP_ID = 443080;
+const BIOSHOCK_APP_ID = BigInt(7670);
+const INVALID_APP_ID = BigInt(443080);
 
 const fetchMocker = createFetchMock(vi);
 fetchMocker.enableMocks();

@@ -10,7 +10,7 @@ export interface SteamArtUrls {
   backgroundV6B: string;
 }
 
-export function getSteamArtUrls(appId: number): SteamArtUrls {
+export function getSteamArtUrls(appId: bigint): SteamArtUrls {
   return {
     logo: `${BASE_URL}/${appId}/logo.png`,
     header: `${BASE_URL}/${appId}/header.jpg`,

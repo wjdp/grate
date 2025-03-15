@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getSteamArtUrls } from "~/lib/steam/art";
 import type { SteamArtUrls } from "~/lib/steam/art";
+
 const appId = ref("");
 const urls = ref<SteamArtUrls>();
 const artKeys: Array<keyof SteamArtUrls> = [
@@ -14,7 +15,7 @@ const artKeys: Array<keyof SteamArtUrls> = [
 ];
 
 const fetchArt = async () => {
-  const appIdNumber = parseInt(appId.value);
+  const appIdNumber = BigInt(appId.value);
   urls.value = await getSteamArtUrls(appIdNumber);
 };
 </script>

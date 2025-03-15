@@ -122,7 +122,7 @@ export async function findGamesNeedingStoreData(): Promise<SteamGame[]> {
   return games;
 }
 
-export async function populateStoreData(appId: number): Promise<SteamGame> {
+export async function populateStoreData(appId: bigint): Promise<SteamGame> {
   const now = new Date();
   const game = await prisma.steamGame.findFirst({
     where: { appId },

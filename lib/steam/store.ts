@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export class SteamStoreError extends Error {
   retriable: boolean;
+
   constructor(message: string, retriable = false) {
     super(message);
     this.name = "SteamStoreError";
@@ -70,7 +71,7 @@ const SteamAppInfo = z.object({
   background_raw: z.string(),
 });
 
-export async function getAppDetails(appId: number) {
+export async function getAppDetails(appId: bigint) {
   const response = await fetch(
     `http://store.steampowered.com/api/appdetails/?appids=${appId}`,
   );

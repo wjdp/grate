@@ -3,7 +3,7 @@ import { checkAndReturnSteamArtPath } from "~/server/steam/art";
 import fs from "fs";
 
 const PathSchema = z.object({
-  appId: z.coerce.number().positive(),
+  appId: z.coerce.bigint().positive(),
   type: z.string(),
 });
 

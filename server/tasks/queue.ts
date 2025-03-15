@@ -14,6 +14,19 @@ function getTaskKey(taskId: number) {
   return `task:${taskId}`;
 }
 
+function parseIdFromStore(v: unknown): number | null {
+  if (typeof v === "number") {
+    return v;
+  }
+  if (typeof v === "string") {
+    const id = parseInt(v);
+    if (!isNaN(id)) {
+      return id;
+    }
+  }
+  return null;
+}
+
 async function getTask(id: number): Promise<Task> {
   const storage = await useStorage();
   return (await storage.get(getTaskKey(id))) as Task;
@@ -21,19 +34,17 @@ async function getTask(id: number): Promise<Task> {
 
 export async function getCurrentTask(): Promise<Task | null> {
   const storage = await useStorage();
-  const currentTaskIdRaw = await storage.get(CURRENT_TASK_ID);
-  if (typeof currentTaskIdRaw !== "string") {
+  const currentTaskId = parseIdFromStore(await storage.get(CURRENT_TASK_ID));
+  if (!currentTaskId) {
     return null;
   }
-  const currentTaskId = parseInt(currentTaskIdRaw);
   return await getTask(currentTaskId);
 }
 
 async function getNewTaskId() {
   const storage = await useStorage();
-  const lastTaskId = await storage.get(LAST_TASK_KEY);
-  const newTaskId =
-    typeof lastTaskId === "string" ? parseInt(lastTaskId) + 1 : 1;
+  const lastTaskId = parseIdFromStore(await storage.get(LAST_TASK_KEY));
+  const newTaskId = lastTaskId ? lastTaskId + 1 : 1;
   await storage.set(LAST_TASK_KEY, newTaskId);
   return newTaskId;
 }

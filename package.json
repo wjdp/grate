@@ -9,6 +9,7 @@
     "preview": "nuxt preview",
     "lint": "prettier --write .",
     "lint:ci": "prettier --check .",
+    "typecheck": "nuxt typecheck",
     "test": "vitest"
   },
   "lint-staged": {

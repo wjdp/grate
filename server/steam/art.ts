@@ -45,3 +45,15 @@ export async function cacheSteamArtForApp(appId: number) {
     }
   }
 }
+
+export async function checkAndReturnSteamArtPath(
+  appId: number,
+  type: keyof SteamArtUrls,
+): Promise<Buffer | null> {
+  const filePath = getFilePathForArt(appId, type);
+  const exists = await checkFileExists(filePath);
+  if (!exists) {
+    return null;
+  }
+  return filePath;
+}

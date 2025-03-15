@@ -22,7 +22,7 @@ export default defineTask({
       return { result: "No tasks to run" };
     }
     const taskNameLog = `${currentTask.id}:${currentTask.name}`;
-    if (currentTask.status != "pending") {
+    if (currentTask.state != "pending") {
       console.log("task already running");
       return { result: "Task already running" };
     }

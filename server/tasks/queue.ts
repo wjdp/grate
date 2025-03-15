@@ -7,7 +7,7 @@ const LAST_TASK_KEY = "lastTaskId";
 export interface Task {
   id: number;
   name: TaskName;
-  status: TaskState;
+  state: TaskState;
 }
 
 function getTaskKey(taskId: number) {
@@ -37,13 +37,13 @@ async function getNewTaskId() {
   return newTaskId;
 }
 
-export async function updateTaskStatus(taskId: number, status: Task["status"]) {
+export async function updateTaskStatus(taskId: number, status: Task["state"]) {
   const storage = await useStorage();
   const task = await getTask(taskId);
   if (!task) {
     throw new Error(`Task ${taskId} not found`);
   }
-  task.status = status;
+  task.state = status;
   await storage.set(getTaskKey(taskId), task);
   console.log(`Task ${taskId} ${status}`);
 }
@@ -66,7 +66,7 @@ export async function createTask(taskName: TaskName): Promise<Task> {
   const task: Task = {
     id: taskId,
     name: taskName,
-    status: "pending",
+    state: "pending",
   };
   const storage = await useStorage();
   const { push } = useSseEvent();
@@ -81,11 +81,11 @@ export async function createTask(taskName: TaskName): Promise<Task> {
   return task;
 }
 
-async function getAllTasks() {
+export async function getAllTasks(): Promise<Task[]> {
   const storage = await useStorage();
-  return (await storage.getKeys("task:")).map((key) =>
-    parseInt(key.split(":")[1]),
-  );
+  const taskKeys = await storage.getKeys("task:");
+  const rawTasks = await storage.getItems(taskKeys);
+  return rawTasks.map((rawTask) => rawTask.value as Task);
 }
 
 export function updateInProgressTask(

@@ -103,7 +103,7 @@ const skipGame = async () => {
             <Button class="bg-yellow-600" @click="setGameState('PERIODIC')">
               Periodic
             </Button>
-            <Button class="bg-gray-600" @click="setGameState('SHELVED')">
+            <Button class="bg-grey-600" @click="setGameState('SHELVED')">
               Shelved
             </Button>
           </div>
@@ -127,7 +127,7 @@ const skipGame = async () => {
         </div>
       </div>
       <div class="py-4">
-        <Button class="w-full bg-gray-800" @click="skipGame">Skip</Button>
+        <Button class="w-full bg-grey-800" @click="skipGame">Skip</Button>
       </div>
     </div>
     <div v-else-if="organiseState === 'loading'">

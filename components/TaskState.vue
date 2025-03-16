@@ -17,7 +17,7 @@ const NameMap: Record<SseTask["state"], string> = {
   <span
     class="rounded px-2 py-1 font-semibold"
     :class="{
-      'bg-gray-600': state === 'pending',
+      'bg-grey-600': state === 'pending',
       'bg-blue-600': state === 'in_progress',
       'bg-green-600': state === 'done',
       'bg-red-600': state === 'failed',

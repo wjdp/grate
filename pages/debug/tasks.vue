@@ -50,7 +50,7 @@ onMessage("task", (event) => {
         >{{ taskName }}
       </Button>
     </div>
-    <div class="m-4 h-[20vh] overflow-y-auto bg-gray-800">
+    <div class="m-4 h-[20vh] overflow-y-auto bg-grey-800">
       <ol v-for="task in taskLogs.toReversed()" :key="task.id" class="m-4">
         <li>
           <div>
@@ -72,7 +72,7 @@ onMessage("task", (event) => {
 
     <div>
       <ul
-        class="m-4 h-[20vh] overflow-y-auto bg-gray-600 p-4 font-mono font-semibold"
+        class="m-4 h-[20vh] overflow-y-auto bg-grey-600 p-4 font-mono font-semibold"
         ref="messageLog"
       >
         <li v-for="message in messages" :key="message">{{ message }}</li>

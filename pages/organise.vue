@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { GameState } from "@prisma/client";
+import { getGameArtUrls } from "#shared/art";
+import type { ArtUrls } from "#shared/art";
 
 const { $client } = useNuxtApp();
 const { data } = useGames();
@@ -16,6 +18,7 @@ const gamesToOrganise = computed(() =>
 );
 
 const theGame = ref();
+const theArt = ref<ArtUrls>();
 const organiseState = ref<"loading" | "empty" | "loaded">("loading");
 
 const fetchTheGame = async () => {
@@ -27,11 +30,12 @@ const fetchTheGame = async () => {
     return null;
   }
   const lengthOfArray = gamesToOrganise.value.length;
-  const randomIndex = Math.floor(Math.random() * lengthOfArray);
+  // const randomIndex = Math.floor(Math.random() * lengthOfArray);
   const response = await $client.game.query({
-    id: gamesToOrganise.value[randomIndex].id,
+    id: gamesToOrganise.value[2].id,
   });
   theGame.value = response.game;
+  theArt.value = getGameArtUrls(theGame.value);
   organiseState.value = "loaded";
 };
 
@@ -58,42 +62,37 @@ const skipGame = async () => {
 </script>
 
 <template>
-  <main>
-    <h1>Organise</h1>
-    <div v-if="theGame" class="my-4 max-w-xl border-2 border-slate-500 px-4">
-      <div class="py-2 text-center">
+  <div class="flex justify-center">
+    <div
+      v-if="theGame"
+      class="my-4 max-w-xl grow border-2 border-slate-500 px-4"
+      :style="{
+        backgroundImage: `url(${theArt.background})`,
+      }"
+    >
+      <div class="my-4 text-center">
         <img
-          v-if="theGame.steamGame.appInfo"
-          :src="theGame.steamGame.appInfo.headerImage"
+          v-if="theArt.header"
+          :src="theArt.header"
           :alt="`${theGame.name}`"
-          class="inline-block"
+          class="inline-block w-full"
         />
       </div>
-      <h1 class="py-2 text-center text-3xl font-light tracking-tight">
+      <h1 class="my-4 text-center text-3xl font-semibold tracking-tight">
         {{ theGame.name }}
       </h1>
-      <p>{{ theGame.state }}</p>
-      <p v-if="theGame.steamGame?.appInfo" class="py-1">
+      <p v-if="theGame.steamGame?.appInfo" class="my-4">
         {{ theGame.steamGame.appInfo.shortDescription }}
       </p>
-      <div class="flex flex-row py-1 text-center">
-        <p class="grow">
-          Playtime
-          <span class="font-semibold">
-            {{ formatPlaytime(theGame?.steamGame?.playtimeForever) }}
-          </span>
-        </p>
-        <p class="grow">
-          Last played
-          <span class="font-semibold">
-            {{ formatLastPlayed(theGame?.steamGame?.rTimeLastPlayed) }}
-          </span>
-        </p>
-      </div>
-      <div class="flex w-full flex-row space-x-4">
+      <div class="my-4 flex w-full flex-row space-x-4">
         <div class="basis-full">
-          <h2 class="font-lg py-2 text-center font-bold">Playing</h2>
-          <div class="flex flex-col space-y-2">
+          <p class="mb-4 text-center">
+            Playtime
+            <span class="font-semibold">
+              {{ formatPlaytime(theGame?.steamGame?.playtimeForever) }}
+            </span>
+          </p>
+          <div class="flex flex-col space-y-4">
             <Button class="bg-orange-800" @click="setGameState('BACKLOG')">
               On Backlog
             </Button>
@@ -109,8 +108,13 @@ const skipGame = async () => {
           </div>
         </div>
         <div class="basis-full">
-          <h2 class="font-lg py-2 text-center font-bold">Finished</h2>
-          <div class="flex flex-col space-y-2">
+          <p class="mb-4 text-center">
+            Last played
+            <span class="font-semibold">
+              {{ formatLastPlayed(theGame?.steamGame?.rTimeLastPlayed) }}
+            </span>
+          </p>
+          <div class="flex flex-col space-y-4">
             <Button class="bg-cyan-600" @click="setGameState('PLAYED')">
               Played
             </Button>
@@ -126,8 +130,8 @@ const skipGame = async () => {
           </div>
         </div>
       </div>
-      <div class="py-4">
-        <Button class="w-full bg-grey-800" @click="skipGame">Skip</Button>
+      <div class="my-4">
+        <Button class="w-full bg-grey-600" @click="skipGame">Skip</Button>
       </div>
     </div>
     <div v-else-if="organiseState === 'loading'">
@@ -136,5 +140,5 @@ const skipGame = async () => {
     <div v-else-if="organiseState === 'empty'">
       <p>No games to organise</p>
     </div>
-  </main>
+  </div>
 </template>

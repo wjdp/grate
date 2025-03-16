@@ -5,12 +5,9 @@ const { data } = useFetch(() => "/api/setup");
 </script>
 
 <template>
-  <div>
-    <NuxtRouteAnnouncer />
+  <div class="p-4">
     <p>Mornin {{ appConfig.title }}</p>
     <p v-if="data && data.user">grate is configured</p>
     <p v-if="data && !data.user">grate needs setup</p>
-    <p><NuxtLink to="/state">State</NuxtLink></p>
-    <p><NuxtLink to="/games">Games</NuxtLink></p>
   </div>
 </template>

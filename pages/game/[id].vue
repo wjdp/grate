@@ -1,9 +1,10 @@
 <script lang="ts" setup>
 import type { GameState } from "@prisma/client";
+import { getGameArtUrls } from "#shared/art";
+import { coerce } from "zod";
 
 const { $client } = useNuxtApp();
 const route = useRoute();
-const router = useRouter();
 const id = parseIntRouteParam(route.params.id);
 const { data } = await useGame(id);
 const game = computed(() => data.value?.game);
@@ -12,6 +13,8 @@ const playtimes = computed(() => playtimeData.value?.playtimes);
 const formatTimestamp = (timestamp: string) =>
   new Date(timestamp).toLocaleString();
 const state = ref(game.value?.state ?? null);
+
+const art = computed(() => game.value && getGameArtUrls(game.value));
 
 const updateGameState = async (state: GameState | null) => {
   if (!game.value) throw new Error("Game not loaded");
@@ -27,8 +30,8 @@ const updateGameState = async (state: GameState | null) => {
 </script>
 
 <template>
-  <div>
-    <h1 v-if="game" class="mt-2 text-2xl font-bold">
+  <div class="p-4">
+    <h1 v-if="game" class="text-2xl font-bold">
       <GameIcon :game="game" class="inline" />
       {{ game?.name ?? id }}
     </h1>
@@ -42,7 +45,7 @@ const updateGameState = async (state: GameState | null) => {
     </div>
     <p v-if="game?.steamGame?.appInfo">
       {{ game.steamGame.appInfo.shortDescription }}
-      <img :src="game.steamGame.appInfo.headerImage" />
+      <img :src="art.header" />
     </p>
     <table v-if="playtimes">
       <thead>

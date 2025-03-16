@@ -82,9 +82,9 @@ const randomValue = (wIndex: number, dIndex: number) => {
 
 <template>
   <div
-    class="no-scrollbar flex flex-col overflow-x-scroll border border-opacity-10"
+    class="no-scrollbar border-opacity-10 flex flex-col overflow-x-scroll border"
   >
-    <div style="min-width: 64rem" class="px-2 pb-2 pt-1" v-if="grid">
+    <div style="min-width: 64rem" class="px-2 pt-1 pb-2" v-if="grid">
       <div class="relative mb-1 h-4 w-full">
         <span
           v-for="(month, index) in monthPositions"

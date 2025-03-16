@@ -131,7 +131,7 @@ const skipGame = async () => {
         </div>
       </div>
       <div class="my-4">
-        <Button class="w-full bg-grey-600" @click="skipGame">Skip</Button>
+        <Button class="bg-grey-600 w-full" @click="skipGame">Skip</Button>
       </div>
     </div>
     <div v-else-if="organiseState === 'loading'">

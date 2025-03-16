@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { GameWithSteam } from "~/shared/types/Game";
+import { GameStateNames } from "#shared/game-state";
 
 defineProps<{
   game: GameWithSteam;
@@ -26,7 +27,7 @@ defineProps<{
         </div>
         <div class="text-sm">
           <span v-if="game.state">
-            {{ game.state }}
+            {{ GameStateNames[game.state] }}
           </span>
         </div>
       </NuxtLink>

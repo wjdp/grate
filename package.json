@@ -10,7 +10,10 @@
     "lint": "prettier --write .",
     "lint:ci": "prettier --check .",
     "typecheck": "nuxt typecheck",
-    "test": "vitest"
+    "test": "vitest",
+    "story:dev": "histoire dev",
+    "story:build": "histoire build",
+    "story:preview": "histoire preview"
   },
   "lint-staged": {
     "**/*": "prettier --write"
@@ -22,12 +25,15 @@
   },
   "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92",
   "devDependencies": {
+    "@histoire/plugin-nuxt": "1.0.0-alpha.2",
+    "@histoire/plugin-vue": "1.0.0-alpha.2",
     "@nuxt/fonts": "^0.11.0",
     "@nuxt/test-utils": "^3.17.2",
     "@nuxtjs/tailwindcss": "^6.13.1",
     "@trpc/client": "^10.45.2",
     "@trpc/server": "^10.45.2",
     "@vue/test-utils": "^2.4.6",
+    "histoire": "1.0.0-alpha.2",
     "hookable": "^5.5.3",
     "husky": "^9.1.7",
     "lint-staged": "^15.4.3",

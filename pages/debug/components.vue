@@ -8,4 +8,8 @@
     <TaskState state="done" />
     <TaskState state="failed" />
   </div>
+  <div>
+    <h1>HistoryGrid</h1>
+    <HistoryGrid class="max-w-[64rem]" :year="2025" />
+  </div>
 </template>

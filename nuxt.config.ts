@@ -19,7 +19,10 @@ export default defineNuxtConfig({
     experimental: { tasks: true },
   },
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [
+      // @ts-ignore, not sure why this is throwing all the errors
+      tailwindcss(),
+    ],
     resolve: {
       alias: {
         // https://github.com/nuxt/nuxt/issues/24690#issuecomment-2254528534

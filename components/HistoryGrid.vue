@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatDate } from "compatx";
+import { formatDateIso } from "~/utils/formatDateIso";
 
 const { year } = defineProps<{
   year: number;
@@ -105,7 +105,7 @@ const randomValue = (wIndex: number, dIndex: number) => {
             v-for="(day, dIndex) in week"
             :key="dIndex"
             class="h-4 rounded"
-            :title="formatDate(weekAndDayNumberToDate(wIndex, dIndex))"
+            :title="formatDateIso(weekAndDayNumberToDate(wIndex, dIndex))"
             :style="{
               backgroundColor: getColor(randomValue(wIndex, dIndex)),
               opacity: day != null ? 1 : 0,

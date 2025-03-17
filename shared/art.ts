@@ -1,4 +1,4 @@
-import { GameWithSteam } from "./types/Game";
+import type { GameWithSteam } from "./types/Game";
 
 export interface ArtUrls {
   header: string;

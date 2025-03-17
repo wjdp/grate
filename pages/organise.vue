@@ -18,7 +18,7 @@ const gamesToOrganise = computed(() =>
 );
 
 const theGame = ref();
-const theArt = ref<ArtUrls>();
+const theArt = ref<ArtUrls | null>();
 const organiseState = ref<"loading" | "empty" | "loaded">("loading");
 
 const fetchTheGame = async () => {
@@ -67,12 +67,12 @@ const skipGame = async () => {
       v-if="theGame"
       class="my-4 max-w-xl grow border-2 border-slate-500 px-4"
       :style="{
-        backgroundImage: `url(${theArt.background})`,
+        backgroundImage: theArt ? `url(${theArt.background})` : '',
       }"
     >
       <div class="my-4 text-center">
         <img
-          v-if="theArt.header"
+          v-if="theArt"
           :src="theArt.header"
           :alt="`${theGame.name}`"
           class="inline-block w-full"

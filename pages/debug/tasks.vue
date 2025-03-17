@@ -2,6 +2,9 @@
 import type { TaskName } from "#shared/tasks";
 import { TASK_NAMES } from "#shared/tasks";
 import type { SseTask } from "~/lib/hooks";
+import { getPageTitle } from "#shared/title";
+
+useSeoMeta({ title: getPageTitle("Tasks") });
 
 const { $client } = useNuxtApp();
 

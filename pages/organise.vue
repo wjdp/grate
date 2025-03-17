@@ -2,6 +2,9 @@
 import type { GameState } from "@prisma/client";
 import { getGameArtUrls } from "#shared/art";
 import type { ArtUrls } from "#shared/art";
+import { getPageTitle } from "#shared/title";
+
+useSeoMeta({ title: getPageTitle("Organise Games") });
 
 const { $client } = useNuxtApp();
 const { data } = useGames();

@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { getPageTitle } from "#shared/title";
+
+useSeoMeta({ title: getPageTitle("Games") });
 const { data } = useGames();
 const games = computed(() => data.value?.games);
 type FilterOption = "all" | "played" | "unplayed" | "recent";

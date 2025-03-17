@@ -33,6 +33,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
+      title: "grate",
       link: [{ rel: "icon", href: "/icon.png", type: "image/png" }],
     },
   },

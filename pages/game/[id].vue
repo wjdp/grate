@@ -2,12 +2,16 @@
 import type { GameState } from "@prisma/client";
 import { getGameArtUrls } from "#shared/art";
 import { coerce } from "zod";
+import { getPageTitle } from "#shared/title";
 
 const { $client } = useNuxtApp();
 const route = useRoute();
 const id = parseIntRouteParam(route.params.id);
 const { data } = await useGame(id);
 const game = computed(() => data.value?.game);
+
+if (game.value) useSeoMeta({ title: getPageTitle(game.value.name) });
+
 const { data: playtimeData } = await $client.gamePlaytimes.useQuery({ id });
 const playtimes = computed(() => playtimeData.value?.playtimes);
 const formatTimestamp = (timestamp: string) =>

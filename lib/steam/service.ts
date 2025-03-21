@@ -194,50 +194,53 @@ export async function populateStoreData(appId: bigint): Promise<SteamGame> {
   return steamApp;
 }
 
+async function recordPlaytime(userGame: UserGame, now: Date) {
+  const lastPlaytimeRecord = await prisma.steamGamePlaytime.findFirst({
+    where: { steamAppId: userGame.appid },
+    orderBy: { timestampEnd: "desc" },
+  });
+  if (
+    lastPlaytimeRecord &&
+    lastPlaytimeRecord.playtimeForever === userGame.playtime_forever
+  ) {
+    console.log(`No new playtime for ${userGame.name}`);
+    // extend timestampEnd of the last record
+    await prisma.steamGamePlaytime.update({
+      where: { id: lastPlaytimeRecord.id },
+      data: { timestampEnd: now },
+    });
+    return;
+  }
+  const timestampStart = lastPlaytimeRecord
+    ? lastPlaytimeRecord.timestampEnd
+    : undefined;
+  await prisma.steamGamePlaytime.create({
+    data: {
+      steamGame: { connect: { appId: userGame.appid } },
+      timestampStart,
+      timestampEnd: now,
+      playtimeForever: userGame.playtime_forever,
+      playtime2weeks: userGame.playtime_2weeks,
+      playtimeWindowsForever: userGame.playtime_windows_forever,
+      playtimeMacForever: userGame.playtime_mac_forever,
+      playtimeLinuxForever: userGame.playtime_linux_forever,
+      playtimeDeckForever: userGame.playtime_deck_forever,
+      playtimeDisconnected: userGame.playtime_disconnected,
+      rTimeLastPlayed: userGame.rtime_last_played,
+    },
+  });
+  console.log(`Recorded playtime for ${userGame.name}`);
+}
+
 export async function recordPlaytimes() {
   const steamGamesInDb = await prisma.steamGame.findMany();
   const userOwnedGames = await getUserGames();
   const timestampEnd = new Date();
-  for (const game of userOwnedGames) {
-    const dbGame = steamGamesInDb.find((g) => g.appId === game.appid);
+  for (const userGame of userOwnedGames) {
+    const dbGame = steamGamesInDb.find((g) => g.appId === userGame.appid);
     if (!dbGame) {
-      console.error(`Game ${game.name} not found in db`);
-      continue;
+      throw new Error(`Game ${userGame.name} not found in db`);
     }
-    const lastPlaytimeRecord = await prisma.steamGamePlaytime.findFirst({
-      where: { steamAppId: game.appid },
-      orderBy: { timestampEnd: "desc" },
-    });
-    if (
-      lastPlaytimeRecord &&
-      lastPlaytimeRecord.playtimeForever === game.playtime_forever
-    ) {
-      console.log(`No new playtime for ${game.name}`);
-      // extend timestampEnd of the last record
-      await prisma.steamGamePlaytime.update({
-        where: { id: lastPlaytimeRecord.id },
-        data: { timestampEnd },
-      });
-      continue;
-    }
-    const timestampStart = lastPlaytimeRecord
-      ? lastPlaytimeRecord.timestampEnd
-      : undefined;
-    await prisma.steamGamePlaytime.create({
-      data: {
-        steamGame: { connect: { appId: game.appid } },
-        timestampStart,
-        timestampEnd,
-        playtimeForever: game.playtime_forever,
-        playtime2weeks: game.playtime_2weeks,
-        playtimeWindowsForever: game.playtime_windows_forever,
-        playtimeMacForever: game.playtime_mac_forever,
-        playtimeLinuxForever: game.playtime_linux_forever,
-        playtimeDeckForever: game.playtime_deck_forever,
-        playtimeDisconnected: game.playtime_disconnected,
-        rTimeLastPlayed: game.rtime_last_played,
-      },
-    });
-    console.log(`Recorded playtime for ${game.name}`);
+    await recordPlaytime(userGame, timestampEnd);
   }
 }

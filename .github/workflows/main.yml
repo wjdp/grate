@@ -55,6 +55,8 @@ jobs:
         run: pnpm install
       - name: Build
         run: pnpm build
+      - name: Create test db
+        run: pnpm test:db:create
       - name: Test
         run: pnpm test
 

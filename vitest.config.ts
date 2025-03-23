@@ -1,5 +1,9 @@
 import { defineVitestConfig } from "@nuxt/test-utils/config";
 
 export default defineVitestConfig({
-  // any custom Vitest config you require
+  test: {
+    env: {
+      DATABASE_URL: "file:./test.db",
+    },
+  },
 });

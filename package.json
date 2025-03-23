@@ -10,6 +10,7 @@
     "lint": "prettier --write .",
     "lint:ci": "prettier --check .",
     "typecheck": "nuxt typecheck",
+    "test:db:create": "DATABASE_URL=file:./test.db prisma migrate reset --force --skip-seed",
     "test": "vitest",
     "story:dev": "histoire dev",
     "story:build": "histoire build",

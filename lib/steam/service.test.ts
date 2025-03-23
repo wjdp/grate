@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   createSteamGame,
   type FakeUserGameOverrides,
@@ -7,6 +7,7 @@ import {
 import { getPlaytimeRecords, recordPlaytime } from "~/lib/steam/service";
 
 import { DateTime } from "luxon";
+import { flushDb } from "~/test/db";
 
 const NO_PLAYTIME: FakeUserGameOverrides = {
   playtime_forever: 0,
@@ -19,6 +20,9 @@ const NO_PLAYTIME: FakeUserGameOverrides = {
 };
 
 describe("recordPlaytime", () => {
+  beforeEach(() => {
+    flushDb();
+  });
   it("should record playtime", async () => {
     const steamGame = await createSteamGame();
     const userGame = generateFakeUserGame(steamGame);

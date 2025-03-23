@@ -42,6 +42,9 @@ importers:
       '@trpc/server':
         specifier: ^10.45.2
         version: 10.45.2
+      '@types/luxon':
+        specifier: ^3.4.2
+        version: 3.4.2
       '@vue/test-utils':
         specifier: ^2.4.6
         version: 2.4.6
@@ -57,6 +60,9 @@ importers:
       lint-staged:
         specifier: ^15.4.3
         version: 15.4.3
+      luxon:
+        specifier: ^3.5.0
+        version: 3.5.0
       nuxt:
         specifier: ^3.15.4
         version: 3.15.4(@parcel/watcher@2.5.1)(@types/node@22.13.1)(db0@0.2.3)(ioredis@5.5.0)(lightningcss@1.29.2)(magicast@0.3.5)(rollup@4.34.6)(terser@5.38.1)(typescript@5.7.3)(vite@6.1.0(@types/node@22.13.1)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.38.1)(yaml@2.7.0))(yaml@2.7.0)

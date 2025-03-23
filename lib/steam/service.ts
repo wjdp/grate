@@ -1,4 +1,4 @@
-import type { SteamGame } from "@prisma/client";
+import type { SteamGame, SteamGamePlaytime } from "@prisma/client";
 import prisma from "../prisma";
 import { getUserGames, getUserInfo, type UserGame } from "./api";
 import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
@@ -194,27 +194,51 @@ export async function populateStoreData(appId: bigint): Promise<SteamGame> {
   return steamApp;
 }
 
-async function recordPlaytime(userGame: UserGame, now: Date) {
+// This function is used to compare a playtime record in the database
+// with the current state from the steam API. It returns true if all playtime
+// fields match, false otherwise.
+function doesPlaytimeRecordMatchCurrentState(
+  record1: SteamGamePlaytime,
+  record2: UserGame,
+): boolean {
+  return (
+    record1.playtimeForever === record2.playtime_forever &&
+    record1.playtime2weeks === record2.playtime_2weeks &&
+    record1.playtimeWindowsForever === record2.playtime_windows_forever &&
+    record1.playtimeMacForever === record2.playtime_mac_forever &&
+    record1.playtimeLinuxForever === record2.playtime_linux_forever &&
+    record1.playtimeDeckForever === record2.playtime_deck_forever &&
+    record1.playtimeDisconnected === record2.playtime_disconnected
+  );
+}
+
+export async function recordPlaytime(userGame: UserGame, now: Date) {
   const lastPlaytimeRecord = await prisma.steamGamePlaytime.findFirst({
     where: { steamAppId: userGame.appid },
     orderBy: { timestampEnd: "desc" },
   });
+  const penultimatePlaytimeRecord = await prisma.steamGamePlaytime.findFirst({
+    where: { steamAppId: userGame.appid },
+    orderBy: { timestampEnd: "desc" },
+    skip: 1,
+  });
   if (
     lastPlaytimeRecord &&
-    lastPlaytimeRecord.playtimeForever === userGame.playtime_forever
+    doesPlaytimeRecordMatchCurrentState(lastPlaytimeRecord, userGame) &&
+    penultimatePlaytimeRecord &&
+    doesPlaytimeRecordMatchCurrentState(penultimatePlaytimeRecord, userGame)
   ) {
     console.log(`No new playtime for ${userGame.name}`);
     // extend timestampEnd of the last record
-    await prisma.steamGamePlaytime.update({
+    return await prisma.steamGamePlaytime.update({
       where: { id: lastPlaytimeRecord.id },
       data: { timestampEnd: now },
     });
-    return;
   }
   const timestampStart = lastPlaytimeRecord
     ? lastPlaytimeRecord.timestampEnd
     : undefined;
-  await prisma.steamGamePlaytime.create({
+  const record = await prisma.steamGamePlaytime.create({
     data: {
       steamGame: { connect: { appId: userGame.appid } },
       timestampStart,
@@ -230,6 +254,7 @@ async function recordPlaytime(userGame: UserGame, now: Date) {
     },
   });
   console.log(`Recorded playtime for ${userGame.name}`);
+  return record;
 }
 
 export async function recordPlaytimes() {
@@ -243,4 +268,10 @@ export async function recordPlaytimes() {
     }
     await recordPlaytime(userGame, timestampEnd);
   }
+}
+
+export async function getPlaytimeRecords(appId: bigint) {
+  return prisma.steamGamePlaytime.findMany({
+    where: { steamAppId: appId },
+  });
 }

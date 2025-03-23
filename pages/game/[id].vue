@@ -60,16 +60,23 @@ const updateGameState = async (state: GameState | null) => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="playtime in playtimes" :key="playtime.id">
-          <td>
+        <tr
+          v-for="(playtime, i) in playtimes"
+          :key="playtime.id"
+          :class="{
+            'text-grey-500':
+              playtimes[i + 1]?.playtimeForever == playtime.playtimeForever,
+          }"
+        >
+          <td class="p-1">
             {{
               playtime.timestampStart
                 ? formatTimestamp(playtime.timestampStart)
                 : "-"
             }}
           </td>
-          <td>{{ formatTimestamp(playtime.timestampEnd) }}</td>
-          <td>{{ playtime.playtimeForever }}</td>
+          <td class="p-1">{{ formatTimestamp(playtime.timestampEnd) }}</td>
+          <td class="p-1">{{ playtime.playtimeForever }}</td>
         </tr>
       </tbody>
     </table>

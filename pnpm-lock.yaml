@@ -66,9 +66,6 @@ importers:
       nuxt:
         specifier: ^3.15.4
         version: 3.15.4(@parcel/watcher@2.5.1)(@types/node@22.13.1)(db0@0.2.3)(ioredis@5.5.0)(lightningcss@1.29.2)(magicast@0.3.5)(rollup@4.34.6)(terser@5.38.1)(typescript@5.7.3)(vite@6.1.0(@types/node@22.13.1)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.38.1)(yaml@2.7.0))(yaml@2.7.0)
-      nuxt-cron:
-        specifier: ^1.8.0
-        version: 1.8.0(magicast@0.3.5)
       prettier:
         specifier: 3.5.3
         version: 3.5.3
@@ -1941,9 +1938,6 @@ packages:
   crelt@1.0.6:
     resolution: {integrity: sha512-VQ2MBenTq1fWZUH9DJNGti7kKv6EeAuYr3cLwxUWhIu1baTaXh4Ib5W2CqHVqib4/MqbYGJqiL3Zb8GJZr3l4g==}
 
-  cron@3.5.0:
-    resolution: {integrity: sha512-0eYZqCnapmxYcV06uktql93wNWdlTmmBFP2iYz+JPVcQqlyFYcn1lFuIk4R54pkOmE7mcldTAPZv6X5XA4Q46A==}
-
   croner@9.0.0:
     resolution: {integrity: sha512-onMB0OkDjkXunhdW9htFjEhqrD54+M94i6ackoUkjHKbRnXdyEyKRelp4nJ1kAz32+s27jP1FsebpJCVl0BsvA==}
     engines: {node: '>=18.0'}
@@ -3218,9 +3212,6 @@ packages:
 
   nth-check@2.1.1:
     resolution: {integrity: sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==}
-
-  nuxt-cron@1.8.0:
-    resolution: {integrity: sha512-XgNdounfdXNHOVlYTFDhc28yerwBP7+MP4Tk8GmC6GkxWo3nCWZ/pmqpan+tCmVVhUn6ltpe5KSCChWgl5P3kg==}
 
   nuxt@3.15.4:
     resolution: {integrity: sha512-hSbZO4mR0uAMJtZPNTnCfiAtgleoOu28gvJcBNU7KQHgWnNXPjlWgwMczko2O4Tmnv9zIe/CQged+2HsPwl2ZA==}
@@ -6878,11 +6869,6 @@ snapshots:
 
   crelt@1.0.6: {}
 
-  cron@3.5.0:
-    dependencies:
-      '@types/luxon': 3.4.2
-      luxon: 3.5.0
-
   croner@9.0.0: {}
 
   cronstrue@2.54.0: {}
@@ -8350,15 +8336,6 @@ snapshots:
   nth-check@2.1.1:
     dependencies:
       boolbase: 1.0.0
-
-  nuxt-cron@1.8.0(magicast@0.3.5):
-    dependencies:
-      '@nuxt/kit': 3.15.4(magicast@0.3.5)
-      cron: 3.5.0
-      fast-glob: 3.3.3
-    transitivePeerDependencies:
-      - magicast
-      - supports-color
 
   nuxt@3.15.4(@parcel/watcher@2.5.1)(@types/node@22.13.1)(db0@0.2.3)(ioredis@5.5.0)(lightningcss@1.29.2)(magicast@0.3.5)(rollup@4.34.6)(terser@5.38.1)(typescript@5.7.3)(vite@6.1.0(@types/node@22.13.1)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.38.1)(yaml@2.7.0))(yaml@2.7.0):
     dependencies:

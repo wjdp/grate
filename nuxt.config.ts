@@ -4,12 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
   devtools: { enabled: true },
-  modules: [
-    "@prisma/nuxt",
-    "nuxt-cron",
-    "@nuxt/test-utils/module",
-    "@nuxt/fonts",
-  ],
+  modules: ["@prisma/nuxt", "@nuxt/test-utils/module", "@nuxt/fonts"],
   css: ["~/assets/css/main.css"],
   build: {
     transpile: ["trpc-nuxt"],
@@ -17,6 +12,10 @@ export default defineNuxtConfig({
   nitro: {
     plugins: ["bigint.ts"],
     experimental: { tasks: true },
+    scheduledTasks: {
+      "0 * * * *": "scheduled:record-playtimes",
+      "0/15 * * * *": "scheduled:update-steam-user",
+    },
   },
   vite: {
     plugins: [

@@ -7,7 +7,7 @@ const gameId = z.number().positive();
 const gameInput = z.object({ id: gameId });
 const GameStateEnum = z.nativeEnum(GameState);
 
-export const gamesRouter = router({
+export default router({
   games: publicProcedure.query(async ({ input }) => {
     const games = await getGames();
     return { games };

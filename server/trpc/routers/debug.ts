@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../trpc";
 
-export const debugRouter = router({
+export default router({
   hello: publicProcedure
     .input(
       z.object({

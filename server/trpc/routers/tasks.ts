@@ -5,7 +5,7 @@ import { TaskMap } from "~/server/tasks/router";
 
 const TaskNameEnum = z.enum(Object.keys(TaskMap) as [keyof typeof TaskMap]);
 
-export const tasksRouter = router({
+export default router({
   listTasks: publicProcedure.query(async () => {
     return getAllTasks();
   }),

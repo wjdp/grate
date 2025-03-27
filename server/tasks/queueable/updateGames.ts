@@ -1,5 +1,5 @@
 import { updateGames } from "~/lib/steam/service";
 
-export default async function updateGamesHandler() {
+export default async () => {
   await updateGames();
-}
+};

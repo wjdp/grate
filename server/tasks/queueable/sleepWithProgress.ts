@@ -2,7 +2,7 @@ import sleep from "~/utils/sleep";
 import type { Task } from "~/server/tasks/queue";
 import { updateInProgressTask } from "~/server/tasks/queue";
 
-export default async function sleepHandler(task: Task) {
+export default async (task: Task) => {
   const ms = 100;
   const iterations = 20;
   for (let i = 0; i < iterations; i++) {
@@ -12,4 +12,4 @@ export default async function sleepHandler(task: Task) {
       message: `Sleeping ${i + 1}/${iterations}`,
     });
   }
-}
+};

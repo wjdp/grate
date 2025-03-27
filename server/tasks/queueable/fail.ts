@@ -1,3 +1,3 @@
-export default async function failHandler() {
+export default async () => {
   throw new Error("Failed");
-}
+};

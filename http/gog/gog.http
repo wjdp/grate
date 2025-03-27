@@ -1,0 +1,38 @@
+GET https://auth.gog.com/token
+    ?client_id=46899977096215655
+    &client_secret=9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9
+    &grant_type=authorization_code
+    &code={{code}}
+    &redirect_uri=https://embed.gog.com/on_login_success?origin=client
+
+### Get user details
+GET https://embed.gog.com/userData.json
+Authorization: Bearer {{access_token}}
+
+### Get games
+GET https://embed.gog.com/user/data/games
+Authorization: Bearer {{access_token}}
+
+### Get galaxy library
+GET https://galaxy-library.gog.com/users/{{galaxy_user_id}}/releases
+Authorization: Bearer {{access_token}}
+
+### Get game details
+GET https://embed.gog.com/account/gameDetails/2093619782.json
+Authorization: Bearer {{access_token}}
+
+###
+GET https://gameplay.gog.com/games
+
+### Get playtime
+GET https://gameplay.gog.com/games/1207664643/users/{{user_id}}/sessions
+Authorization: Bearer {{access_token}}
+
+### Get GOG game details
+GET https://api.gog.com/v2/games/1432207977
+
+### Get GOG product details
+GET https://api.gog.com/products/2093619782
+
+### Get GamesDB game details
+GET https://gamesdb.gog.com/platforms/gog/external_releases/2093619782

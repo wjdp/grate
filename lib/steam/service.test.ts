@@ -11,7 +11,7 @@ import { flushDb } from "~/test/db";
 
 const NO_PLAYTIME: FakeUserGameOverrides = {
   playtime_forever: 0,
-  playtime_2weeks: 0,
+  playtime_2weeks: undefined,
   playtime_windows_forever: 0,
   playtime_mac_forever: 0,
   playtime_linux_forever: 0,
@@ -36,6 +36,7 @@ describe("recordPlaytime", () => {
   it("should record and extend zero playtime in single record", async () => {
     const steamGame = await createSteamGame();
     const userGame = generateFakeUserGame(steamGame, NO_PLAYTIME);
+    userGame.playtime_2weeks = undefined;
     const nowFirst = DateTime.now();
     const nowSecond = nowFirst.plus({ hours: 1 });
     const nowThird = nowFirst.plus({ hours: 2 });
@@ -47,11 +48,13 @@ describe("recordPlaytime", () => {
     const firstRecord = records[0];
     expect(firstRecord.timestampStart).toBeNull();
     expect(firstRecord.timestampEnd).toStrictEqual(nowFirst.toJSDate());
-    expect(firstRecord.playtimeForever).toBe(userGame.playtime_forever);
+    expect(firstRecord.playtimeForever).toBe(0);
+    expect(firstRecord.playtime2weeks).toBeNull();
     const secondRecord = records[1];
     expect(secondRecord.timestampStart).toStrictEqual(nowFirst.toJSDate());
     expect(secondRecord.timestampEnd).toStrictEqual(nowThird.toJSDate());
-    expect(secondRecord.playtimeForever).toBe(userGame.playtime_forever);
+    expect(secondRecord.playtimeForever).toBe(0);
+    expect(secondRecord.playtime2weeks).toBeNull();
   });
   it("should record and extend playtime in multiple records", async () => {
     // This test simulates an initial import, followed by two play sessions

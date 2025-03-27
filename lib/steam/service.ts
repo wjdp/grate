@@ -203,7 +203,6 @@ function doesPlaytimeRecordMatchCurrentState(
 ): boolean {
   return (
     record1.playtimeForever === record2.playtime_forever &&
-    record1.playtime2weeks === record2.playtime_2weeks &&
     record1.playtimeWindowsForever === record2.playtime_windows_forever &&
     record1.playtimeMacForever === record2.playtime_mac_forever &&
     record1.playtimeLinuxForever === record2.playtime_linux_forever &&

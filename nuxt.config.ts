@@ -29,6 +29,11 @@ export default defineNuxtConfig({
           "./node_modules/.prisma/client/index-browser.js",
       },
     },
+    server: {
+      watch: {
+        ignored: ["prisma/dev.db*"],
+      },
+    },
   },
   app: {
     head: {

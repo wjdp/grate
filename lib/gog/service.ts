@@ -1,9 +1,16 @@
-import { getGogToken, getGogUserData } from "~/lib/gog/api";
+import { getGogToken, getGogUserData, refreshGogToken } from "~/lib/gog/api";
 import tryCatch from "~/utils/tryCatch";
 import prisma from "~/lib/prisma";
+import type { GogUser } from "@prisma/client";
 
 function getTokenExpiresAt(expiresIn: number) {
   return new Date(Date.now() + expiresIn * 1000);
+}
+
+const TOKEN_EXPIRY_BUFFER = 120 * 1000; // 2 minutes in milliseconds
+
+function hasTokenExpired(expiresAt: Date) {
+  return expiresAt.getTime() - Date.now() < TOKEN_EXPIRY_BUFFER;
 }
 
 export async function createOrUpdateGogUser(code: string) {
@@ -49,4 +56,45 @@ export async function createOrUpdateGogUser(code: string) {
 
 export async function getGogUser() {
   return prisma.gogUser.findFirst();
+}
+
+export async function handleRefreshToken(user: GogUser): Promise<GogUser> {
+  if (!hasTokenExpired(user.accessTokenExpiresAt)) return user;
+  console.log("Refreshing GOG token");
+  const { data: token, error: tokenError } = await tryCatch(
+    refreshGogToken(user.refreshToken),
+  );
+  if (tokenError) {
+    throw new Error("Failed to refresh GOG token");
+  }
+  const accessTokenExpiresAt = getTokenExpiresAt(token.expires_in);
+  return prisma.gogUser.update({
+    where: { gogUserId: user.gogUserId },
+    data: {
+      accessToken: token.access_token,
+      accessTokenExpiresAt,
+      refreshToken: token.refresh_token,
+    },
+  });
+}
+
+export async function updateGogUser() {
+  const currentUser = await getGogUser();
+  if (!currentUser) {
+    return;
+  }
+  const user = await handleRefreshToken(currentUser);
+  const { data, error } = await tryCatch(getGogUserData(user.accessToken));
+  if (error) {
+    throw new Error("Failed to get user data from GOG");
+  }
+  return prisma.gogUser.update({
+    where: { gogUserId: user.gogUserId },
+    data: {
+      username: data.username,
+      country: data.country,
+      avatarUrl: data.avatar,
+      checksumGames: data.checksum.games,
+    },
+  });
 }

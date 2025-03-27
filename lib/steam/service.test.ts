@@ -38,8 +38,10 @@ describe("recordPlaytime", () => {
     const userGame = generateFakeUserGame(steamGame, NO_PLAYTIME);
     const nowFirst = DateTime.now();
     const nowSecond = nowFirst.plus({ hours: 1 });
+    const nowThird = nowFirst.plus({ hours: 2 });
     await recordPlaytime(userGame, nowFirst.toJSDate());
     await recordPlaytime(userGame, nowSecond.toJSDate());
+    await recordPlaytime(userGame, nowThird.toJSDate());
     const records = await getPlaytimeRecords(steamGame.appId);
     expect(records).toHaveLength(2);
     const firstRecord = records[0];
@@ -48,7 +50,7 @@ describe("recordPlaytime", () => {
     expect(firstRecord.playtimeForever).toBe(userGame.playtime_forever);
     const secondRecord = records[1];
     expect(secondRecord.timestampStart).toStrictEqual(nowFirst.toJSDate());
-    expect(secondRecord.timestampEnd).toStrictEqual(nowSecond.toJSDate());
+    expect(secondRecord.timestampEnd).toStrictEqual(nowThird.toJSDate());
     expect(secondRecord.playtimeForever).toBe(userGame.playtime_forever);
   });
   it("should record and extend playtime in multiple records", async () => {

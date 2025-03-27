@@ -30,6 +30,19 @@ model SteamUser {
   lastLogoff   Int
 }
 
+model GogUser {
+  gogUserId     String @id
+  galaxyUserId  String
+  username      String
+  country       String
+  checksumGames String
+  avatarUrl     String
+
+  accessToken          String
+  accessTokenExpiresAt DateTime
+  refreshToken         String
+}
+
 enum GameState {
   BACKLOG // Not started, want to play
 

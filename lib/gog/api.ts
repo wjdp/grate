@@ -56,3 +56,40 @@ export async function getGogToken(code: string): Promise<GogToken> {
   }
   return GogTokenSchema.parse(data);
 }
+
+export async function refreshGogToken(refreshToken: string): Promise<GogToken> {
+  const response = await fetch(
+    `https://auth.gog.com/token?client_id=${GOG_CLIENT_ID}&client_secret=${GOG_CLIENT_SECRET}&grant_type=refresh_token&refresh_token=${refreshToken}`,
+  );
+  const data = await response.json();
+  if (!response.ok) {
+    console.error(data);
+    throw createGogApiError(response);
+  }
+  return GogTokenSchema.parse(data);
+}
+
+const GogUserSchema = z.object({
+  userId: z.string(),
+  username: z.string(),
+  galaxyUserId: z.string(),
+  country: z.string(),
+  avatar: z.string(),
+  checksum: z.object({
+    games: z.string(),
+  }),
+});
+
+type GogUser = z.infer<typeof GogUserSchema>;
+
+export async function getGogUserData(accessToken: string): Promise<GogUser> {
+  const response = await fetch("https://embed.gog.com/userData.json", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    console.error(data);
+    throw createGogApiError(response);
+  }
+  return GogUserSchema.parse(data);
+}

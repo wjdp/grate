@@ -24,8 +24,16 @@ const getGogToken = async () => {
   if (!oAuthCode.value) {
     return;
   }
-  const result = await $client.gogAuth.mutate({ code: oAuthCode.value });
-  console.log(result);
+  const { data, error } = await tryCatch(
+    $client.gogAuth.mutate({ code: oAuthCode.value }),
+  );
+  if (error) {
+    alert(error.message);
+    console.error(error);
+    return;
+  }
+  alert("GOG Token received, user created");
+  console.log(data);
 };
 </script>
 

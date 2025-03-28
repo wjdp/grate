@@ -16,27 +16,24 @@ GET https://auth.gog.com/token
 GET https://embed.gog.com/userData.json
 Authorization: Bearer {{access_token}}
 
-### Get games
+### Get games, only return IDs
 GET https://embed.gog.com/user/data/games
 Authorization: Bearer {{access_token}}
 
-### Get galaxy library
+### Get galaxy library, returns both GOG and other providers' games
 GET https://galaxy-library.gog.com/users/{{galaxy_user_id}}/releases
 Authorization: Bearer {{access_token}}
 
-### Get game details
+### Get game details, returns an empty array
 GET https://embed.gog.com/account/gameDetails/2093619782.json
 Authorization: Bearer {{access_token}}
 
-###
-GET https://gameplay.gog.com/games
-
-### Get playtime
+### Get playtime, returns a singular time_sum entry
 GET https://gameplay.gog.com/games/1207664643/users/{{user_id}}/sessions
 Authorization: Bearer {{access_token}}
 
 ### Get GOG game details
-GET https://api.gog.com/v2/games/1432207977
+GET https://api.gog.com/v2/games/1207664663
 
 ### Get GOG product details
 GET https://api.gog.com/products/2093619782

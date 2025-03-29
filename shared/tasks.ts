@@ -4,7 +4,7 @@ export const TASK_NAMES = [
   "fail",
   "populateStoreData",
   "recordPlaytimes",
-  "updateGames",
+  "updateSteamGames",
   "updateSteamUser",
   "cacheSteamArt",
   "updateGogUser",

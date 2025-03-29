@@ -3,7 +3,7 @@ import sleepWithProgress from "./queueable/sleepWithProgress";
 import fail from "./queueable/fail";
 import populateStoreData from "./queueable/populateStoreData";
 import recordPlaytimes from "./queueable/recordPlaytimes";
-import updateGames from "./queueable/updateGames";
+import updateSteamGames from "./queueable/updateSteamGames";
 import updateSteamUser from "./queueable/updateSteamUser";
 import cacheSteamArt from "./queueable/cacheSteamArt";
 import updateGogUser from "./queueable/updateGogUser";
@@ -18,7 +18,7 @@ export const TaskMap: { [k in TaskName]: (task: Task) => Promise<void> } = {
   fail,
   populateStoreData,
   recordPlaytimes,
-  updateGames,
+  updateSteamGames,
   updateSteamUser,
   cacheSteamArt,
   updateGogUser,

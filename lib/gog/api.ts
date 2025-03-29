@@ -93,3 +93,83 @@ export async function getGogUserData(accessToken: string): Promise<GogUser> {
   }
   return GogUserSchema.parse(data);
 }
+
+export async function getGogUserGames(accessToken: string): Promise<number[]> {
+  const response = await fetch("https://embed.gog.com/user/data/games", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) {
+    console.error(await response.text());
+    throw createGogApiError(response);
+  }
+  const data = await response.json();
+  if (!data?.owned) {
+    throw new GogApiError({
+      message: "No games found",
+      statusCode: 404,
+    });
+  }
+  return data.owned;
+}
+
+const GogProductLink = z.object({ href: z.string().nullable() });
+
+const GogGameDetailSchema = z.object({
+  description: z.string(),
+  overview: z.string(),
+  _links: z.object({
+    store: GogProductLink.optional(),
+    forum: GogProductLink.optional(),
+    icon: GogProductLink.optional(),
+    iconSquare: GogProductLink.optional(),
+    logo: GogProductLink.optional(),
+    boxArtImage: GogProductLink.optional(),
+    backgroundImage: GogProductLink.optional(),
+    galaxyBackgroundImage: GogProductLink.optional(),
+  }),
+  _embedded: z.object({
+    product: z.object({
+      id: z.number(),
+      title: z.string(),
+      globalReleaseDate: z.string().datetime({ offset: true }).optional(),
+      gogReleaseDate: z.string().datetime({ offset: true }),
+      isVisibleInAccount: z.boolean(),
+      hasProductCard: z.boolean(),
+    }),
+    productType: z.string(),
+    publisher: z.object({ name: z.string() }),
+    developers: z.array(z.object({ name: z.string() })),
+    tags: z.array(
+      z.object({
+        id: z.number(),
+        name: z.string(),
+        level: z.number(),
+        slug: z.string(),
+      }),
+    ),
+    properties: z.array(
+      z.object({
+        name: z.string(),
+        slug: z.string(),
+      }),
+    ),
+  }),
+});
+
+export type GogGameDetail = z.infer<typeof GogGameDetailSchema>;
+
+export async function getGogGameDetail(id: number): Promise<GogGameDetail> {
+  const response = await fetch(`https://api.gog.com/v2/games/${id}`);
+  if (!response.ok) {
+    console.error(await response.text());
+    throw createGogApiError(response);
+  }
+  const data = await response.json();
+  try {
+    console.log(`Parsing game ${id}`);
+    return GogGameDetailSchema.parse(data);
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+}

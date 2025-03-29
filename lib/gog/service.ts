@@ -1,4 +1,11 @@
-import { getGogToken, getGogUserData, refreshGogToken } from "~/lib/gog/api";
+import {
+  getGogGameDetail,
+  getGogToken,
+  getGogUserData,
+  getGogUserGames,
+  GogGameDetail,
+  refreshGogToken,
+} from "~/lib/gog/api";
 import tryCatch from "~/utils/tryCatch";
 import prisma from "~/lib/prisma";
 import type { GogUser } from "@prisma/client";
@@ -95,6 +102,112 @@ export async function updateGogUser() {
       country: data.country,
       avatarUrl: data.avatar,
       checksumGames: data.checksum.games,
+    },
+  });
+}
+
+// GOG return multiple product types, but we only care about games
+// Others are DLC, PACK
+const GOG_PRODUCT_TYPES_INCLUDE = ["GAME"];
+// GOG products that should be ignored
+const GOG_IGNORED_PRODUCT_IDS = [1185685769];
+
+export async function updateGogGames() {
+  const currentUser = await getGogUser();
+  if (!currentUser) {
+    return;
+  }
+  const user = await handleRefreshToken(currentUser);
+  const { data: gameIds, error } = await tryCatch(
+    getGogUserGames(user.accessToken),
+  );
+  if (error) {
+    throw new Error("Failed to get user games from GOG");
+  }
+  for (const gameId of gameIds) {
+    const { data: game, error: gameError } = await tryCatch(
+      getGogGameDetail(gameId),
+    );
+    // Some are expected 404s, so for now just skip and continue
+    if (gameError || !game) continue;
+
+    const isGame = GOG_PRODUCT_TYPES_INCLUDE.includes(
+      game._embedded.productType,
+    );
+    // Only process games, ignore DLCs and packs
+    if (!isGame) continue;
+
+    const gogId = game._embedded.product.id;
+    const gogGameTitle = game._embedded.product.title;
+
+    if (GOG_IGNORED_PRODUCT_IDS.includes(gogId)) continue;
+
+    const existingGame = await prisma.gogGame.findFirst({
+      where: { gogId: gogId },
+    });
+    if (existingGame) {
+      await updateGame(game);
+      console.log(`Updated game ${gogGameTitle}`);
+    } else {
+      await createGame(game);
+      console.log(`Created game ${gogGameTitle}`);
+    }
+  }
+}
+
+async function createGame(gogGameDetail: GogGameDetail) {
+  return await prisma.game.create({
+    data: {
+      name: gogGameDetail._embedded.product.title,
+      gogGame: {
+        create: {
+          gogId: gogGameDetail._embedded.product.id,
+          name: gogGameDetail._embedded.product.title,
+          releaseDate:
+            gogGameDetail._embedded.product.globalReleaseDate ||
+            gogGameDetail._embedded.product.gogReleaseDate,
+          description: gogGameDetail.description,
+          publisher: gogGameDetail._embedded.publisher.name,
+          developer: gogGameDetail._embedded.developers
+            .map((dev) => dev.name)
+            .join(", "),
+          tags: gogGameDetail._embedded.tags,
+          properties: gogGameDetail._embedded.properties,
+          iconUrl: gogGameDetail._links.icon?.href,
+          iconSquareUrl: gogGameDetail._links.iconSquare?.href,
+          logoUrl: gogGameDetail._links.logo?.href,
+          boxArtImageUrl: gogGameDetail._links.boxArtImage?.href,
+          backgroundImageUrl: gogGameDetail._links.backgroundImage?.href,
+          galaxyBackgroundImageUrl:
+            gogGameDetail._links.galaxyBackgroundImage?.href,
+        },
+      },
+    },
+  });
+}
+
+async function updateGame(gogGameDetail: GogGameDetail) {
+  return await prisma.gogGame.update({
+    where: { gogId: gogGameDetail._embedded.product.id },
+    data: {
+      name: gogGameDetail._embedded.product.title,
+      releaseDate:
+        gogGameDetail._embedded.product.globalReleaseDate ||
+        gogGameDetail._embedded.product.gogReleaseDate,
+      description: gogGameDetail.description,
+      publisher: gogGameDetail._embedded.publisher.name,
+      developer: gogGameDetail._embedded.developers
+        .map((dev) => dev.name)
+        .join(", "),
+      tags: gogGameDetail._embedded.tags,
+      properties: gogGameDetail._embedded.properties,
+      iconUrl: gogGameDetail._links.icon?.href,
+      iconSquareUrl: gogGameDetail._links.iconSquare?.href,
+      logoUrl: gogGameDetail._links.logo?.href,
+      boxArtImageUrl: gogGameDetail._links.boxArtImage?.href,
+      backgroundImageUrl: gogGameDetail._links.backgroundImage?.href,
+      galaxyBackgroundImageUrl:
+        gogGameDetail._links.galaxyBackgroundImage?.href,
     },
   });
 }

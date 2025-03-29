@@ -60,6 +60,7 @@ model Game {
   id           Int               @id @default(autoincrement())
   name         String
   steamGame    SteamGame?
+  gogGame      GogGame?
   state        GameState?
   stateChanges GameStateChange[]
 }
@@ -154,4 +155,26 @@ model SteamGamePlaytime {
   playtimeDeckForever    Int?
   playtimeDisconnected   Int?
   rTimeLastPlayed        Int?
+}
+
+model GogGame {
+  gogId  Int  @id
+  gameId Int  @unique
+  game   Game @relation(fields: [gameId], references: [id])
+
+  name        String
+  releaseDate DateTime?
+  description String?
+
+  publisher  String?
+  developer  String?
+  tags       Json
+  properties Json
+
+  iconUrl                  String?
+  iconSquareUrl            String?
+  logoUrl                  String?
+  boxArtImageUrl           String?
+  backgroundImageUrl       String?
+  galaxyBackgroundImageUrl String?
 }

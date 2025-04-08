@@ -33,9 +33,9 @@ const fetchTheGame = async () => {
     return null;
   }
   const lengthOfArray = gamesToOrganise.value.length;
-  // const randomIndex = Math.floor(Math.random() * lengthOfArray);
+  const randomIndex = Math.floor(Math.random() * lengthOfArray);
   const response = await $client.game.query({
-    id: gamesToOrganise.value[2].id,
+    id: gamesToOrganise.value[randomIndex].id,
   });
   theGame.value = response.game;
   theArt.value = getGameArtUrls(theGame.value);

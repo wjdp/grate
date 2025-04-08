@@ -31,6 +31,13 @@ const updateGameState = async (state: GameState | null) => {
     game.value.state = previousState;
   }
 };
+
+const openSteamGame = () => {
+  window.open(
+    `steam://nav/games/details/${game.value?.steamGame?.appId}`,
+    "_self",
+  );
+};
 </script>
 
 <template>
@@ -43,15 +50,19 @@ const updateGameState = async (state: GameState | null) => {
       <p>appid {{ game.steamGame.appId }}</p>
       <p>Playtime: {{ game.steamGame.playtimeForever }}</p>
     </div> -->
-    <div>
+    <div class="my-4">
       <GameStateControl v-model="state" @change="updateGameState(state)" />
       {{ state }}
     </div>
-    <p v-if="game?.steamGame?.appInfo">
+    <p v-if="game?.steamGame?.appInfo" class="my-4">
       {{ game.steamGame.appInfo.shortDescription }}
       <img v-if="art" :src="art.header" />
     </p>
-    <table v-if="playtimes">
+    <div v-if="game?.steamGame" class="my-4">
+      <Button @click="openSteamGame" class="mr-2">Open in Steam</Button>
+      <PlayButton :steam-app-id="game.steamGame.appId" />
+    </div>
+    <table v-if="playtimes" class="my-4">
       <thead>
         <tr>
           <th>Start</th>

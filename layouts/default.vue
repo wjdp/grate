@@ -3,6 +3,7 @@ const links = {
   Games: "/games",
   Organise: "/organise",
   Tasks: "/debug/tasks",
+  Components: "/debug/components",
 };
 const route = useRoute();
 </script>

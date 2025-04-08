@@ -3,7 +3,7 @@ import {
   getGogToken,
   getGogUserData,
   getGogUserGames,
-  GogGameDetail,
+  type GogGameDetail,
   refreshGogToken,
 } from "~/lib/gog/api";
 import tryCatch from "~/utils/tryCatch";

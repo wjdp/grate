@@ -4,7 +4,12 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
   devtools: { enabled: true },
-  modules: ["@prisma/nuxt", "@nuxt/test-utils/module", "@nuxt/fonts"],
+  modules: [
+    "@prisma/nuxt",
+    "@nuxt/test-utils/module",
+    "@nuxt/fonts",
+    "@nuxt/icon",
+  ],
   css: ["~/assets/css/main.css"],
   build: {
     transpile: ["trpc-nuxt"],

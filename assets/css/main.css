@@ -20,3 +20,7 @@
   --color-grey-900: oklch(0.21 0.034 264.665);
   --color-grey-950: oklch(0.13 0.028 261.692);
 }
+
+body {
+  scrollbar-gutter: both-edges;
+}

@@ -32,6 +32,25 @@ export async function getGamePlaytimes(id: number) {
   });
 }
 
+export async function getRecentGames(limit: number = 6) {
+  return await prisma.game.findMany({
+    include: { steamGame: { include: { appInfo: true } } },
+    where: {
+      steamGame: {
+        rTimeLastPlayed: {
+          not: null,
+        },
+      },
+    },
+    orderBy: {
+      steamGame: {
+        rTimeLastPlayed: "desc",
+      },
+    },
+    take: limit,
+  });
+}
+
 export async function setGameState(id: number, state: GameState | null) {
   const now = new Date();
   const gameBeforeUpdate = await prisma.game.findUnique({ where: { id } });

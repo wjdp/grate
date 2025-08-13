@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../trpc";
-import { getGame, getGamePlaytimes, getGames, setGameState } from "~/lib/games";
+import {
+  getGame,
+  getGamePlaytimes,
+  getGames,
+  getRecentGames,
+  setGameState,
+} from "~/lib/games";
 import { GameState } from "@prisma/client";
 
 const gameId = z.number().positive();
@@ -12,6 +18,12 @@ export default router({
     const games = await getGames();
     return { games };
   }),
+  recentGames: publicProcedure
+    .input(z.object({ limit: z.number().positive().optional().default(6) }))
+    .query(async ({ input }) => {
+      const games = await getRecentGames(input.limit);
+      return { games };
+    }),
   game: publicProcedure.input(gameInput).query(async ({ input }) => {
     const game = await getGame(input.id);
     return { game };

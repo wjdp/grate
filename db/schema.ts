@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  index,
   integer,
   sqliteTable,
   text,
@@ -102,7 +103,7 @@ export const steamGame = sqliteTable(
     hasDlc: boolean().notNull().default(false),
     hasLeaderboards: boolean().notNull().default(false),
   },
-  (table) => [uniqueIndex("SteamGame_gameId_key").on(table.gameId)],
+  (table) => [index("SteamGame_gameId_idx").on(table.gameId)],
 );
 
 export const steamAppInfo = sqliteTable("SteamAppInfo", {
@@ -184,7 +185,7 @@ export const gogGame = sqliteTable(
     playtimeMinutes: integer(),
     lastPlayedAt: datetime(),
   },
-  (table) => [uniqueIndex("GogGame_gameId_key").on(table.gameId)],
+  (table) => [index("GogGame_gameId_idx").on(table.gameId)],
 );
 
 export const gogGamePlaytime = sqliteTable("GogGamePlaytime", {
@@ -217,9 +218,9 @@ export const steamUserRelations = relations(steamUser, ({ one }) => ({
   user: one(user, { fields: [steamUser.userId], references: [user.id] }),
 }));
 
-export const gameRelations = relations(game, ({ one, many }) => ({
-  steamGame: one(steamGame),
-  gogGame: one(gogGame),
+export const gameRelations = relations(game, ({ many }) => ({
+  steamGames: many(steamGame),
+  gogGames: many(gogGame),
   stateChanges: many(gameStateChange),
 }));
 

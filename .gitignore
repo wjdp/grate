@@ -21,3 +21,4 @@ logs
 # Database
 *.db
 data/
+tmp/

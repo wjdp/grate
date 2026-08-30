@@ -1,5 +1,5 @@
 #!/bin/bash
-# Migrate the db and start the server
+# Start the server; it migrates the database on boot
 # Used in the docker container
 set -eo pipefail
 
@@ -33,11 +33,6 @@ function check_variables {
     fi
 }
 
-function migrate_db {
-  echo "🚂 Migrating the database"
-  node_modules/.bin/prisma migrate deploy
-}
-
 function start_server {
   echo "🚀 Starting grate server"
   node .output/server/index.mjs
@@ -48,5 +43,4 @@ motd
 check_data_directory
 check_variables
 
-migrate_db
 start_server

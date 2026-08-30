@@ -1,0 +1,15 @@
+meta {
+  name: Get apps
+  type: http
+  seq: 7
+}
+
+get {
+  url: https://api.steampowered.com/IStoreService/GetAppList/v1/?key={{process.env.STEAM_API_KEY}}
+  body: none
+  auth: none
+}
+
+params:query {
+  key: {{process.env.STEAM_API_KEY}}
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Resolve vanity URL
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key={{process.env.STEAM_API_KEY}}&vanityurl={{process.env.STEAM_VANITY_URL}}
+  body: none
+  auth: none
+}
+
+params:query {
+  key: {{process.env.STEAM_API_KEY}}
+  vanityurl: {{process.env.STEAM_VANITY_URL}}
+}

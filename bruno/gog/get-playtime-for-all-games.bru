@@ -1,0 +1,15 @@
+meta {
+  name: Get playtime for all games, only games with playtime above zero are returned
+  type: http
+  seq: 8
+}
+
+get {
+  url: https://gameplay.gog.com/users/{{process.env.GOG_GALAXY_USER_ID}}/sessions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{process.env.GOG_ACCESS_TOKEN}}
+}

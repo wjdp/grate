@@ -1,0 +1,15 @@
+meta {
+  name: Get user details
+  type: http
+  seq: 3
+}
+
+get {
+  url: https://embed.gog.com/userData.json
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{process.env.GOG_ACCESS_TOKEN}}
+}

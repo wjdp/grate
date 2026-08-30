@@ -1,0 +1,19 @@
+meta {
+  name: Get token
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://auth.gog.com/token?client_id={{gog_client_id}}&client_secret={{gog_client_secret}}&grant_type=authorization_code&code={{process.env.GOG_CODE}}&redirect_uri=https://embed.gog.com/on_login_success?origin=client
+  body: none
+  auth: none
+}
+
+params:query {
+  client_id: {{gog_client_id}}
+  client_secret: {{gog_client_secret}}
+  grant_type: authorization_code
+  code: {{process.env.GOG_CODE}}
+  redirect_uri: https://embed.gog.com/on_login_success?origin=client
+}

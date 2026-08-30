@@ -1,0 +1,15 @@
+meta {
+  name: Get game details, returns an empty array
+  type: http
+  seq: 6
+}
+
+get {
+  url: https://embed.gog.com/account/gameDetails/2093619782.json
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{process.env.GOG_ACCESS_TOKEN}}
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Get playtime, returns a singular time_sum entry
+  type: http
+  seq: 7
+}
+
+get {
+  url: https://gameplay.gog.com/games/1207664643/users/{{process.env.GOG_USER_ID}}/sessions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{process.env.GOG_ACCESS_TOKEN}}
+}

@@ -1,0 +1,18 @@
+meta {
+  name: Refresh token
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://auth.gog.com/token?client_id={{gog_client_id}}&client_secret={{gog_client_secret}}&grant_type=refresh_token&refresh_token={{process.env.GOG_REFRESH_TOKEN}}
+  body: none
+  auth: none
+}
+
+params:query {
+  client_id: {{gog_client_id}}
+  client_secret: {{gog_client_secret}}
+  grant_type: refresh_token
+  refresh_token: {{process.env.GOG_REFRESH_TOKEN}}
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Get app info
+  type: http
+  seq: 6
+}
+
+get {
+  url: https://api.steampowered.com/IStoreService/GetAppInfo/v1/?key={{process.env.STEAM_API_KEY}}&id=440
+  body: none
+  auth: none
+}
+
+params:query {
+  key: {{process.env.STEAM_API_KEY}}
+  id: 440
+}

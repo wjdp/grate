@@ -11,7 +11,7 @@ status: todo
 
 1. Name match on create: normalise (lowercase, strip `™®:`, collapse whitespace, drop edition suffixes) and attach to an existing `Game` with no row for this provider. Cheap, wrong occasionally (remasters, "Game" vs "Game: Definitive Edition").
 2. Manual link/unlink in the UI (`pages/game/[id].vue` → "Merge with…" picker) that moves the provider row's `gameId` and reruns `refreshGameAggregates`, merging `GameStateChange` history.
-3. External id: GOG's `gamesdb.gog.com` exposes Steam ids for many titles (see `http/gog/gog.http` last entry). Exact where available.
+3. External id: GOG's `gamesdb.gog.com` exposes Steam ids for many titles (see `bruno/gog/get-gamesdb-game-details.bru`). Exact where available.
 
 Recommend 3 where available, else 1 as a suggestion surfaced in the UI, with 2 as the override. Never auto-merge silently once a game has a state or playtime on both sides.
 

@@ -1,0 +1,15 @@
+meta {
+  name: Get app details
+  type: http
+  seq: 8
+}
+
+get {
+  url: http://store.steampowered.com/api/appdetails/?appids=526870
+  body: none
+  auth: none
+}
+
+params:query {
+  appids: 526870
+}

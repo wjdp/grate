@@ -147,6 +147,24 @@ function rowCounts(path: string) {
   );
 }
 
+// The fixture's ungrounded first record was last played at this instant.
+const GROUNDED_AT = 1742605200000;
+
+function groundedPlaytime(path: string, steamAppId: number) {
+  return withSqlite(
+    path,
+    (sqlite) =>
+      sqlite
+        .prepare(
+          `SELECT "timestampStart", "timestampEnd", "playtimeForever"
+           FROM "SteamGamePlaytime" WHERE "steamAppId" = ?
+           ORDER BY "timestampEnd"`,
+        )
+        .raw()
+        .all(steamAppId) as [number | null, number, number][],
+  );
+}
+
 function migrationCounts(path: string) {
   return withSqlite(path, (sqlite) => ({
     prisma: (
@@ -246,7 +264,7 @@ describe("runMigrations", () => {
     for (const table of TABLES) expect(tables).toContain(table);
     expect(
       sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([3]);
+    ).toEqual([4]);
     expect(tables).not.toContain("_prisma_migrations");
   });
 
@@ -270,7 +288,7 @@ describe("runMigrations", () => {
       FINAL_PRISMA_MIGRATION,
       createHash("sha256").update(FINAL_PRISMA_MIGRATION_SQL).digest("hex"),
     ]);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 3 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 4 });
 
     const backfilled = sqlite
       .prepare(
@@ -286,8 +304,16 @@ describe("runMigrations", () => {
 
     expectNativeStorage(path);
 
+    // The fixture's app 100003 holds the only first record still starting at
+    // NULL, so grounding it on rTimeLastPlayed splits that row in two.
+    expect(groundedPlaytime(path, 100003)).toEqual([
+      [null, GROUNDED_AT, 45],
+      [GROUNDED_AT, 1742864402795, 45],
+    ]);
+
     expect(rowCounts(path)).toEqual({
       ...before,
+      SteamGamePlaytime: 4,
       GogGamePlaytime: 0,
       GogIgnoredProduct: 0,
     });
@@ -302,8 +328,8 @@ describe("runMigrations", () => {
     const { db, sqlite } = open(path);
     runMigrations(sqlite, db);
 
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 3 });
-    expect(rowCounts(path)).toEqual(before);
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 4 });
+    expect(rowCounts(path)).toEqual({ ...before, SteamGamePlaytime: 4 });
     expect(lastPlayedAt(path)).toEqual(
       isoBefore.map(([id, , value]) => [
         id,
@@ -365,7 +391,7 @@ describe("runMigrations", () => {
 
     expect(schemaOf(path)).toEqual(schema);
     expect(rowCounts(path)).toEqual(counts);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 3 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 4 });
     expectNativeStorage(path);
   });
 });

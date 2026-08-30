@@ -700,6 +700,66 @@ describe("recordEpicPlaytime", () => {
     );
     expect(storedGame.playtimeMinutes).toBe(150);
   });
+
+  it("leaves lastPlayedAt null on the first record and the EpicGame", async () => {
+    const playedGame = createEpicGame();
+    const now = new Date("2026-01-01T00:00:00.000Z");
+
+    const record = await recordEpicPlaytime(playedGame, 3600, now);
+
+    expect(record.lastPlayedAt).toBeNull();
+    const stored = firstOrThrow(
+      db
+        .select()
+        .from(epicGame)
+        .where(eq(epicGame.epicId, playedGame.epicId))
+        .all(),
+    );
+    expect(stored.lastPlayedAt).toBeNull();
+  });
+
+  it("sets lastPlayedAt to now when playtime increases, on both the row and the EpicGame", async () => {
+    const playedGame = createEpicGame();
+    const first = new Date("2026-01-01T00:00:00.000Z");
+    const second = new Date("2026-01-02T00:00:00.000Z");
+
+    await recordEpicPlaytime(playedGame, 3600, first);
+    const record = await recordEpicPlaytime(playedGame, 5400, second);
+
+    expect(record.lastPlayedAt).toStrictEqual(second);
+    const stored = firstOrThrow(
+      db
+        .select()
+        .from(epicGame)
+        .where(eq(epicGame.epicId, playedGame.epicId))
+        .all(),
+    );
+    expect(stored.lastPlayedAt).toStrictEqual(second);
+    const storedGame = firstOrThrow(
+      db.select().from(game).where(eq(game.id, playedGame.gameId)).all(),
+    );
+    expect(storedGame.lastPlayedAt).toStrictEqual(second);
+  });
+
+  it("keeps the previously derived lastPlayedAt on an unchanged sync", async () => {
+    const playedGame = createEpicGame();
+    const first = new Date("2026-01-01T00:00:00.000Z");
+    const second = new Date("2026-01-02T00:00:00.000Z");
+    const third = new Date("2026-01-03T00:00:00.000Z");
+
+    await recordEpicPlaytime(playedGame, 3600, first);
+    await recordEpicPlaytime(playedGame, 5400, second);
+    await recordEpicPlaytime(playedGame, 5400, third);
+
+    const stored = firstOrThrow(
+      db
+        .select()
+        .from(epicGame)
+        .where(eq(epicGame.epicId, playedGame.epicId))
+        .all(),
+    );
+    expect(stored.lastPlayedAt).toStrictEqual(second);
+  });
 });
 
 describe("recordEpicPlaytimes", () => {

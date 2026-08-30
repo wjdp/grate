@@ -411,6 +411,9 @@ export async function recordEpicPlaytime(
     .orderBy(desc(epicGamePlaytime.timestampEnd))
     .limit(2)
     .all();
+  const increased =
+    !!lastRecord && playtimeMinutes > lastRecord.playtimeMinutes;
+  const lastPlayedAt = increased ? now : null;
   let record;
   if (
     lastRecord?.playtimeMinutes === playtimeMinutes &&
@@ -431,14 +434,14 @@ export async function recordEpicPlaytime(
         timestampStart: lastRecord ? lastRecord.timestampEnd : undefined,
         timestampEnd: now,
         playtimeMinutes,
-        lastPlayedAt: null,
+        lastPlayedAt,
       })
       .returning()
       .get();
     console.log(`Recorded playtime for ${playedGame.name}`);
   }
   db.update(epicGame)
-    .set({ playtimeMinutes })
+    .set({ playtimeMinutes, ...(increased ? { lastPlayedAt } : {}) })
     .where(eq(epicGame.epicId, playedGame.epicId))
     .run();
   await refreshGameAggregates(playedGame.gameId);

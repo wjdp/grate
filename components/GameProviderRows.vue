@@ -20,6 +20,9 @@ interface ProviderRow {
   playUrl: string;
 }
 
+const epicLaunchUrl = (epicRow: GameDetail["epicGames"][number]) =>
+  `com.epicgames.launcher://apps/${encodeURIComponent(`${epicRow.namespace}:${epicRow.catalogItemId}:${epicRow.appName}`)}?action=launch&silent=true`;
+
 const rows = computed<ProviderRow[]>(() => [
   ...props.game.steamGames.map((steamRow) => ({
     key: `steam-${steamRow.appId}`,
@@ -57,8 +60,8 @@ const rows = computed<ProviderRow[]>(() => [
       : null,
     openUrl: epicRow.storeSlug
       ? `https://store.epicgames.com/p/${epicRow.storeSlug}`
-      : `com.epicgames.launcher://apps/${encodeURIComponent(`${epicRow.namespace}:${epicRow.catalogItemId}:${epicRow.appName}`)}?action=launch&silent=true`,
-    playUrl: `com.epicgames.launcher://apps/${encodeURIComponent(`${epicRow.namespace}:${epicRow.catalogItemId}:${epicRow.appName}`)}?action=launch&silent=true`,
+      : epicLaunchUrl(epicRow),
+    playUrl: epicLaunchUrl(epicRow),
   })),
 ]);
 

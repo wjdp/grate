@@ -1,8 +1,8 @@
 import {
   findGamesNeedingStoreData,
   populateStoreData,
-} from "~/lib/steam/service";
-import sleep from "~/utils/sleep";
+} from "~~/lib/steam/service";
+import sleep from "#shared/utils/sleep";
 
 export default async () => {
   const games = await findGamesNeedingStoreData();

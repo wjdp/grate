@@ -12,8 +12,8 @@ import {
   type SteamGamePlaytime,
   type SteamUser,
 } from "~~/db/schema";
-import { refreshGameAggregates } from "~/lib/gameAggregates";
-import { countProviderRows } from "~/lib/gameProviders";
+import { refreshGameAggregates } from "~~/lib/gameAggregates";
+import { countProviderRows } from "~~/lib/gameProviders";
 import {
   getUserGames,
   getUserInfo,
@@ -22,7 +22,7 @@ import {
   type UserGame,
   type UserInfo,
 } from "./api";
-import { parseSteamProfileInput } from "~~/shared/steam-profile";
+import { parseSteamProfileInput } from "#shared/steam-profile";
 import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
 
 export class SteamServiceError extends Error {

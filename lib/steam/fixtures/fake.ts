@@ -1,4 +1,4 @@
-import type { UserGame, UserInfo } from "~/lib/steam/api";
+import type { UserGame, UserInfo } from "~~/lib/steam/api";
 import { faker } from "@faker-js/faker";
 import type { SteamGame } from "~~/db/schema";
 

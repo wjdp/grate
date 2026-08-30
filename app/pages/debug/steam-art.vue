@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { getSteamArtUrls } from "~/lib/steam/art";
-import type { SteamArtUrls } from "~/lib/steam/art";
+import { getSteamArtUrls } from "~~/lib/steam/art";
+import type { SteamArtUrls } from "~~/lib/steam/art";
 
 const appId = ref("");
 const urls = ref<SteamArtUrls>();

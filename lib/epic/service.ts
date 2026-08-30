@@ -12,8 +12,8 @@ import {
   type EpicCatalogItem,
   type EpicLibraryRecord,
   type EpicToken,
-} from "~/lib/epic/api";
-import tryCatch from "~/utils/tryCatch";
+} from "~~/lib/epic/api";
+import tryCatch from "#shared/utils/tryCatch";
 import { db } from "~~/lib/db";
 import {
   epicGame,
@@ -24,8 +24,8 @@ import {
   type EpicGame,
   type EpicUser,
 } from "~~/db/schema";
-import { refreshGameAggregates } from "~/lib/gameAggregates";
-import { countProviderRows } from "~/lib/gameProviders";
+import { refreshGameAggregates } from "~~/lib/gameAggregates";
+import { countProviderRows } from "~~/lib/gameProviders";
 
 function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null;

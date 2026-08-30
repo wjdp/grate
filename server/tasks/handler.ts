@@ -1,6 +1,6 @@
 import { completeTask, getCurrentTask, updateTaskStatus } from "./queue";
-import { useSseEvent } from "~/composables/useSse";
-import { TaskMap } from "~/server/tasks/router";
+import { useSseEvent } from "~~/server/sse";
+import { TaskMap } from "~~/server/tasks/router";
 
 const queueNextTask = () => {
   // Loop this task to pick up the next task

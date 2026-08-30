@@ -4,7 +4,7 @@ import type {
   EpicLibraryRecord,
   EpicPlaytime,
   EpicToken,
-} from "~/lib/epic/api";
+} from "~~/lib/epic/api";
 import { db } from "~~/lib/db";
 import { epicUser, type EpicUser, type NewEpicUser } from "~~/db/schema";
 

@@ -1,4 +1,4 @@
-import { createTask } from "~/server/tasks/queue";
+import { createTask } from "~~/server/tasks/queue";
 
 export default defineTask({
   meta: {

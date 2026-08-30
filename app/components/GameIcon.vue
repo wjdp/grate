@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import type { GameWithProviders } from "~/shared/types/Game";
+import type { GameWithProviders } from "#shared/types/Game";
 import {
   getEpicIconUrl,
   getGogIconUrl,
   getPrimaryEpicGame,
   getPrimaryGogGame,
   getPrimarySteamGame,
-} from "~/shared/art";
+} from "#shared/art";
 import { computed } from "vue";
 
 const props = defineProps<{

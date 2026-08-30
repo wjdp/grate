@@ -14,7 +14,7 @@ import updateEpicGames from "./queueable/updateEpicGames";
 import recordEpicPlaytimes from "./queueable/recordEpicPlaytimes";
 
 import type { TaskName } from "#shared/tasks";
-import type { Task } from "~/server/tasks/queue";
+import type { Task } from "~~/server/tasks/queue";
 
 export const TaskMap: { [k in TaskName]: (task: Task) => Promise<void> } = {
   sleep,

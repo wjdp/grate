@@ -5,11 +5,22 @@ const relaxedIndexAccess = () => ({
   compilerOptions: { noUncheckedIndexedAccess: false },
 });
 
+// `lib/`, `db/` and `test/` sit outside every project Nuxt generates, so their
+// files are only checked where an app or server file happens to import them.
+const rootDirsOutsideNuxtProjects = [
+  "../lib/**/*",
+  "../db/**/*",
+  "../test/**/*",
+];
+
 export default defineNuxtConfig({
   compatibilityDate: "2026-08-30",
   buildDir: ".nuxt",
   typescript: {
-    tsConfig: relaxedIndexAccess(),
+    tsConfig: {
+      ...relaxedIndexAccess(),
+      include: rootDirsOutsideNuxtProjects,
+    },
     nodeTsConfig: relaxedIndexAccess(),
     sharedTsConfig: relaxedIndexAccess(),
   },

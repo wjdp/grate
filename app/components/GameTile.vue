@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { GameWithProviders } from "~/shared/types/Game";
+import type { GameWithProviders } from "#shared/types/Game";
 import { GameStateNames } from "#shared/game-state";
 
 defineProps<{

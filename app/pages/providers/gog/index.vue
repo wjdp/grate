@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getGogLoginUri } from "~/lib/gog/api";
+import { getGogLoginUri } from "~~/lib/gog/api";
 
 const authUri = getGogLoginUri();
 const openAuthPage = () => {

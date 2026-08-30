@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getEpicLoginUri } from "~/lib/epic/api";
+import { getEpicLoginUri } from "~~/lib/epic/api";
 
 const { data: epicUser, refresh: refreshStatus } = await useFetch(
   "/api/providers/epic",

@@ -9,8 +9,8 @@ import {
   type GogGameDetail,
   type GogPlaytimeSessions,
   refreshGogToken,
-} from "~/lib/gog/api";
-import tryCatch from "~/utils/tryCatch";
+} from "~~/lib/gog/api";
+import tryCatch from "#shared/utils/tryCatch";
 import { db } from "~~/lib/db";
 import {
   game,
@@ -22,8 +22,8 @@ import {
   type GogGame,
   type GogUser,
 } from "~~/db/schema";
-import { refreshGameAggregates } from "~/lib/gameAggregates";
-import { countProviderRows } from "~/lib/gameProviders";
+import { refreshGameAggregates } from "~~/lib/gameAggregates";
+import { countProviderRows } from "~~/lib/gameProviders";
 
 function getTokenExpiresAt(expiresIn: number) {
   return new Date(Date.now() + expiresIn * 1000);

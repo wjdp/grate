@@ -11,7 +11,7 @@ import {
   generateFakeUserGame,
   generateFakeUserInfo,
   generateUnownedFakeUserGame,
-} from "~/lib/steam/fixtures/fake";
+} from "~~/lib/steam/fixtures/fake";
 import {
   createOrUpdateSteamUser,
   findGamesNeedingStoreData,
@@ -22,26 +22,26 @@ import {
   SteamServiceError,
   updateGames,
   updateUser,
-} from "~/lib/steam/service";
-import { getUserGames, getUserInfo, resolveVanityUrl } from "~/lib/steam/api";
-import { getAppDetails, SteamStoreError } from "~/lib/steam/store";
+} from "~~/lib/steam/service";
+import { getUserGames, getUserInfo, resolveVanityUrl } from "~~/lib/steam/api";
+import { getAppDetails, SteamStoreError } from "~~/lib/steam/store";
 import { db } from "~~/lib/db";
 import { steamUser, user } from "~~/db/schema";
 
 import { DateTime } from "luxon";
-import { flushDb } from "~/test/db";
+import { flushDb } from "~~/test/db";
 
-import Response7670 from "~/lib/steam/fixtures/store/7670.json";
+import Response7670 from "~~/lib/steam/fixtures/store/7670.json";
 
-vi.mock("~/lib/steam/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("~/lib/steam/api")>()),
+vi.mock("~~/lib/steam/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/lib/steam/api")>()),
   getUserGames: vi.fn(),
   getUserInfo: vi.fn(),
   resolveVanityUrl: vi.fn(),
 }));
 
-vi.mock("~/lib/steam/store", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("~/lib/steam/store")>()),
+vi.mock("~~/lib/steam/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/lib/steam/store")>()),
   getAppDetails: vi.fn(),
 }));
 

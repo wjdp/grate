@@ -1,4 +1,4 @@
-import { updateGames } from "~/lib/steam/service";
+import { updateGames } from "~~/lib/steam/service";
 
 export default async () => {
   await updateGames();

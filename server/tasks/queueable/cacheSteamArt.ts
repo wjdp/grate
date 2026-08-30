@@ -1,8 +1,8 @@
-import { cacheSteamArtForApp, isSteamArtCached } from "~/server/steam/art";
+import { cacheSteamArtForApp, isSteamArtCached } from "~~/server/steam/art";
 import { db } from "~~/lib/db";
-import { cacheSteamIconForApp, isSteamIconCached } from "~/server/steam/icon";
-import { updateInProgressTask } from "~/server/tasks/queue";
-import type { Task } from "~/server/tasks/queue";
+import { cacheSteamIconForApp, isSteamIconCached } from "~~/server/steam/icon";
+import { updateInProgressTask } from "~~/server/tasks/queue";
+import type { Task } from "~~/server/tasks/queue";
 import { steamGame, type SteamGame } from "~~/db/schema";
 
 async function cacheArtForSingleGame(task: Task, appId: number) {

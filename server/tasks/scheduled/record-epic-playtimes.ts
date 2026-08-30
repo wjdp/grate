@@ -1,4 +1,4 @@
-import { recordEpicPlaytimes, updateEpicGames } from "~/lib/epic/service";
+import { recordEpicPlaytimes, updateEpicGames } from "~~/lib/epic/service";
 
 export default defineTask({
   meta: {

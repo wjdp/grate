@@ -1,4 +1,4 @@
-import { useSseEvent } from "~/composables/useSse";
+import { useSseEvent } from "~~/server/sse";
 
 export default defineEventHandler(async (event) => {
   const { push } = useSseEvent();

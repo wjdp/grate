@@ -9,14 +9,14 @@ import {
   GogApiError,
   type GogGameDetail,
   refreshGogToken,
-} from "~/lib/gog/api";
+} from "~~/lib/gog/api";
 import {
   createGogUser,
   generateFakeGogGameDetail,
   generateFakeGogPlaytimeSessions,
   generateFakeGogToken,
   generateFakeGogUser,
-} from "~/lib/gog/fixtures/fake";
+} from "~~/lib/gog/fixtures/fake";
 import {
   createOrUpdateGogUser,
   getGogPlaytimeRecords,
@@ -25,11 +25,11 @@ import {
   recordGogPlaytimes,
   updateGogGames,
   updateGogUser,
-} from "~/lib/gog/service";
+} from "~~/lib/gog/service";
 import { createGogGame } from "~~/lib/fixtures/game";
 import { db } from "~~/lib/db";
 import { game, gogGame, gogIgnoredProduct, gogUser } from "~~/db/schema";
-import { flushDb } from "~/test/db";
+import { flushDb } from "~~/test/db";
 
 function withoutReleaseDates(detail: GogGameDetail): GogGameDetail {
   const {
@@ -46,8 +46,8 @@ function firstOrThrow<T>(rows: T[]): T {
   return row;
 }
 
-vi.mock("~/lib/gog/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("~/lib/gog/api")>()),
+vi.mock("~~/lib/gog/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/lib/gog/api")>()),
   getGogGameDetail: vi.fn(),
   getGogToken: vi.fn(),
   getGogUserData: vi.fn(),

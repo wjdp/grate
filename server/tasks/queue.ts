@@ -1,5 +1,5 @@
 import type { TaskName, TaskState } from "#shared/tasks";
-import { useSseEvent } from "~/composables/useSse";
+import { useSseEvent } from "~~/server/sse";
 
 const CURRENT_TASK_ID = "currentTaskId";
 const LAST_TASK_KEY = "lastTaskId";

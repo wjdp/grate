@@ -1,4 +1,4 @@
-import { recordGogPlaytimes, updateGogGames } from "~/lib/gog/service";
+import { recordGogPlaytimes, updateGogGames } from "~~/lib/gog/service";
 
 export default defineTask({
   meta: {

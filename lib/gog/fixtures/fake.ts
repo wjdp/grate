@@ -4,7 +4,7 @@ import type {
   getGogUserData,
   GogGameDetail,
   GogPlaytimeSessions,
-} from "~/lib/gog/api";
+} from "~~/lib/gog/api";
 import { db } from "~~/lib/db";
 import { gogUser, type GogUser, type NewGogUser } from "~~/db/schema";
 

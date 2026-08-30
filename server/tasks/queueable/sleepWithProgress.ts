@@ -1,6 +1,6 @@
-import sleep from "~/utils/sleep";
-import type { Task } from "~/server/tasks/queue";
-import { updateInProgressTask } from "~/server/tasks/queue";
+import sleep from "#shared/utils/sleep";
+import type { Task } from "~~/server/tasks/queue";
+import { updateInProgressTask } from "~~/server/tasks/queue";
 
 export default async (task: Task) => {
   const ms = 100;

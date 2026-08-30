@@ -26,10 +26,17 @@ watch(
 
 const art = computed(() => game.value && getGameArtUrls(game.value));
 
+// `useFetch` data is a shallowRef, so the optimistic update has to replace the
+// object rather than write through it.
+const applyGameState = (state: GameState | null) => {
+  if (!data.value?.game) return;
+  data.value = { ...data.value, game: { ...data.value.game, state } };
+};
+
 const updateGameState = async (state: GameState | null) => {
   if (!game.value) throw new Error("Game not loaded");
   const previousState = game.value.state;
-  game.value.state = state;
+  applyGameState(state);
   try {
     await $fetch(`/api/games/${id}/state`, {
       method: "PATCH",
@@ -37,7 +44,7 @@ const updateGameState = async (state: GameState | null) => {
     });
   } catch (error) {
     console.error(error);
-    game.value.state = previousState;
+    applyGameState(previousState);
   }
 };
 

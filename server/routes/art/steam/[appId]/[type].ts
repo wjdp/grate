@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   checkAndReturnSteamArtPath,
   STEAM_ART_TYPES,
-} from "~/server/steam/art";
+} from "~~/server/steam/art";
 import fs from "fs";
 
 const PathSchema = z.object({

@@ -11,14 +11,14 @@ import {
   getEpicToken,
   refreshEpicToken,
   type EpicCatalogItem,
-} from "~/lib/epic/api";
+} from "~~/lib/epic/api";
 import {
   createEpicUser,
   generateFakeEpicCatalogItem,
   generateFakeEpicLibraryRecord,
   generateFakeEpicPlaytime,
   generateFakeEpicToken,
-} from "~/lib/epic/fixtures/fake";
+} from "~~/lib/epic/fixtures/fake";
 import {
   createOrUpdateEpicUser,
   getEpicPlaytimeRecords,
@@ -27,14 +27,14 @@ import {
   recordEpicPlaytimes,
   updateEpicGames,
   updateEpicUser,
-} from "~/lib/epic/service";
+} from "~~/lib/epic/service";
 import { createEpicGame } from "~~/lib/fixtures/game";
 import { db } from "~~/lib/db";
 import { epicGame, epicIgnoredItem, epicUser, game } from "~~/db/schema";
-import { flushDb } from "~/test/db";
+import { flushDb } from "~~/test/db";
 
-vi.mock("~/lib/epic/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("~/lib/epic/api")>()),
+vi.mock("~~/lib/epic/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/lib/epic/api")>()),
   getEpicAccount: vi.fn(),
   getEpicCatalogItems: vi.fn(),
   getEpicLibraryItems: vi.fn(),

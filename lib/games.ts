@@ -13,7 +13,7 @@ import {
 import { db } from "~~/lib/db";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
-import type { GameState } from "~~/shared/game-state";
+import type { GameState } from "#shared/game-state";
 
 export type PlaytimeProvider = "steam" | "gog" | "epic";
 

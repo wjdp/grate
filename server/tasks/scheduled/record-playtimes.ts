@@ -1,4 +1,4 @@
-import { recordPlaytimes, updateGames } from "~/lib/steam/service";
+import { recordPlaytimes, updateGames } from "~~/lib/steam/service";
 
 export default defineTask({
   meta: {

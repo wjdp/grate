@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getGameArtUrls } from "~/shared/art";
+import { getGameArtUrls } from "#shared/art";
 
 const appConfig = useAppConfig();
 const { data: setupData } = useFetch(() => "/api/setup");

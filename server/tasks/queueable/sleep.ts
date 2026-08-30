@@ -1,4 +1,4 @@
-import sleep from "~/utils/sleep";
+import sleep from "#shared/utils/sleep";
 
 export default async () => {
   const ms = 2000;

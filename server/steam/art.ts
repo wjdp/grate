@@ -1,9 +1,9 @@
-import { getSteamArtUrls } from "~/lib/steam/art";
-import type { SteamArtUrls } from "~/lib/steam/art";
+import { getSteamArtUrls } from "~~/lib/steam/art";
+import type { SteamArtUrls } from "~~/lib/steam/art";
 import fs from "fs";
-import sleep from "~/utils/sleep";
-import { ART_DIR } from "~/server/constants";
-import { checkFileExists } from "~/server/files";
+import sleep from "#shared/utils/sleep";
+import { ART_DIR } from "~~/server/constants";
+import { checkFileExists } from "~~/server/files";
 
 const ART_FETCH_PER_MINUTE = 600;
 const TIME_PER_ART_FETCH = 60_000 / ART_FETCH_PER_MINUTE;

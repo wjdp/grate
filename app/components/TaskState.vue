@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SseTask } from "~/lib/hooks";
+import type { SseTask } from "~~/lib/hooks";
 
 const props = defineProps<{
   state: SseTask["state"];

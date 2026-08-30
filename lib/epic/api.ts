@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EPIC_CLIENT_ID } from "#shared/providers/epic";
 
 export class EpicApiError extends Error {
   statusCode: number;
@@ -37,8 +38,6 @@ function createEpicApiError(
   });
 }
 
-// OAuth client that the Epic Games Launcher itself uses, as legendary/Heroic/Lutris do
-const EPIC_CLIENT_ID = "34a02cf8f4414e29b15921876da36f9a";
 const EPIC_CLIENT_SECRET = "daafbccc737745039dffe53d94fc76cf";
 const EPIC_USER_AGENT =
   "UELauncher/11.0.1-14907503+++Portal+Release-Live Windows/10.0.19041.1.256.64bit";
@@ -52,8 +51,6 @@ const EPIC_CATALOG_HOST =
 const EPIC_LIBRARY_HOST = "https://library-service.live.use1a.on.epicgames.com";
 const EPIC_STORE_GRAPHQL_URL = "https://launcher.store.epicgames.com/graphql";
 const EPIC_STORE_CONTENT_HOST = "https://store-content.ak.epicgames.com";
-
-const EPIC_REDIRECT_URI = `https://www.epicgames.com/id/api/redirect?clientId=${EPIC_CLIENT_ID}&responseType=code`;
 
 async function epicFetch(url: string, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers);
@@ -75,9 +72,7 @@ function bearer(accessToken: string) {
   return { Authorization: `bearer ${accessToken}` };
 }
 
-export function getEpicLoginUri(): string {
-  return `https://www.epicgames.com/id/login?redirectUrl=${encodeURIComponent(EPIC_REDIRECT_URI)}`;
-}
+export { getEpicLoginUri } from "#shared/providers/epic";
 
 const EpicTokenSchema = z
   .object({

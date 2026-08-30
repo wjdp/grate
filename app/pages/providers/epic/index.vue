@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { getEpicLoginUri } from "~~/lib/epic/api";
+import { getEpicLoginUri } from "#shared/providers/epic";
+import { getPageTitle } from "#shared/title";
+
+useSeoMeta({ title: getPageTitle("Epic Games") });
+
+const breadcrumbs = [
+  { label: "Providers", to: "/providers" },
+  { label: "Epic Games" },
+];
 
 const { data: epicUser, refresh: refreshStatus } = await useFetch(
   "/api/providers/epic",
@@ -32,12 +40,15 @@ const isCodeValid = computed(() =>
 );
 
 const errorMessage = ref("");
+const isConnecting = ref(false);
+const toast = useToast();
 
 const connectEpic = async () => {
   if (!isCodeValid.value) {
     return;
   }
   errorMessage.value = "";
+  isConnecting.value = true;
   try {
     await $fetch("/api/providers/epic/auth", {
       method: "POST",
@@ -47,42 +58,85 @@ const connectEpic = async () => {
     errorMessage.value = fetchErrorMessage(error as Error);
     console.error(error);
     return;
+  } finally {
+    isConnecting.value = false;
   }
   redirectInput.value = "";
   await refreshStatus();
+  toast.add({ title: "Connected", color: "success" });
 };
 </script>
 
 <template>
-  <div class="p-4">
-    <h1>Epic Status</h1>
-    <div class="my-4">
-      <template v-if="epicUser">
-        Connected as {{ epicUser.displayName }} ({{ epicUser.accountId }}).
-      </template>
-      <template v-else> No Epic account connected. </template>
-    </div>
-    <div class="my-4">
-      <Button @click="openAuthPage" color="primary">Login with Epic</Button>
-    </div>
-    <div class="my-4">
-      After logging in you'll land on a page showing JSON. Paste the whole JSON,
-      or just the <code>authorizationCode</code> value, below. Reloading that
-      redirect page gives a <code>null</code> code — if that happens, use the
-      login button again to get a fresh one.
-      <input
-        type="text"
-        v-model="redirectInput"
-        class="border-1 bg-slate-600"
+  <div class="flex max-w-2xl flex-col gap-6">
+    <UBreadcrumb :items="breadcrumbs" />
+
+    <h1
+      class="font-display text-highlighted flex items-center gap-3 text-2xl font-semibold tracking-tight"
+    >
+      <ProviderIcon provider="epic" class="size-7" />
+      Epic Games
+    </h1>
+
+    <UCard>
+      <div v-if="epicUser" class="flex flex-col gap-2 text-sm">
+        <UBadge
+          color="success"
+          variant="soft"
+          icon="i-lucide-check"
+          class="self-start"
+        >
+          Connected as {{ epicUser.displayName }}
+        </UBadge>
+        <p class="text-muted">
+          Account <span class="font-mono">{{ epicUser.accountId }}</span
+          >.
+        </p>
+      </div>
+      <UBadge v-else color="neutral" variant="soft" class="self-start">
+        Not connected
+      </UBadge>
+    </UCard>
+
+    <div class="flex flex-col gap-4">
+      <UButton
+        color="neutral"
+        variant="subtle"
+        icon="i-lucide-external-link"
+        class="self-start"
+        @click="openAuthPage"
+      >
+        Log in with Epic
+      </UButton>
+
+      <UFormField label="Authorisation code" name="redirectInput">
+        <template #description>
+          After logging in you land on a page showing JSON. Paste the whole
+          JSON, or just the <code class="font-mono">authorizationCode</code>
+          value, here. Reloading that redirect page gives a
+          <code class="font-mono">null</code> code — if that happens, use the
+          login button again to get a fresh one.
+        </template>
+        <UInput v-model="redirectInput" class="w-full" />
+      </UFormField>
+
+      <UAlert
+        v-if="errorMessage"
+        color="error"
+        variant="soft"
+        icon="i-lucide-triangle-alert"
+        :description="errorMessage"
       />
-    </div>
-    <div v-if="errorMessage" class="my-4 text-red-400">{{ errorMessage }}</div>
-    <div class="my-4">
-      <Button @click="connectEpic" color="primary" :disabled="!isCodeValid"
-        >Connect Epic Account
-      </Button>
+
+      <UButton
+        color="primary"
+        class="self-start"
+        :disabled="!isCodeValid"
+        :loading="isConnecting"
+        @click="connectEpic"
+      >
+        Connect Epic account
+      </UButton>
     </div>
   </div>
 </template>
-
-<style scoped></style>

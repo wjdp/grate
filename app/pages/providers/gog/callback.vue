@@ -1,5 +1,3 @@
-<script setup lang="ts"></script>
-
-<template></template>
-
-<style scoped></style>
+<template>
+  <p class="text-muted">GOG sign-in complete — you can close this tab.</p>
+</template>

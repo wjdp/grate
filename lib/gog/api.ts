@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GOG_CLIENT_ID, GOG_REDIRECT_URI } from "#shared/providers/gog";
 
 export class GogApiError extends Error {
   statusCode: number;
@@ -47,15 +48,11 @@ async function gogFetch(url: string, init?: RequestInit): Promise<Response> {
 }
 
 // OAuth client that all the open-source launcher apps use
-const GOG_CLIENT_ID = "46899977096215655";
 const GOG_CLIENT_SECRET =
   "9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9";
 const GOG_GRANT_TYPE = "authorization_code";
-const GOG_REDIRECT_URI = "https://embed.gog.com/on_login_success?origin=client";
 
-export function getGogLoginUri(): string {
-  return `https://login.gog.com/auth?client_id=${GOG_CLIENT_ID}&redirect_uri=${GOG_REDIRECT_URI}&response_type=code&layout=client2`;
-}
+export { getGogLoginUri } from "#shared/providers/gog";
 
 const GogTokenSchema = z.object({
   access_token: z.string(),

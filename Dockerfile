@@ -9,7 +9,7 @@ FROM base AS build
 # better-sqlite3 has no prebuilt binary for this Node version, so compile it
 RUN apt-get update -y && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11
 COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY --link . .
@@ -20,7 +20,7 @@ FROM base AS runtime
 # better-sqlite3 has no prebuilt binary for this Node version, so compile it
 RUN apt-get update -y && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11
 COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 

@@ -16,10 +16,12 @@ import { refreshGameAggregates } from "~/lib/gameAggregates";
 import {
   getUserGames,
   getUserInfo,
+  resolveVanityUrl,
   type SteamCredentials,
   type UserGame,
   type UserInfo,
 } from "./api";
+import { parseSteamProfileInput } from "~~/shared/steam-profile";
 import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
 
 export class SteamServiceError extends Error {
@@ -53,10 +55,32 @@ function steamUserProfileFields(steamUserInfo: UserInfo) {
   };
 }
 
+export async function resolveSteamId(
+  apiKey: string,
+  profileInput: string,
+): Promise<string> {
+  const parsed = parseSteamProfileInput(profileInput);
+  if (!parsed) {
+    throw new SteamServiceError(
+      "Enter a Steam profile URL, vanity name or SteamID64",
+    );
+  }
+  if ("steamId" in parsed) {
+    return parsed.steamId;
+  }
+  return resolveVanityUrl(apiKey, parsed.vanityName);
+}
+
+export interface SteamProfileCredentials {
+  apiKey: string;
+  profile: string;
+}
+
 export async function createOrUpdateSteamUser({
   apiKey,
-  steamId,
-}: SteamCredentials): Promise<SteamUser> {
+  profile,
+}: SteamProfileCredentials): Promise<SteamUser> {
+  const steamId = await resolveSteamId(apiKey, profile);
   const steamUserInfo = await getUserInfo({ apiKey, steamId });
   const currentUser = await getSteamUser();
   if (currentUser && currentUser.steamId !== steamUserInfo.steamid) {

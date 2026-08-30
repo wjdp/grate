@@ -39,7 +39,7 @@ export default router({
     .input(
       z.object({
         apiKey: z.string().min(1),
-        steamId: z.string().regex(/^\d{17}$/),
+        profile: z.string().min(1),
       }),
     )
     .mutation(async ({ input }) => {

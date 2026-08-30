@@ -22,7 +22,7 @@ import {
   updateGames,
   updateUser,
 } from "~/lib/steam/service";
-import { getUserGames, getUserInfo } from "~/lib/steam/api";
+import { getUserGames, getUserInfo, resolveVanityUrl } from "~/lib/steam/api";
 import { getAppDetails, SteamStoreError } from "~/lib/steam/store";
 import { db } from "~~/lib/db";
 import { steamUser, user } from "~~/db/schema";
@@ -36,6 +36,7 @@ vi.mock("~/lib/steam/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~/lib/steam/api")>()),
   getUserGames: vi.fn(),
   getUserInfo: vi.fn(),
+  resolveVanityUrl: vi.fn(),
 }));
 
 vi.mock("~/lib/steam/store", async (importOriginal) => ({
@@ -290,7 +291,7 @@ describe("createOrUpdateSteamUser", () => {
     vi.mocked(getUserInfo).mockResolvedValue(userInfo);
     const created = await createOrUpdateSteamUser({
       apiKey: "NEW-KEY",
-      steamId: userInfo.steamid,
+      profile: userInfo.steamid,
     });
     expect(getUserInfo).toHaveBeenCalledWith({
       apiKey: "NEW-KEY",
@@ -313,7 +314,7 @@ describe("createOrUpdateSteamUser", () => {
     );
     const updated = await createOrUpdateSteamUser({
       apiKey: "REPLACEMENT-KEY",
-      steamId: existing.steamId,
+      profile: existing.steamId,
     });
     expect(updated.apiKey).toBe("REPLACEMENT-KEY");
     expect(updated.personaName).toBe("Renamed Persona");
@@ -329,7 +330,7 @@ describe("createOrUpdateSteamUser", () => {
       generateFakeUserInfo({ steamid: otherSteamId }),
     );
     await expect(
-      createOrUpdateSteamUser({ apiKey: "KEY", steamId: otherSteamId }),
+      createOrUpdateSteamUser({ apiKey: "KEY", profile: otherSteamId }),
     ).rejects.toThrow("grate only supports a single Steam account");
     expect(db.select().from(steamUser).all()).toHaveLength(1);
   });
@@ -339,11 +340,49 @@ describe("createOrUpdateSteamUser", () => {
     await expect(
       createOrUpdateSteamUser({
         apiKey: "BAD-KEY",
-        steamId: faker.string.numeric(17),
+        profile: faker.string.numeric(17),
       }),
     ).rejects.toThrow("Forbidden");
     expect(db.select().from(user).all()).toHaveLength(0);
     expect(db.select().from(steamUser).all()).toHaveLength(0);
+  });
+
+  it("resolves a vanity name to a steam id", async () => {
+    const userInfo = generateFakeUserInfo();
+    vi.mocked(resolveVanityUrl).mockResolvedValue(userInfo.steamid);
+    vi.mocked(getUserInfo).mockResolvedValue(userInfo);
+    const created = await createOrUpdateSteamUser({
+      apiKey: "NEW-KEY",
+      profile: "https://steamcommunity.com/id/robinwalker",
+    });
+    expect(resolveVanityUrl).toHaveBeenCalledWith("NEW-KEY", "robinwalker");
+    expect(getUserInfo).toHaveBeenCalledWith({
+      apiKey: "NEW-KEY",
+      steamId: userInfo.steamid,
+    });
+    expect(created.steamId).toBe(userInfo.steamid);
+  });
+
+  it("does not resolve a profiles url", async () => {
+    const userInfo = generateFakeUserInfo();
+    vi.mocked(getUserInfo).mockResolvedValue(userInfo);
+    await createOrUpdateSteamUser({
+      apiKey: "NEW-KEY",
+      profile: `https://steamcommunity.com/profiles/${userInfo.steamid}/`,
+    });
+    expect(resolveVanityUrl).not.toHaveBeenCalled();
+    expect(getUserInfo).toHaveBeenCalledWith({
+      apiKey: "NEW-KEY",
+      steamId: userInfo.steamid,
+    });
+  });
+
+  it("rejects unparseable input before calling the steam api", async () => {
+    await expect(
+      createOrUpdateSteamUser({ apiKey: "KEY", profile: "not a profile" }),
+    ).rejects.toThrow("Enter a Steam profile URL, vanity name or SteamID64");
+    expect(resolveVanityUrl).not.toHaveBeenCalled();
+    expect(getUserInfo).not.toHaveBeenCalled();
   });
 });
 

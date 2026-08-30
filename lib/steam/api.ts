@@ -40,6 +40,30 @@ export async function getServerInfo(): Promise<ServerInfo> {
   return serverInfoSchema.parse(data);
 }
 
+export async function resolveVanityUrl(
+  apiKey: string,
+  vanityName: string,
+): Promise<string> {
+  const parameters = new URLSearchParams({
+    key: apiKey,
+    vanityurl: vanityName,
+  });
+  const response = await fetch(
+    `${BASE_URL}/ISteamUser/ResolveVanityURL/v1/?` + parameters.toString(),
+  );
+  if (!response.ok) {
+    throw createSteamApiError(response);
+  }
+  const data = await response.json();
+  if (data.response?.success !== 1) {
+    throw new SteamApiError({
+      message: `No Steam profile found for "${vanityName}"`,
+      statusCode: 404,
+    });
+  }
+  return z.string().parse(data.response.steamid);
+}
+
 const userInfoSchema = z.object({
   // 64-bit SteamID: keep it a string, it is never used arithmetically
   steamid: z.string(),

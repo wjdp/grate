@@ -9,6 +9,7 @@ export const TASK_NAMES = [
   "cacheSteamArt",
   "updateGogUser",
   "updateGogGames",
+  "recordGogPlaytimes",
 ] as const;
 
 export type TaskName = (typeof TASK_NAMES)[number];

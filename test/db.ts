@@ -3,12 +3,16 @@ import prisma from "~/lib/prisma";
 import * as child_process from "node:child_process";
 
 const TABLES = [
-  "User",
-  "Game",
+  "SteamGamePlaytime",
+  "GogGamePlaytime",
   "GameStateChange",
   "SteamUser",
+  "GogIgnoredProduct",
   "SteamGame",
-  "SteamGamePlaytime",
+  "GogGame",
+  "Game",
+  "User",
+  "GogUser",
 ];
 
 export async function flushDb() {

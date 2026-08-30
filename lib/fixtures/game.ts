@@ -19,7 +19,10 @@ import {
 export function createGame(overrides: Partial<NewGame> = {}): Game {
   return db
     .insert(game)
-    .values({ name: faker.commerce.productName(), ...overrides })
+    .values({
+      ...overrides,
+      name: overrides.name ?? faker.commerce.productName(),
+    })
     .returning()
     .get();
 }

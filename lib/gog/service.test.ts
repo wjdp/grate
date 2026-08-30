@@ -1,3 +1,4 @@
+import { asc, eq } from "drizzle-orm";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   getGogGameDetail,
@@ -9,7 +10,6 @@ import {
   refreshGogToken,
 } from "~/lib/gog/api";
 import {
-  createGogGame,
   createGogUser,
   generateFakeGogGameDetail,
   generateFakeGogPlaytimeSessions,
@@ -25,8 +25,16 @@ import {
   updateGogGames,
   updateGogUser,
 } from "~/lib/gog/service";
-import prisma from "~/lib/prisma";
+import { createGogGame } from "~~/lib/fixtures/game";
+import { db } from "~~/lib/db";
+import { game, gogGame, gogIgnoredProduct, gogUser } from "~~/db/schema";
 import { flushDb } from "~/test/db";
+
+function firstOrThrow<T>(rows: T[]): T {
+  const [row] = rows;
+  if (!row) throw new Error("Expected at least one row");
+  return row;
+}
 
 vi.mock("~/lib/gog/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~/lib/gog/api")>()),
@@ -77,7 +85,7 @@ describe("createOrUpdateGogUser", () => {
     expect(user.accessToken).toBe(token.access_token);
     expect(user.refreshToken).toBe(token.refresh_token);
     expectCloseTo(user.accessTokenExpiresAt, new Date(before + 3600 * SECOND));
-    expect(await prisma.gogUser.count()).toBe(1);
+    expect(await db.$count(gogUser)).toBe(1);
   });
 
   it("updates the existing user when the gogUserId matches", async () => {
@@ -89,7 +97,7 @@ describe("createOrUpdateGogUser", () => {
 
     const user = await createOrUpdateGogUser("code-123");
 
-    expect(await prisma.gogUser.count()).toBe(1);
+    expect(await db.$count(gogUser)).toBe(1);
     expect(user.username).toBe(apiUser.username);
     expect(user.accessToken).toBe(token.access_token);
     expect(user.refreshToken).toBe(token.refresh_token);
@@ -105,7 +113,7 @@ describe("createOrUpdateGogUser", () => {
     await expect(createOrUpdateGogUser("code-123")).rejects.toThrow(
       "grate only supports a single GOG account",
     );
-    expect(await prisma.gogUser.count()).toBe(1);
+    expect(await db.$count(gogUser)).toBe(1);
   });
 
   it("throws when the token request fails", async () => {
@@ -124,7 +132,7 @@ describe("createOrUpdateGogUser", () => {
     await expect(createOrUpdateGogUser("code-123")).rejects.toThrow(
       "Failed to get user data from GOG",
     );
-    expect(await prisma.gogUser.count()).toBe(0);
+    expect(await db.$count(gogUser)).toBe(0);
   });
 });
 
@@ -157,7 +165,7 @@ describe("handleRefreshToken", () => {
       result.accessTokenExpiresAt,
       new Date(before + 3600 * SECOND),
     );
-    const stored = await prisma.gogUser.findFirstOrThrow();
+    const stored = firstOrThrow(db.select().from(gogUser).all());
     expect(stored.accessToken).toBe(token.access_token);
     expect(stored.refreshToken).toBe(token.refresh_token);
   });
@@ -238,30 +246,30 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    const gogGame = await prisma.gogGame.findFirstOrThrow({
-      include: { game: true },
-    });
-    expect(gogGame.gogId).toBe(100);
-    expect(gogGame.name).toBe("Some Game");
-    expect(gogGame.game.name).toBe("Some Game");
-    expect(gogGame.releaseDate).toStrictEqual(
+    const storedGame = firstOrThrow(
+      await db.query.gogGame.findMany({ with: { game: true } }),
+    );
+    expect(storedGame.gogId).toBe(100);
+    expect(storedGame.name).toBe("Some Game");
+    expect(storedGame.game.name).toBe("Some Game");
+    expect(storedGame.releaseDate).toStrictEqual(
       new Date("2014-01-02T00:00:00.000Z"),
     );
-    expect(gogGame.description).toBe(detail.description);
-    expect(gogGame.publisher).toBe("A Publisher");
-    expect(gogGame.developer).toBe("Dev One, Dev Two");
-    expect(gogGame.iconUrl).toBe(detail._links.icon?.href);
-    expect(gogGame.iconSquareUrl).toBe(detail._links.iconSquare?.href);
-    expect(gogGame.logoUrl).toBe(detail._links.logo?.href);
-    expect(gogGame.boxArtImageUrl).toBe(detail._links.boxArtImage?.href);
-    expect(gogGame.backgroundImageUrl).toBe(
+    expect(storedGame.description).toBe(detail.description);
+    expect(storedGame.publisher).toBe("A Publisher");
+    expect(storedGame.developer).toBe("Dev One, Dev Two");
+    expect(storedGame.iconUrl).toBe(detail._links.icon?.href);
+    expect(storedGame.iconSquareUrl).toBe(detail._links.iconSquare?.href);
+    expect(storedGame.logoUrl).toBe(detail._links.logo?.href);
+    expect(storedGame.boxArtImageUrl).toBe(detail._links.boxArtImage?.href);
+    expect(storedGame.backgroundImageUrl).toBe(
       detail._links.backgroundImage?.href,
     );
-    expect(gogGame.galaxyBackgroundImageUrl).toBe(
+    expect(storedGame.galaxyBackgroundImageUrl).toBe(
       detail._links.galaxyBackgroundImage?.href,
     );
-    expect(gogGame.tags).toStrictEqual(detail._embedded.tags);
-    expect(gogGame.properties).toStrictEqual(detail._embedded.properties);
+    expect(storedGame.tags).toStrictEqual(detail._embedded.tags);
+    expect(storedGame.properties).toStrictEqual(detail._embedded.properties);
   });
 
   it("falls back to gogReleaseDate when there is no globalReleaseDate", async () => {
@@ -276,8 +284,8 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    const gogGame = await prisma.gogGame.findFirstOrThrow();
-    expect(gogGame.releaseDate).toStrictEqual(
+    const storedGame = firstOrThrow(db.select().from(gogGame).all());
+    expect(storedGame.releaseDate).toStrictEqual(
       new Date("2015-05-19T00:00:00.000Z"),
     );
   });
@@ -292,14 +300,14 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    expect(await prisma.game.count()).toBe(1);
-    expect(await prisma.gogGame.count()).toBe(1);
-    const gogGame = await prisma.gogGame.findFirstOrThrow({
-      include: { game: true },
-    });
-    expect(gogGame.gameId).toBe(existing.gameId);
-    expect(gogGame.name).toBe("New Name");
-    expect(gogGame.game.name).toBe("New Name");
+    expect(await db.$count(game)).toBe(1);
+    expect(await db.$count(gogGame)).toBe(1);
+    const storedGame = firstOrThrow(
+      await db.query.gogGame.findMany({ with: { game: true } }),
+    );
+    expect(storedGame.gameId).toBe(existing.gameId);
+    expect(storedGame.name).toBe("New Name");
+    expect(storedGame.game.name).toBe("New Name");
   });
 
   it.each(["DLC", "PACK"])(
@@ -313,11 +321,15 @@ describe("updateGogGames", () => {
 
       await updateGogGames();
 
-      expect(await prisma.gogGame.count()).toBe(0);
-      expect(await prisma.game.count()).toBe(0);
-      const ignored = await prisma.gogIgnoredProduct.findUniqueOrThrow({
-        where: { gogId: 300 },
-      });
+      expect(await db.$count(gogGame)).toBe(0);
+      expect(await db.$count(game)).toBe(0);
+      const ignored = firstOrThrow(
+        db
+          .select()
+          .from(gogIgnoredProduct)
+          .where(eq(gogIgnoredProduct.gogId, 300))
+          .all(),
+      );
       expect(ignored.reason).toBe(productType);
     },
   );
@@ -331,21 +343,21 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    expect(await prisma.gogGame.count()).toBe(0);
+    expect(await db.$count(gogGame)).toBe(0);
     expect(getGogGameDetail).not.toHaveBeenCalled();
   });
 
   it("does not fetch details for products already ignored", async () => {
     await createGogUser();
-    await prisma.gogIgnoredProduct.create({
-      data: { gogId: 500, reason: "NOT_FOUND" },
-    });
+    db.insert(gogIgnoredProduct)
+      .values({ gogId: 500, reason: "NOT_FOUND" })
+      .run();
     vi.mocked(getGogUserGames).mockResolvedValue([500]);
 
     await updateGogGames();
 
     expect(getGogGameDetail).not.toHaveBeenCalled();
-    expect(await prisma.gogGame.count()).toBe(0);
+    expect(await db.$count(gogGame)).toBe(0);
   });
 
   it("ignores a product whose detail request 404s and skips it next run", async () => {
@@ -357,9 +369,13 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    const ignored = await prisma.gogIgnoredProduct.findUniqueOrThrow({
-      where: { gogId: 501 },
-    });
+    const ignored = firstOrThrow(
+      db
+        .select()
+        .from(gogIgnoredProduct)
+        .where(eq(gogIgnoredProduct.gogId, 501))
+        .all(),
+    );
     expect(ignored.reason).toBe("NOT_FOUND");
 
     vi.mocked(getGogGameDetail).mockClear();
@@ -381,7 +397,7 @@ describe("updateGogGames", () => {
     await updateGogGames();
 
     expect(
-      await prisma.gogIgnoredProduct.count({ where: { gogId: 502 } }),
+      await db.$count(gogIgnoredProduct, eq(gogIgnoredProduct.gogId, 502)),
     ).toBe(0);
   });
 
@@ -394,8 +410,8 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    const gogGame = await prisma.gogGame.findFirstOrThrow();
-    expect(gogGame.productType).toBe("GAME");
+    const storedGame = firstOrThrow(db.select().from(gogGame).all());
+    expect(storedGame.productType).toBe("GAME");
   });
 
   it("continues with the rest when one game fails to store", async () => {
@@ -411,9 +427,11 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    const gogGames = await prisma.gogGame.findMany({
-      orderBy: { gogId: "asc" },
-    });
+    const gogGames = db
+      .select()
+      .from(gogGame)
+      .orderBy(asc(gogGame.gogId))
+      .all();
     expect(gogGames.map((g) => g.gogId)).toStrictEqual([600, 602]);
   });
 
@@ -431,11 +449,11 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    const game = await prisma.game.findUniqueOrThrow({
-      where: { id: existing.gameId },
-    });
-    expect(game.playtimeMinutes).toBe(120);
-    expect(game.lastPlayedAt).toStrictEqual(
+    const storedGame = firstOrThrow(
+      db.select().from(game).where(eq(game.id, existing.gameId)).all(),
+    );
+    expect(storedGame.playtimeMinutes).toBe(120);
+    expect(storedGame.lastPlayedAt).toStrictEqual(
       new Date("2024-01-01T00:00:00.000Z"),
     );
   });
@@ -450,9 +468,11 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    const gogGames = await prisma.gogGame.findMany({
-      orderBy: { gogId: "asc" },
-    });
+    const gogGames = db
+      .select()
+      .from(gogGame)
+      .orderBy(asc(gogGame.gogId))
+      .all();
     expect(gogGames.map((g) => g.gogId)).toStrictEqual([400, 402]);
   });
 
@@ -468,14 +488,14 @@ describe("updateGogGames", () => {
 
 describe("recordGogPlaytime", () => {
   it("creates a first record with no start timestamp", async () => {
-    const gogGame = await createGogGame({ gogId: 800 });
+    const playedGame = await createGogGame({ gogId: 800 });
     const sessions = generateFakeGogPlaytimeSessions({
       time_sum: 60,
       last_session_date: 1700000000,
     });
     const now = new Date("2026-01-01T00:00:00.000Z");
 
-    const record = await recordGogPlaytime(gogGame, sessions, now);
+    const record = await recordGogPlaytime(playedGame, sessions, now);
 
     expect(record.timestampStart).toBeNull();
     expect(record.timestampEnd).toStrictEqual(now);
@@ -484,15 +504,15 @@ describe("recordGogPlaytime", () => {
   });
 
   it("extends the last record when the playtime has not changed", async () => {
-    const gogGame = await createGogGame({ gogId: 801 });
+    const playedGame = await createGogGame({ gogId: 801 });
     const sessions = generateFakeGogPlaytimeSessions({ time_sum: 60 });
     const first = new Date("2026-01-01T00:00:00.000Z");
     const second = new Date("2026-01-02T00:00:00.000Z");
     const third = new Date("2026-01-03T00:00:00.000Z");
 
-    await recordGogPlaytime(gogGame, sessions, first);
-    await recordGogPlaytime(gogGame, sessions, second);
-    await recordGogPlaytime(gogGame, sessions, third);
+    await recordGogPlaytime(playedGame, sessions, first);
+    await recordGogPlaytime(playedGame, sessions, second);
+    await recordGogPlaytime(playedGame, sessions, third);
 
     const records = await getGogPlaytimeRecords(801);
     expect(records).toHaveLength(2);
@@ -501,17 +521,17 @@ describe("recordGogPlaytime", () => {
   });
 
   it("creates a new record when the playtime changes", async () => {
-    const gogGame = await createGogGame({ gogId: 802 });
+    const playedGame = await createGogGame({ gogId: 802 });
     const first = new Date("2026-01-01T00:00:00.000Z");
     const second = new Date("2026-01-02T00:00:00.000Z");
 
     await recordGogPlaytime(
-      gogGame,
+      playedGame,
       generateFakeGogPlaytimeSessions({ time_sum: 60 }),
       first,
     );
     const record = await recordGogPlaytime(
-      gogGame,
+      playedGame,
       generateFakeGogPlaytimeSessions({ time_sum: 90 }),
       second,
     );
@@ -522,34 +542,34 @@ describe("recordGogPlaytime", () => {
   });
 
   it("updates the GogGame and parent Game fields", async () => {
-    const gogGame = await createGogGame({ gogId: 803 });
+    const playedGame = await createGogGame({ gogId: 803 });
     const sessions = generateFakeGogPlaytimeSessions({
       time_sum: 150,
       last_session_date: 1700000000,
     });
 
-    await recordGogPlaytime(gogGame, sessions, new Date());
+    await recordGogPlaytime(playedGame, sessions, new Date());
 
-    const stored = await prisma.gogGame.findUniqueOrThrow({
-      where: { gogId: 803 },
-    });
+    const stored = firstOrThrow(
+      db.select().from(gogGame).where(eq(gogGame.gogId, 803)).all(),
+    );
     expect(stored.playtimeMinutes).toBe(150);
     expect(stored.lastPlayedAt).toStrictEqual(new Date(1700000000 * 1000));
-    const game = await prisma.game.findUniqueOrThrow({
-      where: { id: gogGame.gameId },
-    });
-    expect(game.playtimeMinutes).toBe(150);
-    expect(game.lastPlayedAt).toStrictEqual(new Date(1700000000 * 1000));
+    const storedGame = firstOrThrow(
+      db.select().from(game).where(eq(game.id, playedGame.gameId)).all(),
+    );
+    expect(storedGame.playtimeMinutes).toBe(150);
+    expect(storedGame.lastPlayedAt).toStrictEqual(new Date(1700000000 * 1000));
   });
 
   it("stores a null lastPlayedAt when there is no session date", async () => {
-    const gogGame = await createGogGame({ gogId: 804 });
+    const playedGame = await createGogGame({ gogId: 804 });
     const sessions = generateFakeGogPlaytimeSessions({
       time_sum: 0,
       last_session_date: null,
     });
 
-    const record = await recordGogPlaytime(gogGame, sessions, new Date());
+    const record = await recordGogPlaytime(playedGame, sessions, new Date());
 
     expect(record.lastPlayedAt).toBeNull();
   });

@@ -53,10 +53,8 @@ jobs:
           cache: "pnpm"
       - name: Install dependencies
         run: pnpm install
-      - name: Build
-        run: pnpm build
-      - name: Create test db
-        run: pnpm test:db:create
+      - name: Prepare Nuxt types
+        run: pnpm nuxt prepare
       - name: Test
         run: pnpm test
 

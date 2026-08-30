@@ -1,7 +1,6 @@
 import type { UserGame, UserInfo } from "~/lib/steam/api";
 import { faker } from "@faker-js/faker";
-import type { Game, SteamGame, SteamUser } from "@prisma/client";
-import prisma from "~/lib/prisma";
+import type { SteamGame } from "~~/db/schema";
 
 function generateRTimeLastPlayed() {
   return faker.number.int({
@@ -14,49 +13,6 @@ function filterUndefinedKeys<T extends object>(o: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(o).filter(([, value]) => value !== undefined),
   ) as Partial<T>;
-}
-
-export async function createGame(overrides: Partial<Game> = {}): Promise<Game> {
-  return prisma.game.create({
-    data: {
-      ...{
-        name: faker.commerce.productName(),
-      },
-      ...filterUndefinedKeys(overrides),
-    },
-  });
-}
-
-export async function createSteamGame(
-  overrides: Partial<SteamGame> = {},
-): Promise<SteamGame> {
-  const game = await createGame({ name: overrides.name });
-  const appId = faker.number.bigInt();
-  return prisma.steamGame.create({
-    data: {
-      ...{
-        gameId: game.id,
-        appId,
-        name: game.name,
-        playtimeForever: faker.number.int({ min: 0, max: 10000 }),
-        playtime2weeks: faker.number.int({ min: 0, max: 1000 }),
-        playtimeWindowsForever: faker.number.int({ min: 0, max: 10000 }),
-        playtimeMacForever: faker.number.int({ min: 0, max: 10000 }),
-        playtimeLinuxForever: faker.number.int({ min: 0, max: 10000 }),
-        playtimeDeckForever: faker.number.int({ min: 0, max: 10000 }),
-        playtimeDisconnected: faker.number.int({ min: 0, max: 10000 }),
-        rTimeLastPlayed: generateRTimeLastPlayed(),
-        imgIconUrl: faker.internet.url(),
-        capsuleFilename: faker.system.fileName(),
-        hasCommunityVisibleStats: faker.datatype.boolean(),
-        hasWorkshop: faker.datatype.boolean(),
-        hasDlc: faker.datatype.boolean(),
-        hasLeaderboards: faker.datatype.boolean(),
-      },
-      ...overrides,
-    },
-    include: { game: true },
-  });
 }
 
 export interface FakeUserGameOverrides {
@@ -110,32 +66,9 @@ export function generateUnownedFakeUserGame(
   overrides: Partial<Pick<SteamGame, "appId" | "name">> = {},
 ): UserGame {
   return generateFakeUserGame({
-    appId: overrides.appId ?? faker.number.bigInt(),
+    appId: overrides.appId ?? faker.number.int({ min: 1, max: 2_000_000_000 }),
     name: overrides.name ?? faker.commerce.productName(),
   } as SteamGame);
-}
-
-export async function createSteamUser(
-  overrides: Partial<SteamUser> = {},
-): Promise<SteamUser> {
-  const user = await prisma.user.create({ data: {} });
-  return prisma.steamUser.create({
-    data: {
-      ...{
-        steamId: faker.number.bigInt(),
-        userId: user.id,
-        personaName: faker.internet.username(),
-        realName: faker.person.fullName(),
-        profileUrl: faker.internet.url(),
-        avatar: faker.internet.url(),
-        avatarMedium: faker.internet.url(),
-        avatarFull: faker.internet.url(),
-        avatarHash: faker.string.alphanumeric(40),
-        lastLogoff: faker.number.int({ min: 0, max: 2_000_000_000 }),
-      },
-      ...overrides,
-    },
-  });
 }
 
 export function generateFakeUserInfo(
@@ -143,7 +76,7 @@ export function generateFakeUserInfo(
 ): UserInfo {
   return {
     ...{
-      steamid: faker.number.int({ min: 1, max: 2_000_000_000 }),
+      steamid: faker.string.numeric(17),
       personaname: faker.internet.username(),
       profileurl: faker.internet.url(),
       communityvisibilitystate: 3,

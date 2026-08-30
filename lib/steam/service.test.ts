@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 import {
-  createSteamGame,
+  createSteamGame as createSteamGameFixture,
   createSteamUser,
+} from "~~/lib/fixtures/game";
+import type { NewSteamGame } from "~~/db/schema";
+import {
   type FakeUserGameOverrides,
   generateFakeUserGame,
   generateFakeUserInfo,
@@ -19,7 +23,7 @@ import {
 } from "~/lib/steam/service";
 import { getUserGames, getUserInfo } from "~/lib/steam/api";
 import { getAppDetails, SteamStoreError } from "~/lib/steam/store";
-import prisma from "~/lib/prisma";
+import { db } from "~~/lib/db";
 
 import { DateTime } from "luxon";
 import { flushDb } from "~/test/db";
@@ -39,7 +43,16 @@ vi.mock("~/lib/steam/store", async (importOriginal) => ({
 
 type StoreAppInfo = Awaited<ReturnType<typeof getAppDetails>>;
 
-const BIOSHOCK_APP_ID = BigInt(7670);
+const BIOSHOCK_APP_ID = 7670;
+
+// The shared fixture spreads its overrides over its defaults, so an omitted
+// name arrives as undefined and hits the NOT NULL Game.name column.
+function createSteamGame(overrides: Partial<NewSteamGame> = {}) {
+  return createSteamGameFixture({
+    name: faker.commerce.productName(),
+    ...overrides,
+  });
+}
 
 function bioshockStoreAppInfo(
   overrides: Partial<StoreAppInfo> = {},
@@ -65,7 +78,7 @@ describe("recordPlaytime", () => {
     await flushDb();
   });
   it("should record playtime", async () => {
-    const steamGame = await createSteamGame();
+    const steamGame = createSteamGame();
     const userGame = generateFakeUserGame(steamGame);
     const now = new Date();
     const record = await recordPlaytime(userGame, now);
@@ -75,7 +88,7 @@ describe("recordPlaytime", () => {
     expect(record.playtimeForever).toBe(userGame.playtime_forever);
   });
   it("should record and extend zero playtime in single record", async () => {
-    const steamGame = await createSteamGame();
+    const steamGame = createSteamGame();
     const userGame = generateFakeUserGame(steamGame, NO_PLAYTIME);
     userGame.playtime_2weeks = undefined;
     const nowFirst = DateTime.now();
@@ -100,7 +113,7 @@ describe("recordPlaytime", () => {
   it("should record and extend playtime in multiple records", async () => {
     // This test simulates an initial import, followed by two play sessions
     // with a break in between.
-    const steamGame = await createSteamGame();
+    const steamGame = createSteamGame();
     const userGame1 = generateFakeUserGame(steamGame, { playtime_forever: 10 });
     const nowFirst = DateTime.now();
     await recordPlaytime(userGame1, nowFirst.toJSDate());
@@ -147,7 +160,7 @@ describe("updateUser", () => {
   });
 
   it("updates the stored user from the steam api", async () => {
-    const steamUser = await createSteamUser();
+    const steamUser = createSteamUser();
     const userInfo = generateFakeUserInfo({
       personaname: "New Persona",
       realname: "New Real Name",
@@ -164,9 +177,9 @@ describe("updateUser", () => {
   });
 
   it("does not adopt the steam id returned by the api", async () => {
-    const steamUser = await createSteamUser();
+    const steamUser = createSteamUser();
     vi.mocked(getUserInfo).mockResolvedValue(
-      generateFakeUserInfo({ steamid: 999 }),
+      generateFakeUserInfo({ steamid: "999" }),
     );
     const updatedUser = await updateUser();
     expect(updatedUser.steamId).toBe(steamUser.steamId);
@@ -185,13 +198,13 @@ describe("updateGames", () => {
   });
 
   it("creates a game and steam game for an unknown appid", async () => {
-    await createSteamUser();
+    createSteamUser();
     const userGame = generateUnownedFakeUserGame({ name: "Brand New Game" });
     vi.mocked(getUserGames).mockResolvedValue([userGame]);
     await updateGames();
-    const steamGame = await prisma.steamGame.findUnique({
-      where: { appId: userGame.appid },
-      include: { game: true },
+    const steamGame = await db.query.steamGame.findFirst({
+      where: (table, { eq }) => eq(table.appId, userGame.appid),
+      with: { game: true },
     });
     expect(steamGame?.name).toBe("Brand New Game");
     expect(steamGame?.game.name).toBe("Brand New Game");
@@ -204,18 +217,18 @@ describe("updateGames", () => {
   });
 
   it("updates an existing steam game", async () => {
-    await createSteamUser();
-    const existingSteamGame = await createSteamGame({ name: "Old Name" });
+    createSteamUser();
+    const existingSteamGame = createSteamGame({ name: "Old Name" });
     const userGame = generateFakeUserGame(
       { ...existingSteamGame, name: "New Name" },
       { playtime_forever: 4321 },
     );
     vi.mocked(getUserGames).mockResolvedValue([userGame]);
     await updateGames();
-    expect(await prisma.steamGame.count()).toBe(1);
-    const steamGame = await prisma.steamGame.findUnique({
-      where: { appId: existingSteamGame.appId },
-      include: { game: true },
+    expect(await db.query.steamGame.findMany()).toHaveLength(1);
+    const steamGame = await db.query.steamGame.findFirst({
+      where: (table, { eq }) => eq(table.appId, existingSteamGame.appId),
+      with: { game: true },
     });
     expect(steamGame?.name).toBe("New Name");
     expect(steamGame?.playtimeForever).toBe(4321);
@@ -228,7 +241,7 @@ describe("updateGames", () => {
   });
 
   it("returns the games reported by the steam api", async () => {
-    await createSteamUser();
+    createSteamUser();
     const userGames = [
       generateUnownedFakeUserGame(),
       generateUnownedFakeUserGame(),
@@ -253,8 +266,8 @@ describe("recordPlaytimes", () => {
   });
 
   it("records a playtime for every owned game", async () => {
-    const firstSteamGame = await createSteamGame();
-    const secondSteamGame = await createSteamGame();
+    const firstSteamGame = createSteamGame();
+    const secondSteamGame = createSteamGame();
     vi.mocked(getUserGames).mockResolvedValue([
       generateFakeUserGame(firstSteamGame, { playtime_forever: 11 }),
       generateFakeUserGame(secondSteamGame, { playtime_forever: 22 }),
@@ -278,9 +291,9 @@ describe("findGamesNeedingStoreData", () => {
   });
 
   it("returns only games whose app info has not been fetched", async () => {
-    const notFetched = await createSteamGame({ appInfoState: "NOT_FETCHED" });
-    await createSteamGame({ appInfoState: "FETCHED" });
-    await createSteamGame({ appInfoState: "UNAVAILABLE" });
+    const notFetched = createSteamGame({ appInfoState: "NOT_FETCHED" });
+    createSteamGame({ appInfoState: "FETCHED" });
+    createSteamGame({ appInfoState: "UNAVAILABLE" });
     const games = await findGamesNeedingStoreData();
     expect(games.map((game) => game.appId)).toStrictEqual([notFetched.appId]);
   });
@@ -302,7 +315,7 @@ describe("populateStoreData", () => {
   });
 
   it("stores the app info and marks the game fetched", async () => {
-    const steamGame = await createSteamGame({ appId: BIOSHOCK_APP_ID });
+    const steamGame = createSteamGame({ appId: BIOSHOCK_APP_ID });
     vi.mocked(getAppDetails).mockResolvedValue(
       bioshockStoreAppInfo({
         release_date: { coming_soon: false, date: "21 Aug, 2007" },
@@ -310,8 +323,8 @@ describe("populateStoreData", () => {
     );
     const updatedGame = await populateStoreData(BIOSHOCK_APP_ID);
     expect(updatedGame.appInfoState).toBe("FETCHED");
-    const appInfo = await prisma.steamAppInfo.findUnique({
-      where: { appId: BIOSHOCK_APP_ID },
+    const appInfo = await db.query.steamAppInfo.findFirst({
+      where: (table, { eq }) => eq(table.appId, BIOSHOCK_APP_ID),
     });
     expect(appInfo?.name).toBe("BioShock™");
     expect(appInfo?.type).toBe("game");
@@ -329,7 +342,7 @@ describe("populateStoreData", () => {
   });
 
   it("coerces a string required_age to a number", async () => {
-    await createSteamGame({ appId: BIOSHOCK_APP_ID });
+    createSteamGame({ appId: BIOSHOCK_APP_ID });
     vi.mocked(getAppDetails).mockResolvedValue(
       bioshockStoreAppInfo({
         required_age: "18",
@@ -337,8 +350,8 @@ describe("populateStoreData", () => {
       }),
     );
     await populateStoreData(BIOSHOCK_APP_ID);
-    const appInfo = await prisma.steamAppInfo.findUnique({
-      where: { appId: BIOSHOCK_APP_ID },
+    const appInfo = await db.query.steamAppInfo.findFirst({
+      where: (table, { eq }) => eq(table.appId, BIOSHOCK_APP_ID),
     });
     expect(appInfo?.requiredAge).toBe(18);
   });
@@ -347,39 +360,41 @@ describe("populateStoreData", () => {
     // The checked in BioShock fixture has a Portuguese release date, which
     // Date cannot parse. parseReleaseDate is called outside the try/catch so
     // the raw error escapes rather than becoming a SteamServiceError.
-    await createSteamGame({ appId: BIOSHOCK_APP_ID });
+    createSteamGame({ appId: BIOSHOCK_APP_ID });
     vi.mocked(getAppDetails).mockResolvedValue(bioshockStoreAppInfo());
     await expect(populateStoreData(BIOSHOCK_APP_ID)).rejects.toThrow(
       "Invalid date: 21/ago./2007",
     );
-    const steamGame = await prisma.steamGame.findUnique({
-      where: { appId: BIOSHOCK_APP_ID },
+    const steamGame = await db.query.steamGame.findFirst({
+      where: (table, { eq }) => eq(table.appId, BIOSHOCK_APP_ID),
     });
     expect(steamGame?.appInfoState).toBe("NOT_FETCHED");
   });
 
   it("marks the game unavailable on a non-retriable store error", async () => {
-    await createSteamGame({ appId: BIOSHOCK_APP_ID });
+    createSteamGame({ appId: BIOSHOCK_APP_ID });
     vi.mocked(getAppDetails).mockRejectedValue(
       new SteamStoreError("App details unavailable", false),
     );
     const updatedGame = await populateStoreData(BIOSHOCK_APP_ID);
     expect(updatedGame.appInfoState).toBe("UNAVAILABLE");
     expect(
-      await prisma.steamAppInfo.count({ where: { appId: BIOSHOCK_APP_ID } }),
-    ).toBe(0);
+      await db.query.steamAppInfo.findMany({
+        where: (table, { eq }) => eq(table.appId, BIOSHOCK_APP_ID),
+      }),
+    ).toHaveLength(0);
   });
 
   it("throws a SteamServiceError on a retriable store error", async () => {
-    await createSteamGame({ appId: BIOSHOCK_APP_ID });
+    createSteamGame({ appId: BIOSHOCK_APP_ID });
     vi.mocked(getAppDetails).mockRejectedValue(
       new SteamStoreError("Too many requests", true),
     );
     await expect(populateStoreData(BIOSHOCK_APP_ID)).rejects.toThrow(
       SteamServiceError,
     );
-    const steamGame = await prisma.steamGame.findUnique({
-      where: { appId: BIOSHOCK_APP_ID },
+    const steamGame = await db.query.steamGame.findFirst({
+      where: (table, { eq }) => eq(table.appId, BIOSHOCK_APP_ID),
     });
     expect(steamGame?.appInfoState).toBe("NOT_FETCHED");
   });

@@ -7,11 +7,11 @@ import {
   getRecentGames,
   setGameState,
 } from "~/lib/games";
-import { GameState } from "@prisma/client";
+import { GAME_STATES } from "~~/shared/game-state";
 
 const gameId = z.number().positive();
 const gameInput = z.object({ id: gameId });
-const GameStateEnum = z.nativeEnum(GameState);
+const GameStateEnum = z.enum(GAME_STATES);
 
 export default router({
   games: publicProcedure.query(async ({ input }) => {

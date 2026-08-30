@@ -15,8 +15,7 @@ const artKeys: Array<keyof SteamArtUrls> = [
 ];
 
 const fetchArt = async () => {
-  const appIdNumber = BigInt(appId.value);
-  urls.value = await getSteamArtUrls(appIdNumber);
+  urls.value = await getSteamArtUrls(Number(appId.value));
 };
 </script>
 

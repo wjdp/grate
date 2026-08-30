@@ -1,6 +1,6 @@
 ---
 type: task
-status: todo
+status: done
 ---
 
 # Drop `BigInt` for Steam appids
@@ -15,6 +15,14 @@ Cost today: `server/bigint.ts` patches `BigInt.prototype.toJSON` (lossy — pars
 2. Remove `.transform(BigInt)`, `bigint` types, `server/bigint.ts` and its `nitro.plugins` entry.
 3. Fixtures: `faker.number.bigInt()` → `faker.number.int({ max: 2_000_000 })`.
 4. Prefer doing this before [02](02-Prisma-To-Drizzle-Migration.md) so the Drizzle schema never needs `mode: "bigint"`.
+
+## Under Drizzle (post-[02](02-Prisma-To-Drizzle-Migration.md))
+
+Step 1 is now a TypeScript-type-only change for the three appid columns: `bigint()` → `integer()` in `db/schema.ts`. SQLite storage is identical, so no migration is needed. `steamId` can stay BIGINT, or become TEXT via a real migration.
+
+## Outcome
+
+Landed as Drizzle migration `0001_native_types` (see [02](02-Prisma-To-Drizzle-Migration.md)): the three appid columns are `integer`, `SteamUser.steamId` is `text`, and `server/bigint.ts` and every `bigint` signature are gone.
 
 ## Verification
 

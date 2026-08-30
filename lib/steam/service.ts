@@ -1,5 +1,15 @@
-import type { SteamGame, SteamGamePlaytime } from "@prisma/client";
-import prisma from "../prisma";
+import { desc, eq } from "drizzle-orm";
+import { db } from "~~/lib/db";
+import {
+  game,
+  steamAppInfo,
+  steamGame,
+  steamGamePlaytime,
+  steamUser,
+  type NewSteamAppInfo,
+  type SteamGame,
+  type SteamGamePlaytime,
+} from "~~/db/schema";
 import { refreshGameAggregates } from "~/lib/gameAggregates";
 import { getUserGames, getUserInfo, type UserGame } from "./api";
 import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
@@ -12,127 +22,144 @@ export class SteamServiceError extends Error {
 }
 
 export async function updateUser() {
-  const currentUser = await prisma.steamUser.findFirst();
+  const currentUser = db.select().from(steamUser).limit(1).get();
   if (!currentUser) {
     throw new Error("User not found");
   }
-  const steamUser = await getUserInfo();
-  const updateUser = await prisma.steamUser.update({
-    where: { steamId: currentUser.steamId },
-    data: {
-      personaName: steamUser.personaname,
-      realName: steamUser.realname,
-      profileUrl: steamUser.profileurl,
-      avatar: steamUser.avatar,
-      avatarMedium: steamUser.avatarmedium,
-      avatarFull: steamUser.avatarfull,
-      avatarHash: steamUser.avatarhash,
-      lastLogoff: steamUser.lastlogoff,
-    },
-  });
+  const steamUserInfo = await getUserInfo();
+  const updateUser = db
+    .update(steamUser)
+    .set({
+      personaName: steamUserInfo.personaname,
+      realName: steamUserInfo.realname,
+      profileUrl: steamUserInfo.profileurl,
+      avatar: steamUserInfo.avatar,
+      avatarMedium: steamUserInfo.avatarmedium,
+      avatarFull: steamUserInfo.avatarfull,
+      avatarHash: steamUserInfo.avatarhash,
+      lastLogoff: steamUserInfo.lastlogoff,
+    })
+    .where(eq(steamUser.steamId, currentUser.steamId))
+    .returning()
+    .get();
   console.log(`Updated user ${updateUser.personaName}`);
   return updateUser;
 }
 
-async function createGame(game: UserGame) {
-  const newGame = await prisma.game.create({
-    data: {
-      name: game.name,
-      steamGame: {
-        create: {
-          appId: game.appid,
-          name: game.name,
-          playtimeForever: game.playtime_forever,
-          playtime2weeks: game.playtime_2weeks,
-          playtimeWindowsForever: game.playtime_windows_forever,
-          playtimeMacForever: game.playtime_mac_forever,
-          playtimeLinuxForever: game.playtime_linux_forever,
-          playtimeDeckForever: game.playtime_deck_forever,
-          playtimeDisconnected: game.playtime_disconnected,
-          rTimeLastPlayed: game.rtime_last_played,
-          imgIconUrl: game.img_icon_url,
-          capsuleFilename: game.capsule_filename,
-          hasCommunityVisibleStats: game.has_community_visible_stats,
-          hasWorkshop: game.has_workshop,
-          hasDlc: game.has_dlc,
-          hasLeaderboards: game.has_leaderboards,
-        },
-      },
-    },
-    include: { steamGame: true },
+async function createGame(userGame: UserGame): Promise<SteamGame> {
+  return db.transaction((tx) => {
+    const newGame = tx
+      .insert(game)
+      .values({ name: userGame.name })
+      .returning()
+      .get();
+    return tx
+      .insert(steamGame)
+      .values({
+        gameId: newGame.id,
+        appId: userGame.appid,
+        name: userGame.name,
+        playtimeForever: userGame.playtime_forever,
+        playtime2weeks: userGame.playtime_2weeks,
+        playtimeWindowsForever: userGame.playtime_windows_forever,
+        playtimeMacForever: userGame.playtime_mac_forever,
+        playtimeLinuxForever: userGame.playtime_linux_forever,
+        playtimeDeckForever: userGame.playtime_deck_forever,
+        playtimeDisconnected: userGame.playtime_disconnected,
+        rTimeLastPlayed: userGame.rtime_last_played,
+        imgIconUrl: userGame.img_icon_url,
+        capsuleFilename: userGame.capsule_filename,
+        hasCommunityVisibleStats: userGame.has_community_visible_stats,
+        hasWorkshop: userGame.has_workshop,
+        hasDlc: userGame.has_dlc,
+        hasLeaderboards: userGame.has_leaderboards,
+      })
+      .returning()
+      .get();
   });
-  return newGame.steamGame as SteamGame;
 }
 
-async function updateGame(game: UserGame) {
-  const updatedGame = await prisma.steamGame.update({
-    where: { appId: game.appid },
-    data: {
-      name: game.name,
-      playtimeForever: game.playtime_forever,
-      playtime2weeks: game.playtime_2weeks,
-      playtimeWindowsForever: game.playtime_windows_forever,
-      playtimeMacForever: game.playtime_mac_forever,
-      playtimeLinuxForever: game.playtime_linux_forever,
-      playtimeDeckForever: game.playtime_deck_forever,
-      playtimeDisconnected: game.playtime_disconnected,
-      rTimeLastPlayed: game.rtime_last_played,
-      imgIconUrl: game.img_icon_url,
-      capsuleFilename: game.capsule_filename,
-      hasCommunityVisibleStats: game.has_community_visible_stats,
-      hasWorkshop: game.has_workshop,
-      hasDlc: game.has_dlc,
-      hasLeaderboards: game.has_leaderboards,
-      game: { update: { name: game.name } },
-    },
+async function updateGame(userGame: UserGame): Promise<SteamGame> {
+  return db.transaction((tx) => {
+    const updatedGame = tx
+      .update(steamGame)
+      .set({
+        name: userGame.name,
+        playtimeForever: userGame.playtime_forever,
+        playtime2weeks: userGame.playtime_2weeks,
+        playtimeWindowsForever: userGame.playtime_windows_forever,
+        playtimeMacForever: userGame.playtime_mac_forever,
+        playtimeLinuxForever: userGame.playtime_linux_forever,
+        playtimeDeckForever: userGame.playtime_deck_forever,
+        playtimeDisconnected: userGame.playtime_disconnected,
+        rTimeLastPlayed: userGame.rtime_last_played,
+        imgIconUrl: userGame.img_icon_url,
+        capsuleFilename: userGame.capsule_filename,
+        hasCommunityVisibleStats: userGame.has_community_visible_stats,
+        hasWorkshop: userGame.has_workshop,
+        hasDlc: userGame.has_dlc,
+        hasLeaderboards: userGame.has_leaderboards,
+      })
+      .where(eq(steamGame.appId, userGame.appid))
+      .returning()
+      .get();
+    tx.update(game)
+      .set({ name: userGame.name })
+      .where(eq(game.id, updatedGame.gameId))
+      .run();
+    return updatedGame;
   });
+}
+
+async function updateOrCreateGame(userGame: UserGame) {
+  // check if the game exists
+  const existingGame = db
+    .select()
+    .from(steamGame)
+    .where(eq(steamGame.appId, userGame.appid))
+    .limit(1)
+    .get();
+  let updatedGame: SteamGame;
+  if (existingGame) {
+    updatedGame = await updateGame(userGame);
+    console.log(`Updated game ${updatedGame.name}`);
+  } else {
+    updatedGame = await createGame(userGame);
+    console.log(`Created game ${updatedGame.name}`);
+  }
+  await refreshGameAggregates(updatedGame.gameId);
   return updatedGame;
 }
 
-async function updateOrCreateGame(game: UserGame) {
-  // check if the game exists
-  const existingGame = await prisma.steamGame.findFirst({
-    where: { appId: game.appid },
-  });
-  let steamGame: SteamGame;
-  if (existingGame) {
-    steamGame = await updateGame(game);
-    console.log(`Updated game ${steamGame.name}`);
-  } else {
-    steamGame = await createGame(game);
-    console.log(`Created game ${steamGame.name}`);
-  }
-  await refreshGameAggregates(steamGame.gameId);
-  return steamGame;
-}
-
 export async function updateGames() {
-  const currentUser = await prisma.steamUser.findFirst();
+  const currentUser = db.select().from(steamUser).limit(1).get();
   if (!currentUser) {
     throw new Error("User not found");
   }
   const games = await getUserGames();
-  for (const game of games) {
-    await updateOrCreateGame(game);
+  for (const userGame of games) {
+    await updateOrCreateGame(userGame);
   }
   return games;
 }
 
 export async function findGamesNeedingStoreData(): Promise<SteamGame[]> {
-  const games = await prisma.steamGame.findMany({
-    where: {
-      appInfoState: "NOT_FETCHED",
-    },
-  });
-  return games;
+  return db
+    .select()
+    .from(steamGame)
+    .where(eq(steamGame.appInfoState, "NOT_FETCHED"))
+    .all();
 }
 
-export async function populateStoreData(appId: bigint): Promise<SteamGame> {
+export async function populateStoreData(appId: number): Promise<SteamGame> {
   const now = new Date();
-  const game = await prisma.steamGame.findFirst({
-    where: { appId },
-  });
-  if (!game) {
+  const existingGame = db
+    .select()
+    .from(steamGame)
+    .where(eq(steamGame.appId, appId))
+    .limit(1)
+    .get();
+  if (!existingGame) {
     throw new SteamServiceError(`Game ${appId} not in database`);
   }
   let storeAppInfo;
@@ -143,60 +170,61 @@ export async function populateStoreData(appId: bigint): Promise<SteamGame> {
       if (!error.retriable) {
         // Handle non-retriable errors
         // This will be when the app is no longer available on the store so we cannot fetch its details
-        const steamApp = await prisma.steamGame.update({
-          where: { appId },
-          data: { appInfoState: "UNAVAILABLE" },
-        });
-        return steamApp;
+        return db
+          .update(steamGame)
+          .set({ appInfoState: "UNAVAILABLE" })
+          .where(eq(steamGame.appId, appId))
+          .returning()
+          .get();
       }
     }
     throw new SteamServiceError(
       `Failed to fetch app details for ${appId}: ${error}`,
     );
   }
-  const steamApp = await prisma.steamGame.update({
-    where: { appId },
-    data: {
-      appInfoState: "FETCHED",
-      appInfo: {
-        create: {
-          fetchedAt: now,
-          type: storeAppInfo.type,
-          name: storeAppInfo.name,
-          requiredAge:
-            typeof storeAppInfo.required_age === "number"
-              ? storeAppInfo.required_age
-              : parseInt(storeAppInfo.required_age),
-          isFree: storeAppInfo.is_free,
-          detailedDescription: storeAppInfo.detailed_description,
-          aboutTheGame: storeAppInfo.about_the_game,
-          shortDescription: storeAppInfo.short_description,
-          headerImage: storeAppInfo.header_image,
-          capsuleImage: storeAppInfo.capsule_image,
-          capsuleImagev5: storeAppInfo.capsule_imagev5,
-          website: storeAppInfo.website,
-          developers: storeAppInfo.developers,
-          publishers: storeAppInfo.publishers ?? [],
-          platformWindows: storeAppInfo.platforms.windows,
-          platformMac: storeAppInfo.platforms.mac,
-          platformLinux: storeAppInfo.platforms.linux,
-          metacriticScore: storeAppInfo.metacritic?.score,
-          metacriticUrl: storeAppInfo.metacritic?.url,
-          categories: storeAppInfo.categories ?? [],
-          genres: storeAppInfo.genres ?? [],
-          screenshots: storeAppInfo.screenshots ?? [],
-          releaseDate: storeAppInfo.release_date
-            ? parseReleaseDate(storeAppInfo.release_date.date)
-            : undefined,
-          comingSoon: storeAppInfo.release_date?.coming_soon,
-          background: storeAppInfo.background,
-          backgroundRaw: storeAppInfo.background_raw,
-        },
-      },
-    },
-    include: { appInfo: true },
+  const appInfoValues: NewSteamAppInfo = {
+    appId,
+    fetchedAt: now,
+    type: storeAppInfo.type,
+    name: storeAppInfo.name,
+    requiredAge:
+      typeof storeAppInfo.required_age === "number"
+        ? storeAppInfo.required_age
+        : parseInt(storeAppInfo.required_age),
+    isFree: storeAppInfo.is_free,
+    detailedDescription: storeAppInfo.detailed_description,
+    aboutTheGame: storeAppInfo.about_the_game,
+    shortDescription: storeAppInfo.short_description,
+    headerImage: storeAppInfo.header_image,
+    capsuleImage: storeAppInfo.capsule_image,
+    capsuleImagev5: storeAppInfo.capsule_imagev5,
+    website: storeAppInfo.website,
+    developers: storeAppInfo.developers,
+    publishers: storeAppInfo.publishers ?? [],
+    platformWindows: storeAppInfo.platforms.windows,
+    platformMac: storeAppInfo.platforms.mac,
+    platformLinux: storeAppInfo.platforms.linux,
+    metacriticScore: storeAppInfo.metacritic?.score ?? null,
+    metacriticUrl: storeAppInfo.metacritic?.url ?? null,
+    categories: storeAppInfo.categories ?? [],
+    genres: storeAppInfo.genres ?? [],
+    screenshots: storeAppInfo.screenshots ?? [],
+    releaseDate: storeAppInfo.release_date
+      ? parseReleaseDate(storeAppInfo.release_date.date)
+      : null,
+    comingSoon: storeAppInfo.release_date?.coming_soon ?? null,
+    background: storeAppInfo.background,
+    backgroundRaw: storeAppInfo.background_raw,
+  };
+  return db.transaction((tx) => {
+    tx.insert(steamAppInfo).values(appInfoValues).run();
+    return tx
+      .update(steamGame)
+      .set({ appInfoState: "FETCHED" })
+      .where(eq(steamGame.appId, appId))
+      .returning()
+      .get();
   });
-  return steamApp;
 }
 
 // This function is used to compare a playtime record in the database
@@ -217,15 +245,13 @@ function doesPlaytimeRecordMatchCurrentState(
 }
 
 export async function recordPlaytime(userGame: UserGame, now: Date) {
-  const lastPlaytimeRecord = await prisma.steamGamePlaytime.findFirst({
-    where: { steamAppId: userGame.appid },
-    orderBy: { timestampEnd: "desc" },
-  });
-  const penultimatePlaytimeRecord = await prisma.steamGamePlaytime.findFirst({
-    where: { steamAppId: userGame.appid },
-    orderBy: { timestampEnd: "desc" },
-    skip: 1,
-  });
+  const [lastPlaytimeRecord, penultimatePlaytimeRecord] = db
+    .select()
+    .from(steamGamePlaytime)
+    .where(eq(steamGamePlaytime.steamAppId, userGame.appid))
+    .orderBy(desc(steamGamePlaytime.timestampEnd))
+    .limit(2)
+    .all();
   if (
     lastPlaytimeRecord &&
     doesPlaytimeRecordMatchCurrentState(lastPlaytimeRecord, userGame) &&
@@ -234,17 +260,20 @@ export async function recordPlaytime(userGame: UserGame, now: Date) {
   ) {
     console.log(`No new playtime for ${userGame.name}`);
     // extend timestampEnd of the last record
-    return await prisma.steamGamePlaytime.update({
-      where: { id: lastPlaytimeRecord.id },
-      data: { timestampEnd: now },
-    });
+    return db
+      .update(steamGamePlaytime)
+      .set({ timestampEnd: now })
+      .where(eq(steamGamePlaytime.id, lastPlaytimeRecord.id))
+      .returning()
+      .get();
   }
   const timestampStart = lastPlaytimeRecord
     ? lastPlaytimeRecord.timestampEnd
-    : undefined;
-  const record = await prisma.steamGamePlaytime.create({
-    data: {
-      steamGame: { connect: { appId: userGame.appid } },
+    : null;
+  const record = db
+    .insert(steamGamePlaytime)
+    .values({
+      steamAppId: userGame.appid,
       timestampStart,
       timestampEnd: now,
       playtimeForever: userGame.playtime_forever,
@@ -255,14 +284,15 @@ export async function recordPlaytime(userGame: UserGame, now: Date) {
       playtimeDeckForever: userGame.playtime_deck_forever,
       playtimeDisconnected: userGame.playtime_disconnected,
       rTimeLastPlayed: userGame.rtime_last_played,
-    },
-  });
+    })
+    .returning()
+    .get();
   console.log(`Recorded playtime for ${userGame.name}`);
   return record;
 }
 
 export async function recordPlaytimes() {
-  const steamGamesInDb = await prisma.steamGame.findMany();
+  const steamGamesInDb = db.select().from(steamGame).all();
   const userOwnedGames = await getUserGames();
   const timestampEnd = new Date();
   for (const userGame of userOwnedGames) {
@@ -274,8 +304,10 @@ export async function recordPlaytimes() {
   }
 }
 
-export async function getPlaytimeRecords(appId: bigint) {
-  return prisma.steamGamePlaytime.findMany({
-    where: { steamAppId: appId },
-  });
+export async function getPlaytimeRecords(appId: number) {
+  return db
+    .select()
+    .from(steamGamePlaytime)
+    .where(eq(steamGamePlaytime.steamAppId, appId))
+    .all();
 }

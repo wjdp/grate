@@ -71,7 +71,7 @@ const SteamAppInfo = z.object({
   background_raw: z.string(),
 });
 
-export async function getAppDetails(appId: bigint) {
+export async function getAppDetails(appId: number) {
   const response = await fetch(
     `http://store.steampowered.com/api/appdetails/?appids=${appId}`,
   );

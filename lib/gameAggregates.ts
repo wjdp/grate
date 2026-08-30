@@ -1,5 +1,6 @@
-import type { Game } from "@prisma/client";
-import prisma from "./prisma";
+import { eq } from "drizzle-orm";
+import { game, type Game } from "~~/db/schema";
+import { db } from "~~/lib/db";
 
 function steamLastPlayedAt(rTimeLastPlayed: number | null | undefined) {
   if (!rTimeLastPlayed) {
@@ -15,29 +16,31 @@ function maxDate(a: Date | null, b: Date | null): Date | null {
 }
 
 export async function refreshGameAggregates(gameId: number): Promise<Game> {
-  const game = await prisma.game.findUnique({
-    where: { id: gameId },
-    include: { steamGame: true, gogGame: true },
+  const gameRecord = await db.query.game.findFirst({
+    where: eq(game.id, gameId),
+    with: { steamGame: true, gogGame: true },
   });
-  if (!game) {
+  if (!gameRecord) {
     throw new Error(`Game ${gameId} not found`);
   }
   const playtimeMinutes =
-    (game.steamGame?.playtimeForever ?? 0) +
-    (game.gogGame?.playtimeMinutes ?? 0);
+    (gameRecord.steamGame?.playtimeForever ?? 0) +
+    (gameRecord.gogGame?.playtimeMinutes ?? 0);
   const lastPlayedAt = maxDate(
-    steamLastPlayedAt(game.steamGame?.rTimeLastPlayed),
-    game.gogGame?.lastPlayedAt ?? null,
+    steamLastPlayedAt(gameRecord.steamGame?.rTimeLastPlayed),
+    gameRecord.gogGame?.lastPlayedAt ?? null,
   );
-  return prisma.game.update({
-    where: { id: gameId },
-    data: { playtimeMinutes, lastPlayedAt },
-  });
+  return db
+    .update(game)
+    .set({ playtimeMinutes, lastPlayedAt })
+    .where(eq(game.id, gameId))
+    .returning()
+    .get();
 }
 
 export async function refreshAllGameAggregates(): Promise<void> {
-  const games = await prisma.game.findMany({ select: { id: true } });
-  for (const game of games) {
-    await refreshGameAggregates(game.id);
+  const games = db.select({ id: game.id }).from(game).all();
+  for (const gameRecord of games) {
+    await refreshGameAggregates(gameRecord.id);
   }
 }

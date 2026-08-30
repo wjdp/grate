@@ -2,7 +2,8 @@ import { z } from "zod";
 import { createErrorFromRequestValidation } from "~/utils/createErrorFromRequestValidation";
 import * as steam from "~/lib/steam/api";
 import createErrorFromSteamApiError from "~/utils/createErrorFromSteamApiError";
-import prisma from "~/lib/prisma";
+import { db } from "~~/lib/db";
+import { steamUser, user } from "~~/db/schema";
 
 const requestSchema = z.object({});
 
@@ -14,28 +15,28 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     throw createErrorFromRequestValidation(error);
   }
-  let steamUser;
+  let steamUserInfo;
   try {
-    steamUser = await steam.getUserInfo();
+    steamUserInfo = await steam.getUserInfo();
   } catch (error) {
     throw createErrorFromSteamApiError(error);
   }
-  await prisma.user.create({
-    data: {
-      steamUser: {
-        create: {
-          steamId: steamUser.steamid,
-          personaName: steamUser.personaname,
-          realName: steamUser.realname,
-          profileUrl: steamUser.profileurl,
-          avatar: steamUser.avatar,
-          avatarMedium: steamUser.avatarmedium,
-          avatarFull: steamUser.avatarfull,
-          avatarHash: steamUser.avatarhash,
-          lastLogoff: steamUser.lastlogoff,
-        },
-      },
-    },
+  db.transaction((tx) => {
+    const newUser = tx.insert(user).values({}).returning().get();
+    tx.insert(steamUser)
+      .values({
+        steamId: steamUserInfo.steamid,
+        userId: newUser.id,
+        personaName: steamUserInfo.personaname,
+        realName: steamUserInfo.realname,
+        profileUrl: steamUserInfo.profileurl,
+        avatar: steamUserInfo.avatar,
+        avatarMedium: steamUserInfo.avatarmedium,
+        avatarFull: steamUserInfo.avatarfull,
+        avatarHash: steamUserInfo.avatarhash,
+        lastLogoff: steamUserInfo.lastlogoff,
+      })
+      .run();
   });
   return { status: "ok" };
 });

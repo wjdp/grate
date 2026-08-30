@@ -13,8 +13,8 @@ status: in-progress
 
 ## Remaining
 
-1. Per-file in-memory DB instead of a shared file, so parallelism can return. Blocked on [02](02-Prisma-To-Drizzle-Migration.md) — Prisma needs a file URL and its own migrate CLI; with better-sqlite3 it's `new Database(":memory:")` + `migrate()` in `beforeAll`.
-2. `pnpm test:db:create` must be run manually before tests and after every migration. Until (1), add a vitest `globalSetup` that runs it.
+1. ~~Per-file in-memory DB instead of a shared file, so parallelism can return.~~ Done: `DATABASE_URL=":memory:"` plus `test/setup.ts` running `runMigrations`; each file has its own module graph, hence its own database. `fileParallelism` is back to the default.
+2. ~~`pnpm test:db:create` must be run manually before tests and after every migration.~~ Done: script removed, no database file to create.
 3. HTTP-level tests for tRPC routers and Nitro routes (`/art/steam/...`, `/health`) via `@nuxt/test-utils` `setup()`. None exist.
 4. Component tests: only `.story.vue` files exist; no assertions.
 5. CI: no workflow runs tests. Add `lint:ci`, `typecheck`, `test --run`.

@@ -1,5 +1,12 @@
-import type { GameState } from "@prisma/client";
-import prisma from "./prisma";
+import { asc, desc, eq, isNotNull } from "drizzle-orm";
+import {
+  game,
+  gameStateChange,
+  gogGamePlaytime,
+  steamGamePlaytime,
+} from "~~/db/schema";
+import { db } from "~~/lib/db";
+import type { GameState } from "~~/shared/game-state";
 
 export type PlaytimeProvider = "steam" | "gog";
 
@@ -11,17 +18,19 @@ export interface GamePlaytimeRecord {
 }
 
 export async function getGames() {
-  return await prisma.game.findMany({
-    include: { steamGame: true, gogGame: true },
-    orderBy: { name: "asc" },
+  return await db.query.game.findMany({
+    with: { steamGame: true, gogGame: true },
+    orderBy: asc(game.name),
   });
 }
 
 export async function getGame(id: number) {
-  return await prisma.game.findUnique({
-    where: { id },
-    include: { steamGame: { include: { appInfo: true } }, gogGame: true },
-  });
+  return (
+    (await db.query.game.findFirst({
+      where: eq(game.id, id),
+      with: { steamGame: { with: { appInfo: true } }, gogGame: true },
+    })) ?? null
+  );
 }
 
 function byTimestampStartDescending(
@@ -37,18 +46,20 @@ function byTimestampStartDescending(
 export async function getGamePlaytimes(
   id: number,
 ): Promise<GamePlaytimeRecord[]> {
-  const game = await prisma.game.findUnique({
-    where: { id },
-    include: { steamGame: true, gogGame: true },
+  const gameRecord = await db.query.game.findFirst({
+    where: eq(game.id, id),
+    with: { steamGame: true, gogGame: true },
   });
-  if (!game) {
+  if (!gameRecord) {
     throw new Error("Game not found");
   }
   const records: GamePlaytimeRecord[] = [];
-  if (game.steamGame) {
-    const steamRecords = await prisma.steamGamePlaytime.findMany({
-      where: { steamAppId: game.steamGame.appId },
-    });
+  if (gameRecord.steamGame) {
+    const steamRecords = await db
+      .select()
+      .from(steamGamePlaytime)
+      .where(eq(steamGamePlaytime.steamAppId, gameRecord.steamGame.appId))
+      .all();
     records.push(
       ...steamRecords.map((record) => ({
         timestampStart: record.timestampStart,
@@ -58,10 +69,12 @@ export async function getGamePlaytimes(
       })),
     );
   }
-  if (game.gogGame) {
-    const gogRecords = await prisma.gogGamePlaytime.findMany({
-      where: { gogId: game.gogGame.gogId },
-    });
+  if (gameRecord.gogGame) {
+    const gogRecords = await db
+      .select()
+      .from(gogGamePlaytime)
+      .where(eq(gogGamePlaytime.gogId, gameRecord.gogGame.gogId))
+      .all();
     records.push(
       ...gogRecords.map((record) => ({
         timestampStart: record.timestampStart,
@@ -75,17 +88,17 @@ export async function getGamePlaytimes(
 }
 
 export async function getRecentGames(limit: number = 6) {
-  return await prisma.game.findMany({
-    include: { steamGame: { include: { appInfo: true } }, gogGame: true },
-    where: { lastPlayedAt: { not: null } },
-    orderBy: { lastPlayedAt: "desc" },
-    take: limit,
+  return await db.query.game.findMany({
+    with: { steamGame: { with: { appInfo: true } }, gogGame: true },
+    where: isNotNull(game.lastPlayedAt),
+    orderBy: desc(game.lastPlayedAt),
+    limit,
   });
 }
 
 export async function setGameState(id: number, state: GameState | null) {
   const now = new Date();
-  const gameBeforeUpdate = await prisma.game.findUnique({ where: { id } });
+  const gameBeforeUpdate = db.select().from(game).where(eq(game.id, id)).get();
   if (!gameBeforeUpdate) {
     throw new Error("Game not found");
   }
@@ -94,12 +107,14 @@ export async function setGameState(id: number, state: GameState | null) {
     console.log(`There is no change in state for game ${id}`);
     return gameBeforeUpdate;
   }
-  const game = await prisma.game.update({
-    where: { id },
-    data: { state },
-  });
-  await prisma.gameStateChange.create({
-    data: { gameId: game.id, state: state, timestamp: now },
-  });
-  return game;
+  const updatedGame = db
+    .update(game)
+    .set({ state })
+    .where(eq(game.id, id))
+    .returning()
+    .get();
+  db.insert(gameStateChange)
+    .values({ gameId: updatedGame.id, state, timestamp: now })
+    .run();
+  return updatedGame;
 }

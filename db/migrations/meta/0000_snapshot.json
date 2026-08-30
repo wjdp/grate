@@ -1,0 +1,1015 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "735dd758-03cb-49eb-b6b8-4ce91854b8e2",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "Game": {
+      "name": "Game",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "name": {
+          "name": "name",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeMinutes": {
+          "name": "playtimeMinutes",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "lastPlayedAt": {
+          "name": "lastPlayedAt",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "GameStateChange": {
+      "name": "GameStateChange",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "gameId": {
+          "name": "gameId",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "GameStateChange_gameId_Game_id_fk": {
+          "name": "GameStateChange_gameId_Game_id_fk",
+          "tableFrom": "GameStateChange",
+          "tableTo": "Game",
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "GogGame": {
+      "name": "GogGame",
+      "columns": {
+        "gogId": {
+          "name": "gogId",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "gameId": {
+          "name": "gameId",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "releaseDate": {
+          "name": "releaseDate",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "publisher": {
+          "name": "publisher",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "developer": {
+          "name": "developer",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "tags": {
+          "name": "tags",
+          "type": "JSONB",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "properties": {
+          "name": "properties",
+          "type": "JSONB",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "iconUrl": {
+          "name": "iconUrl",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "iconSquareUrl": {
+          "name": "iconSquareUrl",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "logoUrl": {
+          "name": "logoUrl",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "boxArtImageUrl": {
+          "name": "boxArtImageUrl",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "backgroundImageUrl": {
+          "name": "backgroundImageUrl",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "galaxyBackgroundImageUrl": {
+          "name": "galaxyBackgroundImageUrl",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "productType": {
+          "name": "productType",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'GAME'"
+        },
+        "playtimeMinutes": {
+          "name": "playtimeMinutes",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lastPlayedAt": {
+          "name": "lastPlayedAt",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "GogGame_gameId_key": {
+          "name": "GogGame_gameId_key",
+          "columns": ["gameId"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "GogGame_gameId_Game_id_fk": {
+          "name": "GogGame_gameId_Game_id_fk",
+          "tableFrom": "GogGame",
+          "tableTo": "Game",
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "GogGamePlaytime": {
+      "name": "GogGamePlaytime",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "gogId": {
+          "name": "gogId",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "timestampStart": {
+          "name": "timestampStart",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "timestampEnd": {
+          "name": "timestampEnd",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "playtimeMinutes": {
+          "name": "playtimeMinutes",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lastPlayedAt": {
+          "name": "lastPlayedAt",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "GogGamePlaytime_gogId_GogGame_gogId_fk": {
+          "name": "GogGamePlaytime_gogId_GogGame_gogId_fk",
+          "tableFrom": "GogGamePlaytime",
+          "tableTo": "GogGame",
+          "columnsFrom": ["gogId"],
+          "columnsTo": ["gogId"],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "GogIgnoredProduct": {
+      "name": "GogIgnoredProduct",
+      "columns": {
+        "gogId": {
+          "name": "gogId",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "GogUser": {
+      "name": "GogUser",
+      "columns": {
+        "gogUserId": {
+          "name": "gogUserId",
+          "type": "TEXT",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "galaxyUserId": {
+          "name": "galaxyUserId",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "username": {
+          "name": "username",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "country": {
+          "name": "country",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "checksumGames": {
+          "name": "checksumGames",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "avatarUrl": {
+          "name": "avatarUrl",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "accessToken": {
+          "name": "accessToken",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "accessTokenExpiresAt": {
+          "name": "accessTokenExpiresAt",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "refreshToken": {
+          "name": "refreshToken",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "SteamAppInfo": {
+      "name": "SteamAppInfo",
+      "columns": {
+        "appId": {
+          "name": "appId",
+          "type": "BIGINT",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fetchedAt": {
+          "name": "fetchedAt",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "type": {
+          "name": "type",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "requiredAge": {
+          "name": "requiredAge",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "isFree": {
+          "name": "isFree",
+          "type": "BOOLEAN",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "detailedDescription": {
+          "name": "detailedDescription",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "aboutTheGame": {
+          "name": "aboutTheGame",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "shortDescription": {
+          "name": "shortDescription",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "headerImage": {
+          "name": "headerImage",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "capsuleImage": {
+          "name": "capsuleImage",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "capsuleImagev5": {
+          "name": "capsuleImagev5",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "website": {
+          "name": "website",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "developers": {
+          "name": "developers",
+          "type": "JSONB",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "publishers": {
+          "name": "publishers",
+          "type": "JSONB",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "platformWindows": {
+          "name": "platformWindows",
+          "type": "BOOLEAN",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "platformMac": {
+          "name": "platformMac",
+          "type": "BOOLEAN",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "platformLinux": {
+          "name": "platformLinux",
+          "type": "BOOLEAN",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "metacriticScore": {
+          "name": "metacriticScore",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "metacriticUrl": {
+          "name": "metacriticUrl",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "categories": {
+          "name": "categories",
+          "type": "JSONB",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "genres": {
+          "name": "genres",
+          "type": "JSONB",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "screenshots": {
+          "name": "screenshots",
+          "type": "JSONB",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "releaseDate": {
+          "name": "releaseDate",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "comingSoon": {
+          "name": "comingSoon",
+          "type": "BOOLEAN",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "background": {
+          "name": "background",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "backgroundRaw": {
+          "name": "backgroundRaw",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "SteamAppInfo_appId_SteamGame_appId_fk": {
+          "name": "SteamAppInfo_appId_SteamGame_appId_fk",
+          "tableFrom": "SteamAppInfo",
+          "tableTo": "SteamGame",
+          "columnsFrom": ["appId"],
+          "columnsTo": ["appId"],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "SteamGame": {
+      "name": "SteamGame",
+      "columns": {
+        "appId": {
+          "name": "appId",
+          "type": "BIGINT",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "gameId": {
+          "name": "gameId",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "appInfoState": {
+          "name": "appInfoState",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'NOT_FETCHED'"
+        },
+        "name": {
+          "name": "name",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "playtimeForever": {
+          "name": "playtimeForever",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtime2weeks": {
+          "name": "playtime2weeks",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeWindowsForever": {
+          "name": "playtimeWindowsForever",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeMacForever": {
+          "name": "playtimeMacForever",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeLinuxForever": {
+          "name": "playtimeLinuxForever",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeDeckForever": {
+          "name": "playtimeDeckForever",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeDisconnected": {
+          "name": "playtimeDisconnected",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rTimeLastPlayed": {
+          "name": "rTimeLastPlayed",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "imgIconUrl": {
+          "name": "imgIconUrl",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "capsuleFilename": {
+          "name": "capsuleFilename",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hasCommunityVisibleStats": {
+          "name": "hasCommunityVisibleStats",
+          "type": "BOOLEAN",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "hasWorkshop": {
+          "name": "hasWorkshop",
+          "type": "BOOLEAN",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "hasDlc": {
+          "name": "hasDlc",
+          "type": "BOOLEAN",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "hasLeaderboards": {
+          "name": "hasLeaderboards",
+          "type": "BOOLEAN",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        }
+      },
+      "indexes": {
+        "SteamGame_gameId_key": {
+          "name": "SteamGame_gameId_key",
+          "columns": ["gameId"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "SteamGame_gameId_Game_id_fk": {
+          "name": "SteamGame_gameId_Game_id_fk",
+          "tableFrom": "SteamGame",
+          "tableTo": "Game",
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "SteamGamePlaytime": {
+      "name": "SteamGamePlaytime",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "steamAppId": {
+          "name": "steamAppId",
+          "type": "BIGINT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "timestampStart": {
+          "name": "timestampStart",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "timestampEnd": {
+          "name": "timestampEnd",
+          "type": "DATETIME",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "playtimeForever": {
+          "name": "playtimeForever",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtime2weeks": {
+          "name": "playtime2weeks",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeWindowsForever": {
+          "name": "playtimeWindowsForever",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeMacForever": {
+          "name": "playtimeMacForever",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeLinuxForever": {
+          "name": "playtimeLinuxForever",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeDeckForever": {
+          "name": "playtimeDeckForever",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "playtimeDisconnected": {
+          "name": "playtimeDisconnected",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rTimeLastPlayed": {
+          "name": "rTimeLastPlayed",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "SteamGamePlaytime_steamAppId_SteamGame_appId_fk": {
+          "name": "SteamGamePlaytime_steamAppId_SteamGame_appId_fk",
+          "tableFrom": "SteamGamePlaytime",
+          "tableTo": "SteamGame",
+          "columnsFrom": ["steamAppId"],
+          "columnsTo": ["appId"],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "SteamUser": {
+      "name": "SteamUser",
+      "columns": {
+        "steamId": {
+          "name": "steamId",
+          "type": "BIGINT",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "personaName": {
+          "name": "personaName",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "realName": {
+          "name": "realName",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "profileUrl": {
+          "name": "profileUrl",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "avatar": {
+          "name": "avatar",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "avatarMedium": {
+          "name": "avatarMedium",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "avatarFull": {
+          "name": "avatarFull",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "avatarHash": {
+          "name": "avatarHash",
+          "type": "TEXT",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lastLogoff": {
+          "name": "lastLogoff",
+          "type": "INTEGER",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "SteamUser_userId_key": {
+          "name": "SteamUser_userId_key",
+          "columns": ["userId"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "SteamUser_userId_User_id_fk": {
+          "name": "SteamUser_userId_User_id_fk",
+          "tableFrom": "SteamUser",
+          "tableTo": "User",
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "User": {
+      "name": "User",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

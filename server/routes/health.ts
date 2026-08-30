@@ -1,8 +1,8 @@
-import prisma from "~/lib/prisma";
+import { sqlite } from "~~/lib/db";
 
 async function checkDatabase() {
   try {
-    await prisma.$queryRaw`SELECT 1;`;
+    sqlite.prepare("SELECT 1;").get();
     return true;
   } catch {
     return false;

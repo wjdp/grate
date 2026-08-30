@@ -1,31 +1,12 @@
 import { faker } from "@faker-js/faker";
-import type { GogGame, GogUser as PrismaGogUser, Prisma } from "@prisma/client";
 import type {
   getGogToken,
   getGogUserData,
   GogGameDetail,
   GogPlaytimeSessions,
 } from "~/lib/gog/api";
-import prisma from "~/lib/prisma";
-import { createGame } from "~/lib/steam/fixtures/fake";
-
-export async function createGogGame(
-  overrides: Partial<Prisma.GogGameUncheckedCreateInput> = {},
-): Promise<GogGame> {
-  const game = await createGame({ name: overrides.name });
-  return prisma.gogGame.create({
-    data: {
-      ...{
-        gameId: game.id,
-        gogId: faker.number.int({ min: 1, max: 2_000_000_000 }),
-        name: game.name,
-        tags: [],
-        properties: [],
-      },
-      ...overrides,
-    },
-  });
-}
+import { db } from "~~/lib/db";
+import { gogUser, type GogUser, type NewGogUser } from "~~/db/schema";
 
 type GogToken = Awaited<ReturnType<typeof getGogToken>>;
 type GogApiUser = Awaited<ReturnType<typeof getGogUserData>>;
@@ -106,24 +87,24 @@ export function generateFakeGogGameDetail(
 }
 
 export async function createGogUser(
-  overrides: Partial<PrismaGogUser> = {},
-): Promise<PrismaGogUser> {
-  return prisma.gogUser.create({
-    data: {
-      ...{
-        gogUserId: faker.string.numeric(18),
-        galaxyUserId: faker.string.numeric(18),
-        username: faker.internet.username(),
-        country: faker.location.countryCode(),
-        checksumGames: faker.string.alphanumeric(32),
-        avatarUrl: faker.internet.url(),
-        accessToken: faker.string.alphanumeric(32),
-        accessTokenExpiresAt: new Date("2099-01-01T00:00:00.000Z"),
-        refreshToken: faker.string.alphanumeric(32),
-      },
+  overrides: Partial<NewGogUser> = {},
+): Promise<GogUser> {
+  return db
+    .insert(gogUser)
+    .values({
+      gogUserId: faker.string.numeric(18),
+      galaxyUserId: faker.string.numeric(18),
+      username: faker.internet.username(),
+      country: faker.location.countryCode(),
+      checksumGames: faker.string.alphanumeric(32),
+      avatarUrl: faker.internet.url(),
+      accessToken: faker.string.alphanumeric(32),
+      accessTokenExpiresAt: new Date("2099-01-01T00:00:00.000Z"),
+      refreshToken: faker.string.alphanumeric(32),
       ...overrides,
-    },
-  });
+    })
+    .returning()
+    .get();
 }
 
 export function generateFakeGogPlaytimeSessions(

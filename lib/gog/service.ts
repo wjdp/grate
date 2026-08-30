@@ -1,3 +1,4 @@
+import { desc, eq } from "drizzle-orm";
 import {
   getGogGameDetail,
   getGogGamePlaytime,
@@ -10,9 +11,18 @@ import {
   refreshGogToken,
 } from "~/lib/gog/api";
 import tryCatch from "~/utils/tryCatch";
-import prisma from "~/lib/prisma";
+import { db } from "~~/lib/db";
+import {
+  game,
+  gogGame,
+  gogGamePlaytime,
+  gogIgnoredProduct,
+  gogUser,
+  type Game,
+  type GogGame,
+  type GogUser,
+} from "~~/db/schema";
 import { refreshGameAggregates } from "~/lib/gameAggregates";
-import type { GogGame, GogUser } from "@prisma/client";
 
 function getTokenExpiresAt(expiresIn: number) {
   return new Date(Date.now() + expiresIn * 1000);
@@ -36,13 +46,13 @@ export async function createOrUpdateGogUser(code: string) {
   if (userError) {
     throw new Error("Failed to get user data from GOG");
   }
-  const currentGogUser = await prisma.gogUser.findFirst();
+  const currentGogUser = await getGogUser();
   if (!!currentGogUser && currentGogUser.gogUserId !== user.userId) {
     throw new Error("grate only supports a single GOG account");
   }
-  return prisma.gogUser.upsert({
-    where: { gogUserId: user.userId },
-    create: {
+  return db
+    .insert(gogUser)
+    .values({
       gogUserId: user.userId,
       galaxyUserId: user.galaxyUserId,
       username: user.username,
@@ -52,21 +62,25 @@ export async function createOrUpdateGogUser(code: string) {
       accessToken: token.access_token,
       accessTokenExpiresAt,
       refreshToken: token.refresh_token,
-    },
-    update: {
-      username: user.username,
-      country: user.country,
-      avatarUrl: user.avatar,
-      checksumGames: user.checksum.games,
-      accessToken: token.access_token,
-      accessTokenExpiresAt,
-      refreshToken: token.refresh_token,
-    },
-  });
+    })
+    .onConflictDoUpdate({
+      target: gogUser.gogUserId,
+      set: {
+        username: user.username,
+        country: user.country,
+        avatarUrl: user.avatar,
+        checksumGames: user.checksum.games,
+        accessToken: token.access_token,
+        accessTokenExpiresAt,
+        refreshToken: token.refresh_token,
+      },
+    })
+    .returning()
+    .get();
 }
 
 export async function getGogUser() {
-  return prisma.gogUser.findFirst();
+  return (await db.query.gogUser.findFirst()) ?? null;
 }
 
 export async function handleRefreshToken(user: GogUser): Promise<GogUser> {
@@ -79,14 +93,16 @@ export async function handleRefreshToken(user: GogUser): Promise<GogUser> {
     throw new Error("Failed to refresh GOG token");
   }
   const accessTokenExpiresAt = getTokenExpiresAt(token.expires_in);
-  return prisma.gogUser.update({
-    where: { gogUserId: user.gogUserId },
-    data: {
+  return db
+    .update(gogUser)
+    .set({
       accessToken: token.access_token,
       accessTokenExpiresAt,
       refreshToken: token.refresh_token,
-    },
-  });
+    })
+    .where(eq(gogUser.gogUserId, user.gogUserId))
+    .returning()
+    .get();
 }
 
 export async function updateGogUser() {
@@ -99,15 +115,17 @@ export async function updateGogUser() {
   if (error) {
     throw new Error("Failed to get user data from GOG");
   }
-  return prisma.gogUser.update({
-    where: { gogUserId: user.gogUserId },
-    data: {
+  return db
+    .update(gogUser)
+    .set({
       username: data.username,
       country: data.country,
       avatarUrl: data.avatar,
       checksumGames: data.checksum.games,
-    },
-  });
+    })
+    .where(eq(gogUser.gogUserId, user.gogUserId))
+    .returning()
+    .get();
 }
 
 // GOG return multiple product types, but we only care about games
@@ -118,20 +136,20 @@ const GOG_MANUALLY_IGNORED_PRODUCT_IDS = [1185685769];
 
 async function ensureManualIgnores() {
   for (const gogId of GOG_MANUALLY_IGNORED_PRODUCT_IDS) {
-    await prisma.gogIgnoredProduct.upsert({
-      where: { gogId },
-      create: { gogId, reason: "MANUAL" },
-      update: {},
-    });
+    await db
+      .insert(gogIgnoredProduct)
+      .values({ gogId, reason: "MANUAL" })
+      .onConflictDoNothing()
+      .run();
   }
 }
 
 async function ignoreProduct(gogId: number, reason: string) {
-  await prisma.gogIgnoredProduct.upsert({
-    where: { gogId },
-    create: { gogId, reason },
-    update: { reason },
-  });
+  await db
+    .insert(gogIgnoredProduct)
+    .values({ gogId, reason })
+    .onConflictDoUpdate({ target: gogIgnoredProduct.gogId, set: { reason } })
+    .run();
 }
 
 export async function updateGogGames() {
@@ -147,18 +165,19 @@ export async function updateGogGames() {
   if (error) {
     throw new Error("Failed to get user games from GOG");
   }
-  const ignoredProducts = await prisma.gogIgnoredProduct.findMany({
-    select: { gogId: true },
-  });
+  const ignoredProducts = db
+    .select({ gogId: gogIgnoredProduct.gogId })
+    .from(gogIgnoredProduct)
+    .all();
   const ignoredGogIds = new Set(ignoredProducts.map((p) => p.gogId));
   let failureCount = 0;
   for (const gameId of gameIds) {
     if (ignoredGogIds.has(gameId)) continue;
 
-    const { data: game, error: gameError } = await tryCatch(
+    const { data: gameDetail, error: gameError } = await tryCatch(
       getGogGameDetail(gameId),
     );
-    if (gameError || !game) {
+    if (gameError || !gameDetail) {
       if (gameError instanceof GogApiError && gameError.statusCode === 404) {
         await ignoreProduct(gameId, "NOT_FOUND");
       } else if (gameError instanceof GogApiError && gameError.retriable) {
@@ -172,9 +191,9 @@ export async function updateGogGames() {
       continue;
     }
 
-    const productType = game._embedded.productType;
-    const gogId = game._embedded.product.id;
-    const gogGameTitle = game._embedded.product.title;
+    const productType = gameDetail._embedded.productType;
+    const gogId = gameDetail._embedded.product.id;
+    const gogGameTitle = gameDetail._embedded.product.title;
 
     if (!GOG_PRODUCT_TYPES_INCLUDE.includes(productType)) {
       await ignoreProduct(gameId, productType);
@@ -182,7 +201,7 @@ export async function updateGogGames() {
     }
 
     const { error: writeError } = await tryCatch(
-      updateOrCreateGogGame(game, gogId, gogGameTitle),
+      updateOrCreateGogGame(gameDetail, gogId, gogGameTitle),
     );
     if (writeError) {
       console.error(`Failed to store GOG game ${gogId}: ${writeError}`);
@@ -195,82 +214,89 @@ export async function updateGogGames() {
 }
 
 async function updateOrCreateGogGame(
-  game: GogGameDetail,
+  gogGameDetail: GogGameDetail,
   gogId: number,
   gogGameTitle: string,
 ) {
-  const existingGame = await prisma.gogGame.findFirst({
-    where: { gogId },
+  const existingGame = await db.query.gogGame.findFirst({
+    where: eq(gogGame.gogId, gogId),
   });
   if (existingGame) {
-    const updated = await updateGame(game);
+    const updated = await updateGame(gogGameDetail);
     await refreshGameAggregates(updated.gameId);
     console.log(`Updated game ${gogGameTitle}`);
     return;
   }
-  const created = await createGame(game);
+  const created = await createGame(gogGameDetail);
   await refreshGameAggregates(created.id);
   console.log(`Created game ${gogGameTitle}`);
 }
 
-async function createGame(gogGameDetail: GogGameDetail) {
-  return await prisma.game.create({
-    data: {
-      name: gogGameDetail._embedded.product.title,
-      gogGame: {
-        create: {
-          gogId: gogGameDetail._embedded.product.id,
-          name: gogGameDetail._embedded.product.title,
-          productType: gogGameDetail._embedded.productType,
-          releaseDate:
-            gogGameDetail._embedded.product.globalReleaseDate ||
-            gogGameDetail._embedded.product.gogReleaseDate,
-          description: gogGameDetail.description,
-          publisher: gogGameDetail._embedded.publisher.name,
-          developer: gogGameDetail._embedded.developers
-            .map((dev) => dev.name)
-            .join(", "),
-          tags: gogGameDetail._embedded.tags,
-          properties: gogGameDetail._embedded.properties,
-          iconUrl: gogGameDetail._links.icon?.href,
-          iconSquareUrl: gogGameDetail._links.iconSquare?.href,
-          logoUrl: gogGameDetail._links.logo?.href,
-          boxArtImageUrl: gogGameDetail._links.boxArtImage?.href,
-          backgroundImageUrl: gogGameDetail._links.backgroundImage?.href,
-          galaxyBackgroundImageUrl:
-            gogGameDetail._links.galaxyBackgroundImage?.href,
-        },
-      },
-    },
+function releaseDateOf(gogGameDetail: GogGameDetail): Date {
+  const value =
+    gogGameDetail._embedded.product.globalReleaseDate ||
+    gogGameDetail._embedded.product.gogReleaseDate;
+  const releaseDate = new Date(value);
+  if (Number.isNaN(releaseDate.getTime())) {
+    throw new Error(`Invalid GOG release date: ${value}`);
+  }
+  return releaseDate;
+}
+
+function gogGameFields(gogGameDetail: GogGameDetail) {
+  return {
+    name: gogGameDetail._embedded.product.title,
+    productType: gogGameDetail._embedded.productType,
+    releaseDate: releaseDateOf(gogGameDetail),
+    description: gogGameDetail.description,
+    publisher: gogGameDetail._embedded.publisher.name,
+    developer: gogGameDetail._embedded.developers
+      .map((dev) => dev.name)
+      .join(", "),
+    tags: gogGameDetail._embedded.tags,
+    properties: gogGameDetail._embedded.properties,
+    iconUrl: gogGameDetail._links.icon?.href,
+    iconSquareUrl: gogGameDetail._links.iconSquare?.href,
+    logoUrl: gogGameDetail._links.logo?.href,
+    boxArtImageUrl: gogGameDetail._links.boxArtImage?.href,
+    backgroundImageUrl: gogGameDetail._links.backgroundImage?.href,
+    galaxyBackgroundImageUrl: gogGameDetail._links.galaxyBackgroundImage?.href,
+  };
+}
+
+async function createGame(gogGameDetail: GogGameDetail): Promise<Game> {
+  const fields = gogGameFields(gogGameDetail);
+  return db.transaction((tx) => {
+    const createdGame = tx
+      .insert(game)
+      .values({ name: gogGameDetail._embedded.product.title })
+      .returning()
+      .get();
+    tx.insert(gogGame)
+      .values({
+        gogId: gogGameDetail._embedded.product.id,
+        gameId: createdGame.id,
+        ...fields,
+      })
+      .run();
+    return createdGame;
   });
 }
 
-async function updateGame(gogGameDetail: GogGameDetail) {
-  const title = gogGameDetail._embedded.product.title;
-  return await prisma.gogGame.update({
-    where: { gogId: gogGameDetail._embedded.product.id },
-    data: {
-      name: title,
-      productType: gogGameDetail._embedded.productType,
-      game: { update: { name: title } },
-      releaseDate:
-        gogGameDetail._embedded.product.globalReleaseDate ||
-        gogGameDetail._embedded.product.gogReleaseDate,
-      description: gogGameDetail.description,
-      publisher: gogGameDetail._embedded.publisher.name,
-      developer: gogGameDetail._embedded.developers
-        .map((dev) => dev.name)
-        .join(", "),
-      tags: gogGameDetail._embedded.tags,
-      properties: gogGameDetail._embedded.properties,
-      iconUrl: gogGameDetail._links.icon?.href,
-      iconSquareUrl: gogGameDetail._links.iconSquare?.href,
-      logoUrl: gogGameDetail._links.logo?.href,
-      boxArtImageUrl: gogGameDetail._links.boxArtImage?.href,
-      backgroundImageUrl: gogGameDetail._links.backgroundImage?.href,
-      galaxyBackgroundImageUrl:
-        gogGameDetail._links.galaxyBackgroundImage?.href,
-    },
+async function updateGame(gogGameDetail: GogGameDetail): Promise<GogGame> {
+  const fields = gogGameFields(gogGameDetail);
+  return db.transaction((tx) => {
+    const updated = tx
+      .update(gogGame)
+      .set(fields)
+      .where(eq(gogGame.gogId, gogGameDetail._embedded.product.id))
+      .returning()
+      .get();
+    tx.update(game)
+      .set({ name: fields.name })
+      .where(eq(game.id, updated.gameId))
+      .run();
+    return updated;
   });
 }
 
@@ -281,45 +307,49 @@ function gogLastPlayedAt(sessions: GogPlaytimeSessions): Date | null {
 }
 
 export async function recordGogPlaytime(
-  gogGame: GogGame,
+  playedGame: GogGame,
   sessions: GogPlaytimeSessions,
   now: Date,
 ) {
-  const [lastRecord, penultimateRecord] = await prisma.gogGamePlaytime.findMany(
-    {
-      where: { gogId: gogGame.gogId },
-      orderBy: { timestampEnd: "desc" },
-      take: 2,
-    },
-  );
+  const [lastRecord, penultimateRecord] = db
+    .select()
+    .from(gogGamePlaytime)
+    .where(eq(gogGamePlaytime.gogId, playedGame.gogId))
+    .orderBy(desc(gogGamePlaytime.timestampEnd))
+    .limit(2)
+    .all();
   const lastPlayedAt = gogLastPlayedAt(sessions);
   let record;
   if (
     lastRecord?.playtimeMinutes === sessions.time_sum &&
     penultimateRecord?.playtimeMinutes === sessions.time_sum
   ) {
-    console.log(`No new playtime for ${gogGame.name}`);
-    record = await prisma.gogGamePlaytime.update({
-      where: { id: lastRecord.id },
-      data: { timestampEnd: now },
-    });
+    console.log(`No new playtime for ${playedGame.name}`);
+    record = db
+      .update(gogGamePlaytime)
+      .set({ timestampEnd: now })
+      .where(eq(gogGamePlaytime.id, lastRecord.id))
+      .returning()
+      .get();
   } else {
-    record = await prisma.gogGamePlaytime.create({
-      data: {
-        gogGame: { connect: { gogId: gogGame.gogId } },
+    record = db
+      .insert(gogGamePlaytime)
+      .values({
+        gogId: playedGame.gogId,
         timestampStart: lastRecord ? lastRecord.timestampEnd : undefined,
         timestampEnd: now,
         playtimeMinutes: sessions.time_sum,
         lastPlayedAt,
-      },
-    });
-    console.log(`Recorded playtime for ${gogGame.name}`);
+      })
+      .returning()
+      .get();
+    console.log(`Recorded playtime for ${playedGame.name}`);
   }
-  await prisma.gogGame.update({
-    where: { gogId: gogGame.gogId },
-    data: { playtimeMinutes: sessions.time_sum, lastPlayedAt },
-  });
-  await refreshGameAggregates(gogGame.gameId);
+  db.update(gogGame)
+    .set({ playtimeMinutes: sessions.time_sum, lastPlayedAt })
+    .where(eq(gogGame.gogId, playedGame.gogId))
+    .run();
+  await refreshGameAggregates(playedGame.gameId);
   return record;
 }
 
@@ -329,22 +359,26 @@ export async function recordGogPlaytimes() {
     return;
   }
   const user = await handleRefreshToken(currentUser);
-  const gogGames = await prisma.gogGame.findMany();
+  const gogGames = db.select().from(gogGame).all();
   const now = new Date();
-  for (const gogGame of gogGames) {
+  for (const playedGame of gogGames) {
     const { data: sessions, error } = await tryCatch(
-      getGogGamePlaytime(gogGame.gogId, user.gogUserId, user.accessToken),
+      getGogGamePlaytime(playedGame.gogId, user.gogUserId, user.accessToken),
     );
     if (error || !sessions) {
       console.error(
-        `Failed to fetch GOG playtime for ${gogGame.name}: ${error}`,
+        `Failed to fetch GOG playtime for ${playedGame.name}: ${error}`,
       );
       continue;
     }
-    await recordGogPlaytime(gogGame, sessions, now);
+    await recordGogPlaytime(playedGame, sessions, now);
   }
 }
 
 export async function getGogPlaytimeRecords(gogId: number) {
-  return prisma.gogGamePlaytime.findMany({ where: { gogId } });
+  return db
+    .select()
+    .from(gogGamePlaytime)
+    .where(eq(gogGamePlaytime.gogId, gogId))
+    .all();
 }

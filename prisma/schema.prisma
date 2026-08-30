@@ -57,12 +57,14 @@ enum GameState {
 }
 
 model Game {
-  id           Int               @id @default(autoincrement())
-  name         String
-  steamGame    SteamGame?
-  gogGame      GogGame?
-  state        GameState?
-  stateChanges GameStateChange[]
+  id              Int               @id @default(autoincrement())
+  name            String
+  steamGame       SteamGame?
+  gogGame         GogGame?
+  state           GameState?
+  stateChanges    GameStateChange[]
+  playtimeMinutes Int               @default(0)
+  lastPlayedAt    DateTime?
 }
 
 model GameStateChange {
@@ -177,4 +179,28 @@ model GogGame {
   boxArtImageUrl           String?
   backgroundImageUrl       String?
   galaxyBackgroundImageUrl String?
+
+  productType String @default("GAME")
+
+  playtimeMinutes Int?
+  lastPlayedAt    DateTime?
+  playtimeRecords GogGamePlaytime[]
+}
+
+model GogGamePlaytime {
+  id      Int     @id @default(autoincrement())
+  gogId   Int
+  gogGame GogGame @relation(fields: [gogId], references: [gogId])
+
+  timestampStart DateTime?
+  timestampEnd   DateTime
+
+  playtimeMinutes Int
+  lastPlayedAt    DateTime?
+}
+
+model GogIgnoredProduct {
+  gogId     Int      @id
+  reason    String
+  createdAt DateTime @default(now())
 }

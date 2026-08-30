@@ -11,6 +11,7 @@
     "lint:ci": "prettier --check .",
     "typecheck": "nuxt typecheck",
     "test": "vitest",
+    "db:studio": "drizzle-kit studio",
     "story:dev": "histoire dev",
     "story:build": "histoire build",
     "story:preview": "histoire preview"

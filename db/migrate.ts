@@ -45,8 +45,8 @@ function drizzleMigrationCount(sqlite: Database) {
   const [count] = sqlite
     .prepare("SELECT count(*) FROM __drizzle_migrations")
     .raw()
-    .get() as [number | bigint];
-  return Number(count);
+    .get() as [number];
+  return count;
 }
 
 function appliedPrismaMigrations(sqlite: Database) {
@@ -98,17 +98,6 @@ function recordDrizzleBaseline(sqlite: Database, folder: string) {
     .run(baseline.hash, baseline.folderMillis);
 }
 
-// The gog_playtime backfill wrote ISO text into a column the app otherwise
-// fills with unix milliseconds; SQLite sorts integers before text, which would
-// misorder "recently played" until every row is rewritten.
-function normaliseGameLastPlayedAt(sqlite: Database) {
-  sqlite.exec(
-    `UPDATE "Game"
-     SET "lastPlayedAt" = CAST(strftime('%s', "lastPlayedAt") AS INTEGER) * 1000
-     WHERE typeof("lastPlayedAt") = 'text'`,
-  );
-}
-
 function adoptPrismaDatabase(sqlite: Database, folder: string) {
   const applied = appliedPrismaMigrations(sqlite);
   const missing = PRISMA_MIGRATIONS_COVERED_BY_BASELINE.filter(
@@ -129,8 +118,32 @@ function adoptPrismaDatabase(sqlite: Database, folder: string) {
     recordPrismaMigration(sqlite, FINAL_PRISMA_MIGRATION, sql);
   }
 
-  normaliseGameLastPlayedAt(sqlite);
   recordDrizzleBaseline(sqlite, folder);
+}
+
+// SQLite cannot alter a column's type, so drizzle-kit emits table rebuilds:
+// copy into `__new_X`, drop the original, rename. Dropping a table other rows
+// reference trips foreign keys, and the `PRAGMA foreign_keys=OFF` drizzle-kit
+// writes into the migration is a no-op inside the migrator's transaction, as is
+// `PRAGMA defer_foreign_keys=ON` once the deferred violation counter is raised.
+// Disabling enforcement for the duration and checking integrity afterwards is
+// what the SQLite manual prescribes for this class of migration.
+function migrateWithoutForeignKeyEnforcement(db: DrizzleDb, sqlite: Database) {
+  const [{ foreign_keys: wasEnabled }] = sqlite.pragma("foreign_keys") as [
+    { foreign_keys: number },
+  ];
+  sqlite.pragma("foreign_keys = OFF");
+  try {
+    migrate(db, { migrationsFolder: migrationsFolder() });
+    const violations = sqlite.pragma("foreign_key_check") as unknown[];
+    if (violations.length > 0) {
+      throw new Error(
+        `Migration left ${violations.length} foreign key violations: ${JSON.stringify(violations)}`,
+      );
+    }
+  } finally {
+    if (wasEnabled) sqlite.pragma("foreign_keys = ON");
+  }
 }
 
 export function runMigrations(sqlite: Database, db: DrizzleDb) {
@@ -141,5 +154,5 @@ export function runMigrations(sqlite: Database, db: DrizzleDb) {
   ) {
     adoptPrismaDatabase(sqlite, folder);
   }
-  migrate(db, { migrationsFolder: folder });
+  migrateWithoutForeignKeyEnforcement(db, sqlite);
 }

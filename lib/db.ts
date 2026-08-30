@@ -9,9 +9,6 @@ export function databasePath(url = process.env.DATABASE_URL): string {
 
 export function createDb(path = databasePath()) {
   const sqlite = new Database(path);
-  // SteamUser.steamId exceeds Number.MAX_SAFE_INTEGER; without this it reads
-  // back lossily. db/customTypes.ts narrows the resulting bigints per column.
-  sqlite.defaultSafeIntegers(true);
   sqlite.pragma("foreign_keys = ON");
   return { sqlite, db: drizzle(sqlite, { schema }) };
 }

@@ -14,6 +14,8 @@ const FINAL_PRISMA_MIGRATION_SQL = readFileSync(
   "utf8",
 );
 
+const FIXTURE_STEAM_ID = "76561198032111170";
+
 const TABLES = [
   "User",
   "SteamUser",
@@ -28,6 +30,23 @@ const TABLES = [
   "GogIgnoredProduct",
 ];
 
+// Every column the schema declares as a timestamp; after 0001 none may hold text.
+const DATETIME_COLUMNS: [table: string, column: string][] = [
+  ["GogUser", "accessTokenExpiresAt"],
+  ["Game", "lastPlayedAt"],
+  ["GameStateChange", "timestamp"],
+  ["SteamAppInfo", "fetchedAt"],
+  ["SteamAppInfo", "releaseDate"],
+  ["SteamGamePlaytime", "timestampStart"],
+  ["SteamGamePlaytime", "timestampEnd"],
+  ["GogGame", "releaseDate"],
+  ["GogGame", "lastPlayedAt"],
+  ["GogGamePlaytime", "timestampStart"],
+  ["GogGamePlaytime", "timestampEnd"],
+  ["GogGamePlaytime", "lastPlayedAt"],
+  ["GogIgnoredProduct", "createdAt"],
+];
+
 const openConnections: Database.Database[] = [];
 
 function open(path: string) {
@@ -40,8 +59,12 @@ afterEach(() => {
   while (openConnections.length > 0) openConnections.pop()?.close();
 });
 
+function temporaryPath(name: string) {
+  return join(mkdtempSync(join(tmpdir(), "grate-migrate-")), name);
+}
+
 function workingCopy(name: string) {
-  const path = join(mkdtempSync(join(tmpdir(), "grate-migrate-")), name);
+  const path = temporaryPath(name);
   copyFileSync(FIXTURE, path);
   return path;
 }
@@ -66,61 +89,147 @@ function fixtureAtPrismaHead() {
   return path;
 }
 
-function schemaOf(path: string) {
+function freshDatabase() {
+  const path = temporaryPath("fresh.sqlite");
+  const { db, sqlite } = open(path);
+  runMigrations(sqlite, db);
+  return path;
+}
+
+function withSqlite<T>(path: string, read: (sqlite: Database.Database) => T) {
   const sqlite = new Database(path);
-  const statements = sqlite
-    .prepare(
-      `SELECT sql FROM sqlite_master
-       WHERE sql IS NOT NULL
-         AND name NOT IN ('_prisma_migrations', '__drizzle_migrations')
-         AND name NOT LIKE 'sqlite_%'`,
+  try {
+    return read(sqlite);
+  } finally {
+    sqlite.close();
+  }
+}
+
+function schemaOf(path: string) {
+  return withSqlite(path, (sqlite) =>
+    (
+      sqlite
+        .prepare(
+          `SELECT sql FROM sqlite_master
+           WHERE sql IS NOT NULL
+             AND name NOT IN ('_prisma_migrations', '__drizzle_migrations')
+             AND name NOT LIKE 'sqlite_%'`,
+        )
+        .raw()
+        .all() as [string][]
     )
-    .raw()
-    .all() as [string][];
-  sqlite.close();
-  return statements
-    .map(([sql]) => sql.replaceAll(/["`]/g, "").replaceAll(/\s+/g, " ").trim())
-    .sort();
+      .map(([sql]) =>
+        sql.replaceAll(/["`]/g, "").replaceAll(/\s+/g, " ").trim(),
+      )
+      .sort(),
+  );
 }
 
 function rowCounts(path: string) {
-  const sqlite = new Database(path);
-  const counts = Object.fromEntries(
-    TABLES.filter(
-      (table) =>
-        sqlite
-          .prepare(
-            `SELECT name FROM sqlite_master WHERE type='table' AND name = ?`,
-          )
-          .get(table) !== undefined,
-    ).map((table) => [
-      table,
-      (
-        sqlite.prepare(`SELECT count(*) FROM "${table}"`).raw().get() as [
-          number,
-        ]
-      )[0],
-    ]),
+  return withSqlite(path, (sqlite) =>
+    Object.fromEntries(
+      TABLES.filter(
+        (table) =>
+          sqlite
+            .prepare(
+              `SELECT name FROM sqlite_master WHERE type='table' AND name = ?`,
+            )
+            .get(table) !== undefined,
+      ).map((table) => [
+        table,
+        (
+          sqlite.prepare(`SELECT count(*) FROM "${table}"`).raw().get() as [
+            number,
+          ]
+        )[0],
+      ]),
+    ),
   );
-  sqlite.close();
-  return counts;
+}
+
+function migrationCounts(path: string) {
+  return withSqlite(path, (sqlite) => ({
+    prisma: (
+      sqlite.prepare(`SELECT count(*) FROM _prisma_migrations`).raw().get() as [
+        number,
+      ]
+    )[0],
+    drizzle: (
+      sqlite
+        .prepare(`SELECT count(*) FROM __drizzle_migrations`)
+        .raw()
+        .get() as [number]
+    )[0],
+  }));
 }
 
 function lastPlayedAt(path: string) {
-  const sqlite = new Database(path);
-  const rows = sqlite
-    .prepare(
-      `SELECT "id", typeof("lastPlayedAt"), "lastPlayedAt"
-       FROM "Game" WHERE "lastPlayedAt" IS NOT NULL ORDER BY "id"`,
-    )
-    .raw()
-    .all() as [number, string, string | number][];
-  sqlite.close();
-  return rows;
+  return withSqlite(
+    path,
+    (sqlite) =>
+      sqlite
+        .prepare(
+          `SELECT "id", typeof("lastPlayedAt"), "lastPlayedAt"
+           FROM "Game" WHERE "lastPlayedAt" IS NOT NULL ORDER BY "id"`,
+        )
+        .raw()
+        .all() as [number, string, string | number][],
+  );
 }
 
 function lastPlayedAtTypes(path: string) {
   return [...new Set(lastPlayedAt(path).map(([, type]) => type))];
+}
+
+function storageClasses(path: string, table: string, column: string) {
+  return withSqlite(
+    path,
+    (sqlite) =>
+      sqlite
+        .prepare(
+          `SELECT DISTINCT typeof("${column}") FROM "${table}"
+           WHERE "${column}" IS NOT NULL`,
+        )
+        .raw()
+        .all() as [string][],
+  ).map(([type]) => type);
+}
+
+function expectNativeStorage(path: string) {
+  for (const [table, column] of DATETIME_COLUMNS) {
+    expect([table, column, storageClasses(path, table, column)]).toEqual([
+      table,
+      column,
+      expect.not.arrayContaining(["text"]),
+    ]);
+    expect(storageClasses(path, table, column)).toEqual(
+      expect.not.arrayContaining(["real", "blob"]),
+    );
+  }
+
+  expect(storageClasses(path, "SteamUser", "steamId")).toEqual(["text"]);
+  expect(storageClasses(path, "SteamGame", "appId")).toEqual(["integer"]);
+  expect(storageClasses(path, "SteamAppInfo", "appId")).toEqual(["integer"]);
+  expect(storageClasses(path, "SteamGamePlaytime", "steamAppId")).toEqual([
+    "integer",
+  ]);
+
+  for (const column of [
+    "hasCommunityVisibleStats",
+    "hasWorkshop",
+    "hasDlc",
+    "hasLeaderboards",
+  ]) {
+    const values = withSqlite(
+      path,
+      (sqlite) =>
+        sqlite
+          .prepare(`SELECT DISTINCT "${column}" FROM "SteamGame"`)
+          .raw()
+          .all() as [number][],
+    ).map(([value]) => value);
+    expect(values.every((value) => value === 0 || value === 1)).toBe(true);
+  }
 }
 
 describe("runMigrations", () => {
@@ -137,19 +246,18 @@ describe("runMigrations", () => {
     for (const table of TABLES) expect(tables).toContain(table);
     expect(
       sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([1n]);
+    ).toEqual([2]);
     expect(tables).not.toContain("_prisma_migrations");
   });
 
   it("adopts a Prisma database that is one migration behind", () => {
     const path = workingCopy("behind.sqlite");
     const before = rowCounts(path);
-    const reference = fixtureAtPrismaHead();
 
     const { db, sqlite } = open(path);
     runMigrations(sqlite, db);
 
-    expect(schemaOf(path)).toEqual(schemaOf(reference));
+    expect(schemaOf(path)).toEqual(schemaOf(freshDatabase()));
 
     const migrations = sqlite
       .prepare(
@@ -162,9 +270,7 @@ describe("runMigrations", () => {
       FINAL_PRISMA_MIGRATION,
       createHash("sha256").update(FINAL_PRISMA_MIGRATION_SQL).digest("hex"),
     ]);
-    expect(
-      sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([1n]);
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 2 });
 
     const backfilled = sqlite
       .prepare(
@@ -172,15 +278,13 @@ describe("runMigrations", () => {
          FROM "Game" g JOIN "SteamGame" s ON s."gameId" = g."id" ORDER BY g."id"`,
       )
       .raw()
-      .all() as [number | bigint, number | bigint | null, number | bigint][];
-    expect(backfilled.map(([minutes]) => Number(minutes))).toEqual([
-      1200, 0, 45,
-    ]);
-    expect(Number(backfilled[0]![1])).toBe(
-      Date.parse("2025-03-24T01:00:00.000Z"),
-    );
+      .all() as [number, number | null, number][];
+    expect(backfilled.map(([minutes]) => minutes)).toEqual([1200, 0, 45]);
+    expect(backfilled[0]![1]).toBe(Date.parse("2025-03-24T01:00:00.000Z"));
     expect(backfilled[1]![1]).toBeNull();
     expect(lastPlayedAtTypes(path)).toEqual(["integer"]);
+
+    expectNativeStorage(path);
 
     expect(rowCounts(path)).toEqual({
       ...before,
@@ -189,7 +293,7 @@ describe("runMigrations", () => {
     });
   });
 
-  it("only marks the baseline when the Prisma database is already at head", () => {
+  it("converts a Prisma database that is already at head", () => {
     const path = fixtureAtPrismaHead();
     const before = rowCounts(path);
     const isoBefore = lastPlayedAt(path);
@@ -198,12 +302,7 @@ describe("runMigrations", () => {
     const { db, sqlite } = open(path);
     runMigrations(sqlite, db);
 
-    expect(
-      sqlite.prepare(`SELECT count(*) FROM _prisma_migrations`).raw().get(),
-    ).toEqual([12n]);
-    expect(
-      sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([1n]);
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 2 });
     expect(rowCounts(path)).toEqual(before);
     expect(lastPlayedAt(path)).toEqual(
       isoBefore.map(([id, , value]) => [
@@ -212,6 +311,33 @@ describe("runMigrations", () => {
         Date.parse(value as string),
       ]),
     );
+    expectNativeStorage(path);
+  });
+
+  it("keeps the 64-bit steam id exact when it becomes text", () => {
+    const path = workingCopy("steam-id.sqlite");
+    const { db, sqlite } = open(path);
+    runMigrations(sqlite, db);
+
+    const [steamId, storageClass] = sqlite
+      .prepare(`SELECT "steamId", typeof("steamId") FROM "SteamUser"`)
+      .raw()
+      .get() as [string, string];
+    expect(storageClass).toBe("text");
+    expect(steamId).toBe(FIXTURE_STEAM_ID);
+  });
+
+  it("keeps json columns readable as json", () => {
+    const path = workingCopy("json.sqlite");
+    const { db, sqlite } = open(path);
+    runMigrations(sqlite, db);
+
+    const [developers, publishers] = sqlite
+      .prepare(`SELECT "developers", "publishers" FROM "SteamAppInfo"`)
+      .raw()
+      .get() as [string, string];
+    expect(JSON.parse(developers)).toEqual(["Fixture Studio"]);
+    expect(JSON.parse(publishers)).toEqual(["Fixture Publishing"]);
   });
 
   it("refuses a database that predates the adoption baseline", () => {
@@ -239,11 +365,7 @@ describe("runMigrations", () => {
 
     expect(schemaOf(path)).toEqual(schema);
     expect(rowCounts(path)).toEqual(counts);
-    expect(
-      sqlite.prepare(`SELECT count(*) FROM _prisma_migrations`).raw().get(),
-    ).toEqual([12n]);
-    expect(
-      sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([1n]);
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 2 });
+    expectNativeStorage(path);
   });
 });

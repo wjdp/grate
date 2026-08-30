@@ -1,15 +1,16 @@
-import { relations, sql } from "drizzle-orm";
-import { sqliteTable, uniqueIndex } from "drizzle-orm/sqlite-core";
-import { GAME_STATES } from "../shared/game-state";
+import { relations } from "drizzle-orm";
 import {
-  autoIncrementId,
-  bigint,
-  boolean,
-  datetime,
   integer,
-  json,
+  sqliteTable,
   text,
-} from "./customTypes";
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
+import { GAME_STATES } from "../shared/game-state";
+
+const autoIncrementId = () => integer().primaryKey({ autoIncrement: true });
+const datetime = () => integer({ mode: "timestamp_ms" });
+const boolean = () => integer({ mode: "boolean" });
+const json = () => text({ mode: "json" });
 
 export const STEAM_APP_INFO_STATES = [
   "FETCHED",
@@ -26,7 +27,7 @@ export const user = sqliteTable("User", {
 export const steamUser = sqliteTable(
   "SteamUser",
   {
-    steamId: bigint().primaryKey(),
+    steamId: text().primaryKey(),
     userId: integer()
       .notNull()
       .references(() => user.id, {
@@ -77,7 +78,7 @@ export const gameStateChange = sqliteTable("GameStateChange", {
 export const steamGame = sqliteTable(
   "SteamGame",
   {
-    appId: bigint().primaryKey(),
+    appId: integer().primaryKey(),
     gameId: integer()
       .notNull()
       .references(() => game.id, { onDelete: "restrict", onUpdate: "cascade" }),
@@ -104,7 +105,7 @@ export const steamGame = sqliteTable(
 );
 
 export const steamAppInfo = sqliteTable("SteamAppInfo", {
-  appId: bigint()
+  appId: integer()
     .primaryKey()
     .references(() => steamGame.appId, {
       onDelete: "restrict",
@@ -122,8 +123,8 @@ export const steamAppInfo = sqliteTable("SteamAppInfo", {
   capsuleImage: text().notNull(),
   capsuleImagev5: text().notNull(),
   website: text(),
-  developers: json<string[]>().notNull(),
-  publishers: json<string[]>().notNull(),
+  developers: json().$type<string[]>().notNull(),
+  publishers: json().$type<string[]>().notNull(),
   platformWindows: boolean().notNull(),
   platformMac: boolean().notNull(),
   platformLinux: boolean().notNull(),
@@ -140,7 +141,7 @@ export const steamAppInfo = sqliteTable("SteamAppInfo", {
 
 export const steamGamePlaytime = sqliteTable("SteamGamePlaytime", {
   id: autoIncrementId(),
-  steamAppId: bigint()
+  steamAppId: integer()
     .notNull()
     .references(() => steamGame.appId, {
       onDelete: "restrict",
@@ -204,7 +205,7 @@ export const gogIgnoredProduct = sqliteTable("GogIgnoredProduct", {
   reason: text().notNull(),
   createdAt: datetime()
     .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .$defaultFn(() => new Date()),
 });
 
 export const userRelations = relations(user, ({ one }) => ({

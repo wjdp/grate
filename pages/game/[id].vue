@@ -1,22 +1,28 @@
 <script lang="ts" setup>
 import type { GameState } from "#shared/game-state";
 import { getGameArtUrls } from "#shared/art";
-import { coerce } from "zod";
 import { getPageTitle } from "#shared/title";
 
 const { $client } = useNuxtApp();
 const route = useRoute();
 const id = parseIntRouteParam(route.params.id);
-const { data } = await useGame(id);
+const { data, refresh } = await useGame(id);
 const game = computed(() => data.value?.game);
 
 if (game.value) useSeoMeta({ title: getPageTitle(game.value.name) });
 
-const { data: playtimeData } = await $client.gamePlaytimes.useQuery({ id });
+const { data: playtimeData, refresh: refreshPlaytimes } =
+  await $client.gamePlaytimes.useQuery({ id });
 const playtimes = computed(() => playtimeData.value?.playtimes);
 const formatTimestamp = (timestamp: string) =>
   new Date(timestamp).toLocaleString();
 const state = ref(game.value?.state ?? null);
+watch(
+  () => game.value?.state,
+  (updatedState) => {
+    state.value = updatedState ?? null;
+  },
+);
 
 const art = computed(() => game.value && getGameArtUrls(game.value));
 
@@ -32,21 +38,12 @@ const updateGameState = async (state: GameState | null) => {
   }
 };
 
-const openSteamGame = (appId: number) => {
-  window.open(`steam://nav/games/details/${appId}`, "_self");
-};
-
-const openGogGame = (gogId: number) => {
-  window.open(`goggalaxy://openGameView/${gogId}`, "_self");
+const onMerged = async () => {
+  await Promise.all([refresh(), refreshPlaytimes()]);
 };
 
 const steamGames = computed(() => game.value?.steamGames ?? []);
 const gogGames = computed(() => game.value?.gogGames ?? []);
-const hasMultipleProviderRows = computed(
-  () => steamGames.value.length + gogGames.value.length > 1,
-);
-const providerLabel = (base: string, name: string) =>
-  hasMultipleProviderRows.value ? `${base}: ${name}` : base;
 
 const description = computed(
   () =>
@@ -70,22 +67,8 @@ const description = computed(
       {{ description }}
       <img v-if="art?.header" :src="art.header" />
     </p>
-    <div
-      v-for="steamRow in steamGames"
-      :key="`steam-${steamRow.appId}`"
-      class="my-4"
-    >
-      <Button @click="openSteamGame(steamRow.appId)" class="mr-2">
-        {{ providerLabel("Open in Steam", steamRow.name) }}
-      </Button>
-      <PlayButton :href="`steam://run/${steamRow.appId}`" />
-    </div>
-    <div v-for="gogRow in gogGames" :key="`gog-${gogRow.gogId}`" class="my-4">
-      <Button @click="openGogGame(gogRow.gogId)" class="mr-2">
-        {{ providerLabel("Open in GOG", gogRow.name) }}
-      </Button>
-      <PlayButton :href="`goggalaxy://runGame/${gogRow.gogId}`" />
-    </div>
+    <GameProviderRows v-if="game" :game="game" />
+    <GameMergeDialog v-if="game" :game="game" @merged="onMerged" />
     <table v-if="playtimes" class="my-4">
       <thead>
         <tr>

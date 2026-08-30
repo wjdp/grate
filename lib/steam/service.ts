@@ -13,6 +13,7 @@ import {
   type SteamUser,
 } from "~~/db/schema";
 import { refreshGameAggregates } from "~/lib/gameAggregates";
+import { countProviderRows } from "~/lib/gameProviders";
 import {
   getUserGames,
   getUserInfo,
@@ -211,10 +212,12 @@ async function updateGame(userGame: UserGame): Promise<SteamGame> {
       .where(eq(steamGame.appId, userGame.appid))
       .returning()
       .get();
-    tx.update(game)
-      .set({ name: userGame.name })
-      .where(eq(game.id, updatedGame.gameId))
-      .run();
+    if (countProviderRows(updatedGame.gameId, tx) === 1) {
+      tx.update(game)
+        .set({ name: userGame.name })
+        .where(eq(game.id, updatedGame.gameId))
+        .run();
+    }
     return updatedGame;
   });
 }

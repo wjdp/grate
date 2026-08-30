@@ -23,6 +23,7 @@ import {
   type GogUser,
 } from "~~/db/schema";
 import { refreshGameAggregates } from "~/lib/gameAggregates";
+import { countProviderRows } from "~/lib/gameProviders";
 
 function getTokenExpiresAt(expiresIn: number) {
   return new Date(Date.now() + expiresIn * 1000);
@@ -296,10 +297,12 @@ async function updateGame(gogGameDetail: GogGameDetail): Promise<GogGame> {
       .where(eq(gogGame.gogId, gogGameDetail._embedded.product.id))
       .returning()
       .get();
-    tx.update(game)
-      .set({ name: fields.name })
-      .where(eq(game.id, updated.gameId))
-      .run();
+    if (countProviderRows(updated.gameId, tx) === 1) {
+      tx.update(game)
+        .set({ name: fields.name })
+        .where(eq(game.id, updated.gameId))
+        .run();
+    }
     return updated;
   });
 }

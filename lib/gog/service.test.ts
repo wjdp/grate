@@ -356,6 +356,31 @@ describe("updateGogGames", () => {
     expect(storedGame.game.name).toBe("New Name");
   });
 
+  it("does not rename a Game that owns more than one provider row", async () => {
+    await createGogUser();
+    const existing = await createGogGame({ gogId: 200, name: "Old Name" });
+    await createGogGame({
+      gogId: 201,
+      gameId: existing.gameId,
+      name: "Old Name (Complete)",
+    });
+    vi.mocked(getGogUserGames).mockResolvedValue([200]);
+    vi.mocked(getGogGameDetail).mockResolvedValue(
+      generateFakeGogGameDetail({ id: 200, title: "New Name" }),
+    );
+
+    await updateGogGames();
+
+    const storedGame = firstOrThrow(
+      await db.query.gogGame.findMany({
+        where: eq(gogGame.gogId, 200),
+        with: { game: true },
+      }),
+    );
+    expect(storedGame.name).toBe("New Name");
+    expect(storedGame.game.name).toBe("Old Name");
+  });
+
   it.each(["DLC", "PACK"])(
     "skips %s products and remembers them as ignored",
     async (productType) => {

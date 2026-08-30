@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { faker } from "@faker-js/faker";
 import {
+  createGogGame as createGogGameFixture,
   createSteamGame as createSteamGameFixture,
   createSteamUser,
 } from "~~/lib/fixtures/game";
@@ -361,6 +362,27 @@ describe("updateGames", () => {
     expect(steamGame?.game.lastPlayedAt).toStrictEqual(
       new Date(userGame.rtime_last_played! * 1000),
     );
+  });
+
+  it("does not rename a Game that owns more than one provider row", async () => {
+    createSteamUser();
+    const existingSteamGame = createSteamGameFixture({ name: "Old Name" });
+    createGogGameFixture({
+      gameId: existingSteamGame.gameId,
+      name: "Old Name (GOG)",
+    });
+    const userGame = generateFakeUserGame(
+      { ...existingSteamGame, name: "New Name" },
+      { playtime_forever: 4321 },
+    );
+    vi.mocked(getUserGames).mockResolvedValue([userGame]);
+    await updateGames();
+    const steamGame = await db.query.steamGame.findFirst({
+      where: (table, { eq }) => eq(table.appId, existingSteamGame.appId),
+      with: { game: true },
+    });
+    expect(steamGame?.name).toBe("New Name");
+    expect(steamGame?.game.name).toBe("Old Name");
   });
 
   it("returns the games reported by the steam api", async () => {

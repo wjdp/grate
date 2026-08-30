@@ -210,6 +210,69 @@ export const gogIgnoredProduct = sqliteTable("GogIgnoredProduct", {
     .$defaultFn(() => new Date()),
 });
 
+export const epicUser = sqliteTable("EpicUser", {
+  accountId: text().primaryKey(),
+  displayName: text().notNull(),
+  country: text(),
+  accessToken: text().notNull(),
+  accessTokenExpiresAt: datetime().notNull(),
+  refreshToken: text().notNull(),
+  refreshTokenExpiresAt: datetime().notNull(),
+});
+
+export const epicGame = sqliteTable(
+  "EpicGame",
+  {
+    epicId: autoIncrementId(),
+    gameId: integer()
+      .notNull()
+      .references(() => game.id, { onDelete: "restrict", onUpdate: "cascade" }),
+    appName: text().notNull(),
+    namespace: text().notNull(),
+    catalogItemId: text().notNull(),
+    name: text().notNull(),
+    description: text(),
+    developer: text(),
+    publisher: text(),
+    releaseDate: datetime(),
+    acquisitionDate: datetime(),
+    categories: json().notNull(),
+    boxArtTallUrl: text(),
+    boxArtWideUrl: text(),
+    logoUrl: text(),
+    storeSlug: text(),
+    thirdPartyStore: text(),
+    playtimeMinutes: integer(),
+    lastPlayedAt: datetime(),
+  },
+  (table) => [
+    uniqueIndex("EpicGame_appName_key").on(table.appName),
+    index("EpicGame_gameId_idx").on(table.gameId),
+  ],
+);
+
+export const epicGamePlaytime = sqliteTable("EpicGamePlaytime", {
+  id: autoIncrementId(),
+  epicId: integer()
+    .notNull()
+    .references(() => epicGame.epicId, {
+      onDelete: "restrict",
+      onUpdate: "cascade",
+    }),
+  timestampStart: datetime(),
+  timestampEnd: datetime().notNull(),
+  playtimeMinutes: integer().notNull(),
+  lastPlayedAt: datetime(),
+});
+
+export const epicIgnoredItem = sqliteTable("EpicIgnoredItem", {
+  appName: text().primaryKey(),
+  reason: text().notNull(),
+  createdAt: datetime()
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const userRelations = relations(user, ({ one }) => ({
   steamUser: one(steamUser),
 }));
@@ -221,6 +284,7 @@ export const steamUserRelations = relations(steamUser, ({ one }) => ({
 export const gameRelations = relations(game, ({ many }) => ({
   steamGames: many(steamGame),
   gogGames: many(gogGame),
+  epicGames: many(epicGame),
   stateChanges: many(gameStateChange),
 }));
 
@@ -272,12 +336,29 @@ export const gogGamePlaytimeRelations = relations(
   }),
 );
 
+export const epicGameRelations = relations(epicGame, ({ one, many }) => ({
+  game: one(game, { fields: [epicGame.gameId], references: [game.id] }),
+  playtimeRecords: many(epicGamePlaytime),
+}));
+
+export const epicGamePlaytimeRelations = relations(
+  epicGamePlaytime,
+  ({ one }) => ({
+    epicGame: one(epicGame, {
+      fields: [epicGamePlaytime.epicId],
+      references: [epicGame.epicId],
+    }),
+  }),
+);
+
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
 export type SteamUser = typeof steamUser.$inferSelect;
 export type NewSteamUser = typeof steamUser.$inferInsert;
 export type GogUser = typeof gogUser.$inferSelect;
 export type NewGogUser = typeof gogUser.$inferInsert;
+export type EpicUser = typeof epicUser.$inferSelect;
+export type NewEpicUser = typeof epicUser.$inferInsert;
 export type Game = typeof game.$inferSelect;
 export type NewGame = typeof game.$inferInsert;
 export type GameStateChange = typeof gameStateChange.$inferSelect;
@@ -294,3 +375,9 @@ export type GogGamePlaytime = typeof gogGamePlaytime.$inferSelect;
 export type NewGogGamePlaytime = typeof gogGamePlaytime.$inferInsert;
 export type GogIgnoredProduct = typeof gogIgnoredProduct.$inferSelect;
 export type NewGogIgnoredProduct = typeof gogIgnoredProduct.$inferInsert;
+export type EpicGame = typeof epicGame.$inferSelect;
+export type NewEpicGame = typeof epicGame.$inferInsert;
+export type EpicGamePlaytime = typeof epicGamePlaytime.$inferSelect;
+export type NewEpicGamePlaytime = typeof epicGamePlaytime.$inferInsert;
+export type EpicIgnoredItem = typeof epicIgnoredItem.$inferSelect;
+export type NewEpicIgnoredItem = typeof epicIgnoredItem.$inferInsert;

@@ -28,6 +28,10 @@ const TABLES = [
   "GogGame",
   "GogGamePlaytime",
   "GogIgnoredProduct",
+  "EpicUser",
+  "EpicGame",
+  "EpicGamePlaytime",
+  "EpicIgnoredItem",
 ];
 
 // Every column the schema declares as a timestamp; after 0001 none may hold text.
@@ -45,6 +49,15 @@ const DATETIME_COLUMNS: [table: string, column: string][] = [
   ["GogGamePlaytime", "timestampEnd"],
   ["GogGamePlaytime", "lastPlayedAt"],
   ["GogIgnoredProduct", "createdAt"],
+  ["EpicUser", "accessTokenExpiresAt"],
+  ["EpicUser", "refreshTokenExpiresAt"],
+  ["EpicGame", "releaseDate"],
+  ["EpicGame", "acquisitionDate"],
+  ["EpicGame", "lastPlayedAt"],
+  ["EpicGamePlaytime", "timestampStart"],
+  ["EpicGamePlaytime", "timestampEnd"],
+  ["EpicGamePlaytime", "lastPlayedAt"],
+  ["EpicIgnoredItem", "createdAt"],
 ];
 
 const openConnections: Database.Database[] = [];
@@ -264,7 +277,7 @@ describe("runMigrations", () => {
     for (const table of TABLES) expect(tables).toContain(table);
     expect(
       sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([5]);
+    ).toEqual([6]);
     expect(tables).not.toContain("_prisma_migrations");
   });
 
@@ -288,7 +301,7 @@ describe("runMigrations", () => {
       FINAL_PRISMA_MIGRATION,
       createHash("sha256").update(FINAL_PRISMA_MIGRATION_SQL).digest("hex"),
     ]);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 5 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 6 });
 
     const backfilled = sqlite
       .prepare(
@@ -316,6 +329,10 @@ describe("runMigrations", () => {
       SteamGamePlaytime: 4,
       GogGamePlaytime: 0,
       GogIgnoredProduct: 0,
+      EpicUser: 0,
+      EpicGame: 0,
+      EpicGamePlaytime: 0,
+      EpicIgnoredItem: 0,
     });
   });
 
@@ -328,8 +345,15 @@ describe("runMigrations", () => {
     const { db, sqlite } = open(path);
     runMigrations(sqlite, db);
 
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 5 });
-    expect(rowCounts(path)).toEqual({ ...before, SteamGamePlaytime: 4 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 6 });
+    expect(rowCounts(path)).toEqual({
+      ...before,
+      SteamGamePlaytime: 4,
+      EpicUser: 0,
+      EpicGame: 0,
+      EpicGamePlaytime: 0,
+      EpicIgnoredItem: 0,
+    });
     expect(lastPlayedAt(path)).toEqual(
       isoBefore.map(([id, , value]) => [
         id,
@@ -391,7 +415,7 @@ describe("runMigrations", () => {
 
     expect(schemaOf(path)).toEqual(schema);
     expect(rowCounts(path)).toEqual(counts);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 5 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 6 });
     expectNativeStorage(path);
   });
 });

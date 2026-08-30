@@ -1,5 +1,9 @@
 import { db } from "~~/lib/db";
 import {
+  epicGame,
+  epicGamePlaytime,
+  epicIgnoredItem,
+  epicUser,
   game,
   gameStateChange,
   gogGame,
@@ -16,15 +20,19 @@ import {
 const TABLES = [
   steamGamePlaytime,
   gogGamePlaytime,
+  epicGamePlaytime,
   gameStateChange,
   steamUser,
   gogIgnoredProduct,
+  epicIgnoredItem,
   steamAppInfo,
   steamGame,
   gogGame,
+  epicGame,
   game,
   user,
   gogUser,
+  epicUser,
 ];
 
 export function flushDb() {

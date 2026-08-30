@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { BadgeProps } from "@nuxt/ui";
 import {
   GameStateHues,
   GameStateIcons,
@@ -6,7 +7,7 @@ import {
   type GameState,
 } from "#shared/game-state";
 
-defineProps<{ state: GameState | null }>();
+defineProps<{ state: GameState | null; size?: BadgeProps["size"] }>();
 </script>
 
 <template>
@@ -14,6 +15,7 @@ defineProps<{ state: GameState | null }>();
     v-if="state"
     variant="soft"
     color="neutral"
+    :size="size"
     :icon="GameStateIcons[state]"
     :label="GameStateNames[state]"
     :class="GameStateHues[state].badge"
@@ -22,6 +24,7 @@ defineProps<{ state: GameState | null }>();
     v-else
     variant="soft"
     color="neutral"
+    :size="size"
     icon="i-lucide-circle-dashed"
     label="Unsorted"
   />

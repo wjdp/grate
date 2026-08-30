@@ -1,11 +1,18 @@
 <script lang="ts" setup>
 import type { GameDetail } from "#shared/types/Game";
+import {
+  getEpicRowLinks,
+  getGogRowLinks,
+  getSteamRowLinks,
+  ProviderLabels,
+  type Provider,
+} from "#shared/providers";
 
 const props = defineProps<{ game: GameDetail }>();
 
 interface ProviderRow {
   key: string;
-  provider: "steam" | "gog" | "epic";
+  provider: Provider;
   providerLabel: string;
   providerId: number;
   name: string;
@@ -15,48 +22,40 @@ interface ProviderRow {
   playUrl: string;
 }
 
-const epicLaunchUrl = (epicRow: GameDetail["epicGames"][number]) =>
-  `com.epicgames.launcher://apps/${encodeURIComponent(`${epicRow.namespace}:${epicRow.catalogItemId}:${epicRow.appName}`)}?action=launch&silent=true`;
-
 const rows = computed<ProviderRow[]>(() => [
   ...props.game.steamGames.map((steamRow) => ({
     key: `steam-${steamRow.appId}`,
     provider: "steam" as const,
-    providerLabel: "Steam",
+    providerLabel: ProviderLabels.steam,
     providerId: steamRow.appId,
     name: steamRow.name,
     playtimeMinutes: steamRow.playtimeForever ?? 0,
     lastPlayed: steamRow.rTimeLastPlayed || null,
-    openUrl: `steam://nav/games/details/${steamRow.appId}`,
-    playUrl: `steam://run/${steamRow.appId}`,
+    ...getSteamRowLinks(steamRow),
   })),
   ...props.game.gogGames.map((gogRow) => ({
     key: `gog-${gogRow.gogId}`,
     provider: "gog" as const,
-    providerLabel: "GOG",
+    providerLabel: ProviderLabels.gog,
     providerId: gogRow.gogId,
     name: gogRow.name,
     playtimeMinutes: gogRow.playtimeMinutes ?? 0,
     lastPlayed: gogRow.lastPlayedAt
       ? new Date(gogRow.lastPlayedAt).toISOString()
       : null,
-    openUrl: `goggalaxy://openGameView/${gogRow.gogId}`,
-    playUrl: `goggalaxy://runGame/${gogRow.gogId}`,
+    ...getGogRowLinks(gogRow),
   })),
   ...props.game.epicGames.map((epicRow) => ({
     key: `epic-${epicRow.epicId}`,
     provider: "epic" as const,
-    providerLabel: "Epic",
+    providerLabel: ProviderLabels.epic,
     providerId: epicRow.epicId,
     name: epicRow.name,
     playtimeMinutes: epicRow.playtimeMinutes ?? 0,
     lastPlayed: epicRow.lastPlayedAt
       ? new Date(epicRow.lastPlayedAt).toISOString()
       : null,
-    openUrl: epicRow.storeSlug
-      ? `https://store.epicgames.com/p/${epicRow.storeSlug}`
-      : epicLaunchUrl(epicRow),
-    playUrl: epicLaunchUrl(epicRow),
+    ...getEpicRowLinks(epicRow),
   })),
 ]);
 

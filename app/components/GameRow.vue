@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { GameWithProviders } from "#shared/types/Game";
+import type { Provider } from "#shared/providers";
 
 const props = defineProps<{ game: GameWithProviders }>();
-
-type Provider = "steam" | "gog" | "epic";
 
 const providers = computed<Provider[]>(() => {
   const found: Provider[] = [];
@@ -42,7 +41,7 @@ const providers = computed<Provider[]>(() => {
       {{ game.lastPlayedAt ? formatLastPlayed(game.lastPlayedAt) : "—" }}
     </span>
     <span class="hidden w-28 shrink-0 justify-end sm:flex">
-      <GameStateBadge :state="game.state" />
+      <GameStateBadge :state="game.state" size="sm" />
     </span>
   </NuxtLink>
 </template>

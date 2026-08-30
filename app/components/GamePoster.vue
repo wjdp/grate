@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import type { GameWithProviders } from "#shared/types/Game";
+import type { Provider } from "#shared/providers";
 import { getGameArtUrls } from "#shared/art";
 
 const props = defineProps<{ game: GameWithProviders }>();
 
 const posterUrl = computed(() => getGameArtUrls(props.game)?.poster ?? null);
-
-type Provider = "steam" | "gog" | "epic";
 
 const providers = computed<Provider[]>(() => {
   const found: Provider[] = [];
@@ -47,7 +46,7 @@ const providers = computed<Provider[]>(() => {
             : "Unplayed"
         }}
       </p>
-      <GameStateBadge v-if="game.state" :state="game.state" />
+      <GameStateBadge v-if="game.state" :state="game.state" size="sm" />
       <div v-if="providers.length" class="text-dimmed flex items-center gap-1">
         <ProviderIcon
           v-for="provider in providers"

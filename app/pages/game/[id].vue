@@ -2,6 +2,12 @@
 import type { GameState } from "#shared/game-state";
 import { getGameArtUrls } from "#shared/art";
 import { getPageTitle } from "#shared/title";
+import {
+  getEpicRowLinks,
+  getGogRowLinks,
+  getSteamRowLinks,
+  ProviderLabels,
+} from "#shared/providers";
 
 const route = useRoute();
 const id = parseIntRouteParam(route.params.id);
@@ -85,15 +91,15 @@ const primaryLaunch = computed<LaunchTarget | null>(() => {
   const targets: LaunchTarget[] = [
     ...steamGames.value.map((steamRow) => ({
       playtimeMinutes: steamRow.playtimeForever ?? 0,
-      playUrl: `steam://run/${steamRow.appId}`,
+      playUrl: getSteamRowLinks(steamRow).playUrl,
     })),
     ...gogGames.value.map((gogRow) => ({
       playtimeMinutes: gogRow.playtimeMinutes ?? 0,
-      playUrl: `goggalaxy://runGame/${gogRow.gogId}`,
+      playUrl: getGogRowLinks(gogRow).playUrl,
     })),
     ...epicGames.value.map((epicRow) => ({
       playtimeMinutes: epicRow.playtimeMinutes ?? 0,
-      playUrl: `com.epicgames.launcher://apps/${encodeURIComponent(`${epicRow.namespace}:${epicRow.catalogItemId}:${epicRow.appName}`)}?action=launch&silent=true`,
+      playUrl: getEpicRowLinks(epicRow).playUrl,
     })),
   ];
   return (
@@ -104,12 +110,6 @@ const primaryLaunch = computed<LaunchTarget | null>(() => {
     ) ?? null
   );
 });
-
-const ProviderLabels = {
-  steam: "Steam",
-  gog: "GOG",
-  epic: "Epic Games",
-};
 
 const playtimeColumns = [
   { accessorKey: "timestampStart", header: "Start" },
@@ -167,15 +167,9 @@ const playtimeMeta = {
         icon="i-lucide-library"
         :value="providerCount"
       />
-      <div class="bg-elevated border-default rounded-lg border p-4">
-        <div class="text-muted flex items-center gap-1.5 text-xs tracking-wide">
-          <UIcon name="i-lucide-tag" class="size-4 shrink-0" />
-          <span class="truncate">State</span>
-        </div>
-        <div class="mt-2">
-          <GameStateBadge :state="game.state" />
-        </div>
-      </div>
+      <StatTile label="State" icon="i-lucide-tag">
+        <GameStateBadge :state="game.state" />
+      </StatTile>
     </div>
 
     <p v-if="description" class="text-muted max-w-prose">{{ description }}</p>

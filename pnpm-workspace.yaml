@@ -1,7 +1,8 @@
 allowBuilds:
-  # Pulled in as drizzle-orm's optional peer; its generate step is not wanted
+  # Pulled in transitively via drizzle-orm's optional peer @prisma/client;
+  # none of their build/generate steps are wanted
   "@prisma/client": false
-  "@prisma/engines": true
+  "@prisma/engines": false
   better-sqlite3: true
   esbuild: true
-  prisma: true
+  prisma: false

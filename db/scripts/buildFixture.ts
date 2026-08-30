@@ -1,5 +1,6 @@
 // Builds test/fixtures/prisma-at-gog_game.sqlite: a Prisma database one
-// migration behind HEAD, holding synthetic data only.
+// migration behind HEAD, holding synthetic data only. Migration SQL is
+// read from db/adopt/, where it lives for the Drizzle adoption path too.
 // Run with: node db/scripts/buildFixture.ts
 
 import { createHash, randomUUID } from "node:crypto";
@@ -50,10 +51,7 @@ const recordMigration = sqlite.prepare(
 );
 
 MIGRATIONS.forEach((name, index) => {
-  const sql = readFileSync(
-    join(root, "prisma", "migrations", name, "migration.sql"),
-    "utf8",
-  );
+  const sql = readFileSync(join(root, "db", "adopt", `${name}.sql`), "utf8");
   sqlite.exec(sql);
   const appliedAt = FIRST_APPLIED_AT + index * 1000;
   recordMigration.run(

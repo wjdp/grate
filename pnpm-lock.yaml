@@ -75,18 +75,12 @@ importers:
       prettier:
         specifier: 3.5.3
         version: 3.5.3
-      prettier-plugin-prisma:
-        specifier: ^5.0.0
-        version: 5.0.0(prettier@3.5.3)
       prettier-plugin-sh:
         specifier: ^0.15.0
         version: 0.15.0(prettier@3.5.3)
       prettier-plugin-tailwindcss:
         specifier: ^0.6.14
         version: 0.6.14(prettier@3.5.3)
-      prisma:
-        specifier: 6.5.0
-        version: 6.5.0(supports-color@10.2.2)(typescript@5.9.3)
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -1598,9 +1592,6 @@ packages:
 
   '@prisma/get-platform@6.5.0':
     resolution: {integrity: sha512-xYcvyJwNMg2eDptBYFqFLUCfgi+wZLcj6HDMsj0Qw0irvauG4IKmkbywnqwok0B+k+W+p+jThM2DKTSmoPCkzw==}
-
-  '@prisma/prisma-schema-wasm@4.17.0-26.6b0aef69b7cdfc787f822ecd7cdc76d5f1991584':
-    resolution: {integrity: sha512-JFdsnSgBPN8reDTLOI9Vh/6ccCb2aD1LbY/LWQnkcIgNo6IdpzvuM+qRVbBuA6IZP2SdqQI8Lu6RL2P8EFBQUA==}
 
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
@@ -4194,12 +4185,6 @@ packages:
   powershell-utils@0.2.0:
     resolution: {integrity: sha512-ZlsFlG7MtSFCoc5xreOvBAozCJ6Pf06opgJjh9ONEv418xpZSAzNjstD36C6+JwOnfSqOW/9uDkqKjezTdxZhw==}
     engines: {node: '>=20'}
-
-  prettier-plugin-prisma@5.0.0:
-    resolution: {integrity: sha512-jTJV04D9+yF7ziOOMs7CJe4ijgAH7DEGjt0SAWAToGNRy1H6BEhvcKA2UQH6gC6KVW5zeeOSAvsoiDDTt9oKXg==}
-    engines: {node: '>=14', npm: '>=8'}
-    peerDependencies:
-      prettier: '>=2 || >=3'
 
   prettier-plugin-sh@0.15.0:
     resolution: {integrity: sha512-U0PikJr/yr2bzzARl43qI0mApBj0C1xdAfA04AZa6LnvIKawXHhuy2fFo6LNA7weRzGlAiNbaEFfKMFo0nZr/A==}
@@ -6905,10 +6890,13 @@ snapshots:
       esbuild-register: 3.6.0(esbuild@0.28.2)(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
-  '@prisma/debug@6.5.0': {}
+  '@prisma/debug@6.5.0':
+    optional: true
 
-  '@prisma/engines-version@6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60': {}
+  '@prisma/engines-version@6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60':
+    optional: true
 
   '@prisma/engines@6.5.0':
     dependencies:
@@ -6916,18 +6904,19 @@ snapshots:
       '@prisma/engines-version': 6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60
       '@prisma/fetch-engine': 6.5.0
       '@prisma/get-platform': 6.5.0
+    optional: true
 
   '@prisma/fetch-engine@6.5.0':
     dependencies:
       '@prisma/debug': 6.5.0
       '@prisma/engines-version': 6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60
       '@prisma/get-platform': 6.5.0
+    optional: true
 
   '@prisma/get-platform@6.5.0':
     dependencies:
       '@prisma/debug': 6.5.0
-
-  '@prisma/prisma-schema-wasm@4.17.0-26.6b0aef69b7cdfc787f822ecd7cdc76d5f1991584': {}
+    optional: true
 
   '@rolldown/pluginutils@1.0.1': {}
 
@@ -8115,6 +8104,7 @@ snapshots:
       esbuild: 0.28.2
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   esbuild@0.18.20:
     optionalDependencies:
@@ -9746,11 +9736,6 @@ snapshots:
 
   powershell-utils@0.2.0: {}
 
-  prettier-plugin-prisma@5.0.0(prettier@3.5.3):
-    dependencies:
-      '@prisma/prisma-schema-wasm': 4.17.0-26.6b0aef69b7cdfc787f822ecd7cdc76d5f1991584
-      prettier: 3.5.3
-
   prettier-plugin-sh@0.15.0(prettier@3.5.3):
     dependencies:
       mvdan-sh: 0.10.1
@@ -9774,6 +9759,7 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   process-nextick-args@2.0.1: {}
 

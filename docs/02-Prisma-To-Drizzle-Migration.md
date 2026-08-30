@@ -53,6 +53,7 @@ Drizzle has no generate step and no `.prisma` resolution dance, which removes th
 6. Nuxt/Nitro: remove `@prisma/nuxt`, the vite alias in `nuxt.config.ts`, `pnpm prisma generate` and openssl from `Dockerfile`; `run.sh` runs `drizzle-kit migrate` (or programmatic `migrate()` in a Nitro plugin before tasks start).
 7. Run against a copy of production data: boot, open every page, run every task. Compare row counts per table before/after.
 8. Remove Prisma packages and `prisma/` directory in a follow-up release once a production deploy has been confirmed good. Keep `_prisma_migrations` table; harmless.
+   - Done: `prisma`, `prettier-plugin-prisma` dropped from `package.json`; `prisma/` directory removed. The 11 baseline migration SQL files (plus `20260830020956_gog_playtime`) moved to `db/adopt/`, still needed by `db/migrate.ts`'s adoption path and `db/scripts/buildFixture.ts`.
 
 ## Outcome
 
@@ -67,11 +68,11 @@ Shipped:
 
 Verified on a copy of the production database in the release image: adoption ran, all 615 games readable, `lastPlayedAt` entirely INTEGER, restart is a no-op.
 
-Remaining: step 8 only.
+Remaining: none. Step 8 done — Prisma packages and `prisma/` removed; the Prisma migration SQL now lives in `db/adopt/` for fixture rebuilding and adoption.
 
 ## Rollback
 
-Until step 8 the Prisma schema and migrations still exist and the tables are untouched, so reverting the release restores the old app on the same file. After step 8 rollback needs the DB file backup taken in step 7.
+Rollback now needs the DB file backup taken in step 7 — the Prisma schema and generated client are gone, so reverting the release no longer restores the old app in place.
 
 ## Verification
 

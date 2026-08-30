@@ -23,9 +23,6 @@ logs
 .env.*
 !.env.example
 
-# Database
-prisma/dev.db
-
 # Repo bits
 .github
 .husky

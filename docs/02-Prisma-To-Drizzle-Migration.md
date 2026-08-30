@@ -1,6 +1,7 @@
 ---
 type: task
 status: todo
+priority: high
 ---
 
 # Prisma → Drizzle migration
@@ -12,6 +13,25 @@ Replace Prisma with Drizzle ORM + `better-sqlite3`, keeping the existing product
 ## Why
 
 See [01](01-Stack-Review.md) §2. Drizzle removes the generate step, the `@prisma/nuxt` alias hack, the openssl dependency in Docker, and gives SQL-shaped queries (joins/ordering across relations) and trivial in-memory test DBs.
+
+## Current breakage (2026-08-30) — why this is urgent
+
+Local dev fails on boot after the pnpm 11 reinstall:
+
+```
+Named export 'GameState' not found. The requested module '…/.pnpm/@prisma+client@6.5.0…/@prisma/client/default.js' is a CommonJS module
+```
+
+Cause, verified:
+
+- `@prisma/client/default.js` is `module.exports = { ...require('.prisma/client/default') }`. Under pnpm's isolated layout that resolves to `node_modules/.pnpm/@prisma+client@…/node_modules/.prisma/client/`.
+- `prisma/schema.prisma` sets `output = "../node_modules/.prisma/client"`, so `prisma generate` (and the `@prisma/client` postinstall) write the real client to **top-level** `node_modules/.prisma/client`, which `@prisma/client` cannot see. The `.pnpm` location keeps Prisma's 2 KB placeholder stub (`PrismaClient`/`Prisma` only, no models, no enums) — hence no `GameState`.
+- The custom `output` and the `nuxt.config.ts` vite alias `".prisma/client/index-browser" → "./node_modules/.prisma/client/index-browser.js"` were added together in `12eacef` ("Try and fixup prisma") to work around nuxt/nuxt#24690; the pair only worked while pnpm 10 happened to make the top-level path resolvable.
+- Tests pass regardless because vitest goes through Vite's resolver, not Node's CJS resolution.
+
+Workaround shown to make `import { GameState } from "@prisma/client"` resolve in Node (not applied; abandoned in favour of this migration): delete the `output` line so Prisma generates beside the real package (it logs `Generated Prisma Client … to ./node_modules/.pnpm/@prisma+client@…/@prisma/client`), and compute the browser alias in `nuxt.config.ts` from `dirname(createRequire(import.meta.url).resolve("@prisma/client")) + "/../../.prisma/client/index-browser.js"`. Dev-server boot with that change was not verified.
+
+Drizzle has no generate step and no `.prisma` resolution dance, which removes this class of failure entirely.
 
 ## Constraints
 

@@ -1,6 +1,6 @@
 ---
 type: task
-status: todo
+status: done
 priority: high
 ---
 
@@ -38,7 +38,7 @@ Drizzle has no generate step and no `.prisma` resolution dance, which removes th
 - Preserve current data. The SQLite file in `data/` (Docker volume `./data:/app/data`, `DATABASE_URL=file:/app/data/db.sqlite`) is the only copy. Migration must be additive and reversible for at least one release.
 - Keep `run.sh` semantics: migrate on boot, then start.
 - Keep table and column names identical so the Drizzle schema maps onto the existing tables with no data movement. Only `_prisma_migrations` becomes obsolete.
-- Datetime columns: Prisma writes SQLite `DATETIME` as ISO-8601 text (`2026-08-30T02:09:56.000Z`) — verified in `20260830020956_gog_playtime` backfill. Drizzle `integer({ mode: "timestamp" })` expects unix seconds; use `text()` with a custom type (or `customType`) that parses/serialises ISO strings so existing rows read correctly. Don't convert data in place until Prisma is gone.
+- Datetime columns: **corrected** — Prisma wrote `DATETIME` as unix _milliseconds_ INTEGER, not ISO text. The one exception is the `20260830020956_gog_playtime` backfill, whose raw SQL wrote ISO text (`2026-08-30T02:09:56.000Z`) into `Game.lastPlayedAt`. SQLite sorts integers before text, so mixed rows would break `getRecentGames`. `db/customTypes.ts` reads both forms and writes milliseconds; adoption rewrites the text rows in place.
 - `BigInt` columns (`SteamUser.steamId`, `SteamGame.appId`, `SteamAppInfo.appId`, `SteamGamePlaytime.steamAppId`): Prisma stores as INTEGER. Use `integer({ mode: "bigint" })` or do [06](06-Drop-BigInt-AppId.md) first (preferred — fewer types to carry over).
 - `Json` columns (`tags`, `properties`, `developers`, `publishers`, `categories`, `genres`, `screenshots`): Prisma stores JSON text in `JSONB`-declared columns; Drizzle `text({ mode: "json" })` reads them as-is.
 - Enums (`GameState`, `SteamAppInfoState`) are stored as TEXT; Drizzle `text({ enum: [...] })`.
@@ -53,6 +53,20 @@ Drizzle has no generate step and no `.prisma` resolution dance, which removes th
 6. Nuxt/Nitro: remove `@prisma/nuxt`, the vite alias in `nuxt.config.ts`, `pnpm prisma generate` and openssl from `Dockerfile`; `run.sh` runs `drizzle-kit migrate` (or programmatic `migrate()` in a Nitro plugin before tasks start).
 7. Run against a copy of production data: boot, open every page, run every task. Compare row counts per table before/after.
 8. Remove Prisma packages and `prisma/` directory in a follow-up release once a production deploy has been confirmed good. Keep `_prisma_migrations` table; harmless.
+
+## Outcome
+
+Shipped:
+
+- `db/schema.ts` mirrors the Prisma tables one-for-one; verified against `drizzle-kit introspect` on a real database copy.
+- `db/customTypes.ts` for datetimes (reads unix ms or ISO text, writes ms), bigints and JSON columns.
+- `db/migrate.ts` adopts an existing Prisma database: refuses anything older than the baseline, applies the final Prisma migration from `db/adopt/` if missing, normalises `Game.lastPlayedAt` to unix ms, then records the Drizzle baseline. Idempotent.
+- `server/plugins/migrate.ts` migrates on boot, so `run.sh` no longer shells out to the Prisma CLI and the Docker image needs neither openssl nor `prisma generate`.
+- Tests get an in-memory database per file (`test/setup.ts`, `DATABASE_URL=":memory:"`), so file parallelism is back.
+
+Verified on a copy of the production database in the release image: adoption ran, all 615 games readable, `lastPlayedAt` entirely INTEGER, restart is a no-op.
+
+Remaining: step 8 only.
 
 ## Rollback
 

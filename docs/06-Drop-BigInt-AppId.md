@@ -16,6 +16,10 @@ Cost today: `server/bigint.ts` patches `BigInt.prototype.toJSON` (lossy — pars
 3. Fixtures: `faker.number.bigInt()` → `faker.number.int({ max: 2_000_000 })`.
 4. Prefer doing this before [02](02-Prisma-To-Drizzle-Migration.md) so the Drizzle schema never needs `mode: "bigint"`.
 
+## Under Drizzle (post-[02](02-Prisma-To-Drizzle-Migration.md))
+
+Step 1 is now a TypeScript-type-only change for the three appid columns: `bigint()` → `integer()` in `db/schema.ts`. SQLite storage is identical, so no migration is needed. `steamId` can stay BIGINT, or become TEXT via a real migration.
+
 ## Verification
 
 Tests + typecheck green; `/art/steam/:appId/:type` and tRPC `game` responses unchanged for a known appid.

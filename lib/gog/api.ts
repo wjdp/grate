@@ -151,7 +151,7 @@ const GogGameDetailSchema = z.object({
       id: z.number(),
       title: z.string(),
       globalReleaseDate: z.string().datetime({ offset: true }).optional(),
-      gogReleaseDate: z.string().datetime({ offset: true }),
+      gogReleaseDate: z.string().datetime({ offset: true }).optional(),
       isVisibleInAccount: z.boolean(),
       hasProductCard: z.boolean(),
     }),
@@ -180,7 +180,9 @@ export type GogGameDetail = z.infer<typeof GogGameDetailSchema>;
 export async function getGogGameDetail(id: number): Promise<GogGameDetail> {
   const response = await gogFetch(`https://api.gog.com/v2/games/${id}`);
   if (!response.ok) {
-    console.error(await response.text());
+    if (response.status !== 404) {
+      console.error(await response.text());
+    }
     throw createGogApiError(response);
   }
   const data = await response.json();
@@ -198,7 +200,7 @@ const GogPlaytimeSessionsSchema = z.object({
 
 export type GogPlaytimeSessions = z.infer<typeof GogPlaytimeSessionsSchema>;
 
-// userId here is GogUser.gogUserId
+// userId here is GogUser.galaxyUserId, gogUserId is rejected with "Wrong user"
 export async function getGogGamePlaytime(
   gameId: number,
   userId: string,

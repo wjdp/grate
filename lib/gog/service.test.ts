@@ -7,6 +7,7 @@ import {
   getGogUserData,
   getGogUserGames,
   GogApiError,
+  type GogGameDetail,
   refreshGogToken,
 } from "~/lib/gog/api";
 import {
@@ -29,6 +30,15 @@ import { createGogGame } from "~~/lib/fixtures/game";
 import { db } from "~~/lib/db";
 import { game, gogGame, gogIgnoredProduct, gogUser } from "~~/db/schema";
 import { flushDb } from "~/test/db";
+
+function withoutReleaseDates(detail: GogGameDetail): GogGameDetail {
+  const {
+    globalReleaseDate: _globalReleaseDate,
+    gogReleaseDate: _gogReleaseDate,
+    ...product
+  } = detail._embedded.product;
+  return { ...detail, _embedded: { ...detail._embedded, product } };
+}
 
 function firstOrThrow<T>(rows: T[]): T {
   const [row] = rows;
@@ -290,6 +300,42 @@ describe("updateGogGames", () => {
     );
   });
 
+  it("stores a null releaseDate when the product has neither release date", async () => {
+    await createGogUser();
+    vi.mocked(getGogUserGames).mockResolvedValue([102]);
+    vi.mocked(getGogGameDetail).mockResolvedValue(
+      withoutReleaseDates(generateFakeGogGameDetail({ id: 102 })),
+    );
+
+    await updateGogGames();
+
+    const storedGame = firstOrThrow(db.select().from(gogGame).all());
+    expect(storedGame.gogId).toBe(102);
+    expect(storedGame.releaseDate).toBeNull();
+  });
+
+  it("ignores a DLC product that has no release date", async () => {
+    await createGogUser();
+    vi.mocked(getGogUserGames).mockResolvedValue([103]);
+    vi.mocked(getGogGameDetail).mockResolvedValue(
+      withoutReleaseDates(
+        generateFakeGogGameDetail({ id: 103, productType: "DLC" }),
+      ),
+    );
+
+    await updateGogGames();
+
+    expect(await db.$count(gogGame)).toBe(0);
+    const ignored = firstOrThrow(
+      db
+        .select()
+        .from(gogIgnoredProduct)
+        .where(eq(gogIgnoredProduct.gogId, 103))
+        .all(),
+    );
+    expect(ignored.reason).toBe("DLC");
+  });
+
   it("updates an existing GogGame without creating another Game", async () => {
     await createGogUser();
     const existing = await createGogGame({ gogId: 200, name: "Old Name" });
@@ -381,6 +427,24 @@ describe("updateGogGames", () => {
     vi.mocked(getGogGameDetail).mockClear();
     await updateGogGames();
     expect(getGogGameDetail).not.toHaveBeenCalled();
+  });
+
+  it("does not count a 404 as a sync failure", async () => {
+    await createGogUser();
+    vi.mocked(getGogUserGames).mockResolvedValue([504]);
+    vi.mocked(getGogGameDetail).mockRejectedValue(
+      new GogApiError({ message: "Not Found", statusCode: 404 }),
+    );
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    await updateGogGames();
+
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.stringContaining("Failed to sync"),
+    );
+    consoleError.mockRestore();
   });
 
   it("does not ignore a product whose detail request fails transiently", async () => {
@@ -593,6 +657,11 @@ describe("recordGogPlaytimes", () => {
     await recordGogPlaytimes();
 
     expect(getGogGamePlaytime).toHaveBeenCalledWith(
+      900,
+      user.galaxyUserId,
+      user.accessToken,
+    );
+    expect(getGogGamePlaytime).not.toHaveBeenCalledWith(
       900,
       user.gogUserId,
       user.accessToken,

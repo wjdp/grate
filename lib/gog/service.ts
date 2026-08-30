@@ -180,7 +180,10 @@ export async function updateGogGames() {
     if (gameError || !gameDetail) {
       if (gameError instanceof GogApiError && gameError.statusCode === 404) {
         await ignoreProduct(gameId, "NOT_FOUND");
-      } else if (gameError instanceof GogApiError && gameError.retriable) {
+        console.log(`Ignoring GOG product ${gameId}: not found`);
+        continue;
+      }
+      if (gameError instanceof GogApiError && gameError.retriable) {
         console.error(
           `Transient error fetching GOG game ${gameId}: ${gameError.message}`,
         );
@@ -232,10 +235,11 @@ async function updateOrCreateGogGame(
   console.log(`Created game ${gogGameTitle}`);
 }
 
-function releaseDateOf(gogGameDetail: GogGameDetail): Date {
+function releaseDateOf(gogGameDetail: GogGameDetail): Date | null {
   const value =
     gogGameDetail._embedded.product.globalReleaseDate ||
     gogGameDetail._embedded.product.gogReleaseDate;
+  if (!value) return null;
   const releaseDate = new Date(value);
   if (Number.isNaN(releaseDate.getTime())) {
     throw new Error(`Invalid GOG release date: ${value}`);
@@ -363,7 +367,7 @@ export async function recordGogPlaytimes() {
   const now = new Date();
   for (const playedGame of gogGames) {
     const { data: sessions, error } = await tryCatch(
-      getGogGamePlaytime(playedGame.gogId, user.gogUserId, user.accessToken),
+      getGogGamePlaytime(playedGame.gogId, user.galaxyUserId, user.accessToken),
     );
     if (error || !sessions) {
       console.error(

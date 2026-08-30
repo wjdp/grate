@@ -1,9 +1,13 @@
 import { faker } from "@faker-js/faker";
-import type {
-  EpicCatalogItem,
-  EpicLibraryRecord,
-  EpicPlaytime,
-  EpicToken,
+import {
+  EpicCatalogItemSchema,
+  EpicLibraryRecordSchema,
+  EpicPlaytimeSchema,
+  EpicTokenSchema,
+  type EpicCatalogItem,
+  type EpicLibraryRecord,
+  type EpicPlaytime,
+  type EpicToken,
 } from "~~/lib/epic/api";
 import { db } from "~~/lib/db";
 import { epicUser, type EpicUser, type NewEpicUser } from "~~/db/schema";
@@ -12,7 +16,7 @@ export function generateFakeEpicToken(
   overrides: Partial<EpicToken> = {},
 ): EpicToken {
   const expiresIn = 129483;
-  return {
+  return EpicTokenSchema.parse({
     access_token: `eg1~${faker.string.alphanumeric(64)}`,
     expires_in: expiresIn,
     expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
@@ -23,13 +27,13 @@ export function generateFakeEpicToken(
     displayName: faker.internet.username(),
     client_id: faker.string.hexadecimal({ length: 32, prefix: "" }),
     ...overrides,
-  };
+  });
 }
 
 export function generateFakeEpicLibraryRecord(
   overrides: Partial<EpicLibraryRecord> = {},
 ): EpicLibraryRecord {
-  return {
+  return EpicLibraryRecordSchema.parse({
     namespace: faker.string.hexadecimal({ length: 32, prefix: "" }),
     catalogItemId: faker.string.hexadecimal({ length: 32, prefix: "" }),
     appName: faker.string.alphanumeric(12),
@@ -39,13 +43,13 @@ export function generateFakeEpicLibraryRecord(
     acquisitionDate: faker.date.past().toISOString(),
     platform: ["Windows"],
     ...overrides,
-  };
+  });
 }
 
 export function generateFakeEpicCatalogItem(
   overrides: Partial<EpicCatalogItem> = {},
 ): EpicCatalogItem {
-  return {
+  return EpicCatalogItemSchema.parse({
     id: faker.string.hexadecimal({ length: 32, prefix: "" }),
     namespace: faker.string.hexadecimal({ length: 32, prefix: "" }),
     title: faker.commerce.productName(),
@@ -63,17 +67,17 @@ export function generateFakeEpicCatalogItem(
     ],
     entitlementType: "EXECUTABLE",
     ...overrides,
-  };
+  });
 }
 
 export function generateFakeEpicPlaytime(
   overrides: Partial<EpicPlaytime> = {},
 ): EpicPlaytime {
-  return {
+  return EpicPlaytimeSchema.parse({
     artifactId: faker.string.alphanumeric(12),
     totalTime: faker.number.int({ min: 60, max: 300_000 }),
     ...overrides,
-  };
+  });
 }
 
 export async function createEpicUser(

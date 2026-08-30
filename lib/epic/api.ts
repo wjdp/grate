@@ -74,7 +74,7 @@ function bearer(accessToken: string) {
 
 export { getEpicLoginUri } from "#shared/providers/epic";
 
-const EpicTokenSchema = z
+export const EpicTokenSchema = z
   .object({
     access_token: z.string(),
     expires_in: z.number(),
@@ -174,7 +174,7 @@ export async function getEpicAccount(
   return { id, displayName, country };
 }
 
-const EpicLibraryRecordSchema = z
+export const EpicLibraryRecordSchema = z
   .object({
     namespace: z.string(),
     catalogItemId: z.string(),
@@ -222,7 +222,7 @@ export async function getEpicLibraryItems(
   return records;
 }
 
-const EpicCatalogItemSchema = z
+export const EpicCatalogItemSchema = z
   .object({
     id: z.string(),
     namespace: z.string(),
@@ -422,7 +422,7 @@ export async function getEpicStoreContent(
 }
 
 // totalTime is seconds; the service converts to minutes at this boundary
-const EpicPlaytimeSchema = z
+export const EpicPlaytimeSchema = z
   .object({
     artifactId: z.string(),
     totalTime: z.number(),

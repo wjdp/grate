@@ -7,7 +7,7 @@ status: in-progress
 
 Investigation 2026-08-30. Goal: Epic as a third provider alongside Steam and GOG — owned games, playtime, last played, art, launch/store links, scheduled sync.
 
-No implementation yet. This doc records the API surface, what is verified against source, and the proposed shape.
+Implementation landed 2026-08-30 (see "Implementation" below). This doc records the API surface, what is verified against source, and the schema/service shape.
 
 ## Verification key
 
@@ -32,6 +32,7 @@ Flow, mapping one-for-one onto the existing GOG path:
 1. **Login URI** — `https://www.epicgames.com/id/login?redirectUrl=` + urlencoded `https://www.epicgames.com/id/api/redirect?clientId=34a02cf8f4414e29b15921876da36f9a&responseType=code` (verified, `EPCAPI.get_auth_url`). Legendary's CLI sends users to the short link `https://legendary.gl/epiclogin`, which redirects to the same thing. The redirect target renders a JSON body `{"redirectUrl": ..., "authorizationCode": "...", "sid": null, "exchangeCode": null, "warning": "Do not share this code with any 3rd party service..."}`; the user copies `authorizationCode` (verified, `cli.py auth`). Unlike GOG the code is _not_ in the query string — it is in the page body, so our connect page must tell the user to paste the code rather than the whole URL. (GOG's flow accepts a pasted URL; here we can accept either the raw code or the whole JSON blob, as legendary does.)
 
    **Verified live 2026-08-30**: the redirect URL only returns a code once per Epic web login session — refreshing it afterwards gives `"authorizationCode": null`. A fresh code needs re-authentication (log out, or a private window, then hit the redirect URL again). Design consequence: the connect page must link to the `/id/login?redirectUrl=<encoded redirect>` form, not the bare redirect URL, so the user always lands on a fresh login rather than a stale/expired redirect page.
+
 2. **Token exchange** — `POST https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/token`, HTTP Basic with the client id/secret, `Content-Type: application/x-www-form-urlencoded`, body `grant_type=authorization_code&code=<code>&token_type=eg1` (verified, `EPCAPI.start_session`). `account-public-service-prod.ol.epicgames.com` is the same service and is what the community docs use; legendary uses `prod03`.
 3. **Refresh** — same endpoint, `grant_type=refresh_token&refresh_token=<token>&token_type=eg1` (verified).
 4. **Verify** — `GET .../account/api/oauth/verify` with `Authorization: bearer <access_token>`; returns `account_id`, `display_name`, `client_id`, `expires_at`, and `perms` when `?includePerms=true`. Legendary calls this to resume a session and treats an `errorMessage` in the body as invalid credentials (verified).
@@ -50,20 +51,20 @@ Gotchas (verified in source unless noted):
 
 ## Endpoints
 
-| Purpose          | Method + URL                                                                                                                                                                                            | Notes                                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Login page       | `GET https://www.epicgames.com/id/login?redirectUrl=<encoded redirect>`                                                                                                                                 | Redirect target is `https://www.epicgames.com/id/api/redirect?clientId=…&responseType=code` |
-| Token / refresh  | `POST https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/token`                                                                                                                   | Basic auth, form-encoded                                                                    |
-| Verify session   | `GET https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/verify?includePerms=true`                                                                                                 | Returns `account_id`, `display_name`, `expires_at`                                          |
+| Purpose          | Method + URL                                                                                                                                                                                            | Notes                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Login page       | `GET https://www.epicgames.com/id/login?redirectUrl=<encoded redirect>`                                                                                                                                 | Redirect target is `https://www.epicgames.com/id/api/redirect?clientId=…&responseType=code`                                  |
+| Token / refresh  | `POST https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/token`                                                                                                                   | Basic auth, form-encoded                                                                                                     |
+| Verify session   | `GET https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/verify?includePerms=true`                                                                                                 | Returns `account_id`, `display_name`, `expires_at`                                                                           |
 | Account info     | `GET https://account-public-service-prod03.ol.epicgames.com/account/api/public/account/{accountId}`                                                                                                     | Verified live: also returns `email`, `lastName`, `name`, `lastLogin`, `tfaEnabled` — PII, store only `displayName`/`country` |
-| Kill session     | `DELETE .../account/api/oauth/sessions/kill/{accessToken}`                                                                                                                                              | Unused by legendary; for a "disconnect" button                                              |
-| Library items    | `GET https://library-service.live.use1a.on.epicgames.com/library/api/public/items?includeMetadata=true[&cursor=…]`                                                                                      | Everything owned, incl. non-installable/third-party titles                                  |
-| Launcher assets  | `GET https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/public/assets/Windows?label=Live`                                                                                             | Legacy; installable Windows builds only                                                     |
-| Catalog metadata | `GET https://catalog-public-service-prod06.ol.epicgames.com/catalog/api/shared/namespace/{ns}/bulk/items?id={catalogItemId}&includeDLCDetails=true&includeMainGameDetails=true&country=GB&locale=en-GB` | One namespace per call; response keyed by `catalogItemId`                                   |
-| Playtime, all    | `GET https://library-service.live.use1a.on.epicgames.com/library/api/public/playtime/account/{accountId}/all`                                                                                           | `[{accountId, artifactId, totalTime}]`                                                      |
-| Playtime, one    | `GET https://library-service.live.use1a.on.epicgames.com/library/api/public/playtime/account/{accountId}/artifact/{artifactId}`                                                                         | Same shape, single object                                                                   |
-| Store slug       | `POST https://launcher.store.epicgames.com/graphql` — `Catalog.catalogNs(namespace).mappings(pageType:"productHome"){pageSlug}`                                                                         | Heroic's method for deriving a store URL                                                    |
-| Store metadata   | `GET https://store-content.ak.epicgames.com/api/en-GB/content/products/{slug}`                                                                                                                          | Unauthenticated; best source for `releaseDate`, `developer[]`, `publisher[]`, `shortDescription` |
+| Kill session     | `DELETE .../account/api/oauth/sessions/kill/{accessToken}`                                                                                                                                              | Unused by legendary; for a "disconnect" button                                                                               |
+| Library items    | `GET https://library-service.live.use1a.on.epicgames.com/library/api/public/items?includeMetadata=true[&cursor=…]`                                                                                      | Everything owned, incl. non-installable/third-party titles                                                                   |
+| Launcher assets  | `GET https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/public/assets/Windows?label=Live`                                                                                             | Legacy; installable Windows builds only                                                                                      |
+| Catalog metadata | `GET https://catalog-public-service-prod06.ol.epicgames.com/catalog/api/shared/namespace/{ns}/bulk/items?id={catalogItemId}&includeDLCDetails=true&includeMainGameDetails=true&country=GB&locale=en-GB` | One namespace per call; response keyed by `catalogItemId`                                                                    |
+| Playtime, all    | `GET https://library-service.live.use1a.on.epicgames.com/library/api/public/playtime/account/{accountId}/all`                                                                                           | `[{accountId, artifactId, totalTime}]`                                                                                       |
+| Playtime, one    | `GET https://library-service.live.use1a.on.epicgames.com/library/api/public/playtime/account/{accountId}/artifact/{artifactId}`                                                                         | Same shape, single object                                                                                                    |
+| Store slug       | `POST https://launcher.store.epicgames.com/graphql` — `Catalog.catalogNs(namespace).mappings(pageType:"productHome"){pageSlug}`                                                                         | Heroic's method for deriving a store URL                                                                                     |
+| Store metadata   | `GET https://store-content.ak.epicgames.com/api/en-GB/content/products/{slug}`                                                                                                                          | Unauthenticated; best source for `releaseDate`, `developer[]`, `publisher[]`, `shortDescription`                             |
 
 All authenticated calls use `Authorization: bearer <access_token>`.
 
@@ -149,29 +150,29 @@ No avatar: Epic's public account endpoint does not return one.
 
 `EpicGame`:
 
-| Column                   | Source                                                                                                |
-| ------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `id` (pk, autoincrement) | —                                                                                                     |
-| `gameId` → `Game.id`     | link                                                                                                  |
-| `appName` (unique)       | library `appName` = catalog `releaseInfo[].appId` = playtime `artifactId`                             |
-| `namespace`              | library `namespace`                                                                                   |
-| `catalogItemId`          | library `catalogItemId`                                                                               |
-| `name`                   | catalog `title`                                                                                       |
-| `description`            | catalog `description`                                                                                 |
-| `developer`              | catalog `developer`                                                                                   |
-| `publisher`              | _not provided_; leave null or reuse `developer`                                                       |
-| `releaseDate`            | catalog `creationDate` / `releaseInfo[].dateAdded`, nullable                                          |
-| `acquisitionDate`        | library `acquisitionDate` (nice-to-have; neither other provider has it)                               |
-| `categories` (json)      | catalog `categories`                                                                                  |
-| `boxArtTallUrl`          | keyImage `DieselGameBoxTall` → `OfferImageTall` → `DieselStoreFrontTall`                              |
-| `boxArtWideUrl`          | keyImage `DieselGameBox` → `OfferImageWide`                                                           |
-| `logoUrl`                | keyImage `DieselGameBoxLogo`                                                                          |
-| `storeSlug`              | GraphQL `pageSlug`, nullable                                                                          |
-| `thirdPartyStore`        | `customAttributes.ThirdPartyManagedApp`/`…Provider` (Ubisoft/EA titles that EGL cannot launch itself) |
-| `playtimeSeconds`        | playtime `totalTime`                                                                                  |
-| `lastPlayedAt`           | derived, not provided                                                                                 |
+| Column                                  | Source                                                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `epicId` (pk, autoincrement, surrogate) | —                                                                                                      |
+| `gameId` → `Game.id`                    | link                                                                                                   |
+| `appName` (unique)                      | library `appName` = catalog `releaseInfo[].appId` = playtime `artifactId`                              |
+| `namespace`                             | library `namespace`                                                                                    |
+| `catalogItemId`                         | library `catalogItemId`                                                                                |
+| `name`                                  | catalog `title`                                                                                        |
+| `description`                           | catalog `description`, null when it equals the title                                                   |
+| `developer`                             | catalog `developer`                                                                                    |
+| `publisher`                             | store-content `publisher[]` joined, set on create or when `storeSlug` missing                          |
+| `releaseDate`                           | store-content `releaseDate`, nullable                                                                  |
+| `acquisitionDate`                       | library `acquisitionDate`                                                                              |
+| `categories` (json)                     | catalog `categories[].path`                                                                            |
+| `boxArtTallUrl`                         | keyImage `DieselGameBoxTall` → `OfferImageTall` → `DieselStoreFrontTall`                               |
+| `boxArtWideUrl`                         | keyImage `DieselGameBox` → `OfferImageWide`                                                            |
+| `logoUrl`                               | keyImage `DieselGameBoxLogo`                                                                           |
+| `storeSlug`                             | GraphQL `pageSlug`, nullable; enrichment (slug + store-content) fetched on create or when null         |
+| `thirdPartyStore`                       | `customAttributes.ThirdPartyManagedApp.value`                                                          |
+| `playtimeMinutes`                       | playtime `totalTime`, `Math.floor(totalTime / 60)`                                                     |
+| `lastPlayedAt`                          | derived: set to sync time when a new snapshot's minutes exceed the previous record; null on first sync |
 
-`EpicGamePlaytime` — same columns as `GogGamePlaytime` (`timestampStart` nullable, `timestampEnd`, `playtimeSeconds`, `lastPlayedAt`), keyed on `appName`.
+`EpicGamePlaytime` — same shape as `GogGamePlaytime` (`timestampStart` nullable, `timestampEnd`, `playtimeMinutes`, `lastPlayedAt`), keyed on `epicId` (the `EpicGame` surrogate pk).
 
 `EpicIgnoredItem` — mirrors `GogIgnoredProduct`, keyed on `appName`, `reason` one of `UE`, `DLC`, `MOD`, `MOBILE_ONLY`, `EDITOR_RESOURCE`, `PRIVATE`, `NOT_FOUND`, `MANUAL`. Worth having: Epic libraries are full of UE assets and free-giveaway DLC, and the catalog call is per-item so caching the skips saves a lot of requests.
 
@@ -200,19 +201,25 @@ Answered by the 2026-08-30 live test and removed: is `totalTime` seconds (yes, b
 5. Is the `pageSlug` GraphQL mapping present/stable for all titles, or does it 404 for some? Only one namespace checked live.
 6. Does the launcher's `assets/Windows` endpoint add anything the library endpoint misses?
 7. Confirm `totalTime` magnitude against the launcher's own displayed "hours played" for at least one game — seconds is near-certain from magnitude alone but not yet cross-checked against the UI.
+8. Not yet exercised against a live account: connect flow end-to-end, full library sync (~250 catalog items), refresh grant.
 
-## Proposed implementation steps
+## Implementation
 
-Deliberately mirrors the GOG waves, so each lands independently.
+Landed 2026-08-30, mirroring the GOG waves.
 
-**Wave 1 — auth.** `lib/epic/api.ts` with `EpicApiError` (retriable/permanent, copied from `GogApiError`), `getEpicLoginUri`, `getEpicToken`, `refreshEpicToken`, `verifyEpicToken`, `getEpicAccount`. `EpicUser` table + migration. `lib/epic/service.ts` `createOrUpdateEpicUser` / `handleRefreshToken` / `updateEpicUser`, single-account guard. Connect page accepting a pasted code or the JSON blob. Characterisation tests against recorded fixtures.
+### Done
 
-**Wave 2 — library.** `getEpicLibraryItems` (cursor loop), `getEpicCatalogItems`. `EpicGame` + `EpicIgnoredItem` tables. `updateEpicGames` with the full filter list, per-item failure isolation, ignore cache. `refreshGameAggregates` after writes.
+- **Wave 1 — auth** (e0b481f, 03e991b). `EpicUser` table. `lib/epic/api.ts`: `EpicApiError` (retriable/permanent), `getEpicLoginUri`, `getEpicToken`, `refreshEpicToken`, `getEpicAccount`. `lib/epic/service.ts`: `createOrUpdateEpicUser`, `handleRefreshToken`, `updateEpicUser`, single-account guard. `refreshTokenExpiresAt` from `refresh_expires_at`, falling back to `refresh_expires` seconds then a 30-day default.
+- **Wave 2 — library** (f09acb6, 65a53e7). `EpicGame` + `EpicIgnoredItem` tables. `getEpicLibraryItems` (cursor loop), `getEpicCatalogItems` (batched per namespace). `updateEpicGames` with the full filter list (namespace/sandboxType pre-catalog, DLC/MOD/UE/MOBILE_ONLY/EDITOR_RESOURCE/NOT_FOUND post-catalog), per-item failure isolation, ignore cache. `refreshGameAggregates` after every write. `Game` treated as 1:N from the start (f09acb6).
+- **Wave 2b — store enrichment** (65a53e7). `getEpicStoreSlug` (unauthenticated GraphQL) and `getEpicStoreContent` feed `storeSlug`/`releaseDate`/`publisher`/`description`; fetched on create or when `storeSlug` is still null, so it isn't re-fetched every sync.
+- **Wave 3 — playtime** (65a53e7). `EpicGamePlaytime` table. `getEpicPlaytimes`, `recordEpicPlaytime`/`recordEpicPlaytimes` modelled on the GOG pair. `lastPlayedAt` derived (c1bfaec): set to sync time when a snapshot's `playtimeMinutes` exceeds the previous record, null on the first sync.
+- **Wave 4 — surfacing** (1d75ad9). Art branch in `shared/art.ts`, `GameIcon`, `GameProviderRows` (`epicLaunchUrl` helper), game/organise pages, merge dialog.
+- **Wave 5 — schedule** (09d6472). Queueable tasks `updateEpicUser`/`updateEpicGames`/`recordEpicPlaytimes`; scheduled `45 * * * *` → `record-epic-playtimes`, `10-59/15 * * * *` → `update-epic-user`, offset from GOG's cron minutes.
+- **Connect page** (a77e866): `pages/providers/epic/index.vue` accepts either the pasted JSON blob or the raw `authorizationCode`, validated as 32 hex chars before enabling connect.
 
-**Wave 3 — playtime.** `getEpicPlaytimes`. `EpicGamePlaytime` table. `recordEpicPlaytime`/`recordEpicPlaytimes` modelled on the GOG pair, including the grounding branch for the first record. Aggregates updated to sum a third provider.
+### Decisions made during implementation (supersede earlier text above)
 
-**Wave 4 — surfacing.** Art branch in `shared/art.ts`, `GameIcon`, game page description, "Open in Epic" launch URI and store link, playtime history table, provider row in the merge UI.
-
-**Wave 5 — schedule.** Nitro tasks alongside the Steam and GOG ones.
-
-Do wave 1 first and stop: several open questions above can only be answered with a live token, and the answers change waves 2 and 3.
+- Playtime stored in **minutes**, not `playtimeSeconds`: `Math.floor(totalTime / 60)` at the API→service boundary, matching Steam/GOG columns.
+- `EpicGame.epicId` is an autoincrement surrogate pk (not `id`); `appName` is a separate unique, not-null column. `EpicGamePlaytime.epicId` references `EpicGame.epicId`.
+- `EpicIgnoredItem` keyed on `appName` (primary key), as documented above.
+- `publisher`/`releaseDate`/`description` come from store-content enrichment, not the catalog item (catalog has neither a release date nor a publisher field).

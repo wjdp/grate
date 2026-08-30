@@ -151,7 +151,7 @@ export async function findGamesNeedingStoreData(): Promise<SteamGame[]> {
     .all();
 }
 
-export async function populateStoreData(appId: bigint): Promise<SteamGame> {
+export async function populateStoreData(appId: number): Promise<SteamGame> {
   const now = new Date();
   const existingGame = db
     .select()
@@ -304,7 +304,7 @@ export async function recordPlaytimes() {
   }
 }
 
-export async function getPlaytimeRecords(appId: bigint) {
+export async function getPlaytimeRecords(appId: number) {
   return db
     .select()
     .from(steamGamePlaytime)

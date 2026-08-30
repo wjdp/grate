@@ -41,8 +41,8 @@ export async function getServerInfo(): Promise<ServerInfo> {
 }
 
 const userInfoSchema = z.object({
-  // steamid is string from server but we want it as number
-  steamid: z.string().transform(Number),
+  // 64-bit SteamID: keep it a string, it is never used arithmetically
+  steamid: z.string(),
   personaname: z.string(),
   profileurl: z.string(),
   communityvisibilitystate: z.number(),
@@ -75,7 +75,7 @@ export async function getUserInfo(): Promise<UserInfo> {
 }
 
 const userGameSchema = z.object({
-  appid: z.number().transform(BigInt),
+  appid: z.number(),
   name: z.string(),
 
   playtime_forever: z.number().optional(),

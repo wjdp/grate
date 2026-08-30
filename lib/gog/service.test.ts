@@ -30,13 +30,6 @@ import { db } from "~~/lib/db";
 import { game, gogGame, gogIgnoredProduct, gogUser } from "~~/db/schema";
 import { flushDb } from "~/test/db";
 
-// db.$count returns a bigint because the connection runs with safe integers.
-async function countRows(
-  ...args: Parameters<typeof db.$count>
-): Promise<number> {
-  return Number(await db.$count(...args));
-}
-
 function firstOrThrow<T>(rows: T[]): T {
   const [row] = rows;
   if (!row) throw new Error("Expected at least one row");
@@ -92,7 +85,7 @@ describe("createOrUpdateGogUser", () => {
     expect(user.accessToken).toBe(token.access_token);
     expect(user.refreshToken).toBe(token.refresh_token);
     expectCloseTo(user.accessTokenExpiresAt, new Date(before + 3600 * SECOND));
-    expect(await countRows(gogUser)).toBe(1);
+    expect(await db.$count(gogUser)).toBe(1);
   });
 
   it("updates the existing user when the gogUserId matches", async () => {
@@ -104,7 +97,7 @@ describe("createOrUpdateGogUser", () => {
 
     const user = await createOrUpdateGogUser("code-123");
 
-    expect(await countRows(gogUser)).toBe(1);
+    expect(await db.$count(gogUser)).toBe(1);
     expect(user.username).toBe(apiUser.username);
     expect(user.accessToken).toBe(token.access_token);
     expect(user.refreshToken).toBe(token.refresh_token);
@@ -120,7 +113,7 @@ describe("createOrUpdateGogUser", () => {
     await expect(createOrUpdateGogUser("code-123")).rejects.toThrow(
       "grate only supports a single GOG account",
     );
-    expect(await countRows(gogUser)).toBe(1);
+    expect(await db.$count(gogUser)).toBe(1);
   });
 
   it("throws when the token request fails", async () => {
@@ -139,7 +132,7 @@ describe("createOrUpdateGogUser", () => {
     await expect(createOrUpdateGogUser("code-123")).rejects.toThrow(
       "Failed to get user data from GOG",
     );
-    expect(await countRows(gogUser)).toBe(0);
+    expect(await db.$count(gogUser)).toBe(0);
   });
 });
 
@@ -307,8 +300,8 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    expect(await countRows(game)).toBe(1);
-    expect(await countRows(gogGame)).toBe(1);
+    expect(await db.$count(game)).toBe(1);
+    expect(await db.$count(gogGame)).toBe(1);
     const storedGame = firstOrThrow(
       await db.query.gogGame.findMany({ with: { game: true } }),
     );
@@ -328,8 +321,8 @@ describe("updateGogGames", () => {
 
       await updateGogGames();
 
-      expect(await countRows(gogGame)).toBe(0);
-      expect(await countRows(game)).toBe(0);
+      expect(await db.$count(gogGame)).toBe(0);
+      expect(await db.$count(game)).toBe(0);
       const ignored = firstOrThrow(
         db
           .select()
@@ -350,7 +343,7 @@ describe("updateGogGames", () => {
 
     await updateGogGames();
 
-    expect(await countRows(gogGame)).toBe(0);
+    expect(await db.$count(gogGame)).toBe(0);
     expect(getGogGameDetail).not.toHaveBeenCalled();
   });
 
@@ -364,7 +357,7 @@ describe("updateGogGames", () => {
     await updateGogGames();
 
     expect(getGogGameDetail).not.toHaveBeenCalled();
-    expect(await countRows(gogGame)).toBe(0);
+    expect(await db.$count(gogGame)).toBe(0);
   });
 
   it("ignores a product whose detail request 404s and skips it next run", async () => {
@@ -404,7 +397,7 @@ describe("updateGogGames", () => {
     await updateGogGames();
 
     expect(
-      await countRows(gogIgnoredProduct, eq(gogIgnoredProduct.gogId, 502)),
+      await db.$count(gogIgnoredProduct, eq(gogIgnoredProduct.gogId, 502)),
     ).toBe(0);
   });
 

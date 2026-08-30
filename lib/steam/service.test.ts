@@ -43,7 +43,7 @@ vi.mock("~/lib/steam/store", async (importOriginal) => ({
 
 type StoreAppInfo = Awaited<ReturnType<typeof getAppDetails>>;
 
-const BIOSHOCK_APP_ID = BigInt(7670);
+const BIOSHOCK_APP_ID = 7670;
 
 // The shared fixture spreads its overrides over its defaults, so an omitted
 // name arrives as undefined and hits the NOT NULL Game.name column.
@@ -179,7 +179,7 @@ describe("updateUser", () => {
   it("does not adopt the steam id returned by the api", async () => {
     const steamUser = createSteamUser();
     vi.mocked(getUserInfo).mockResolvedValue(
-      generateFakeUserInfo({ steamid: 999 }),
+      generateFakeUserInfo({ steamid: "999" }),
     );
     const updatedUser = await updateUser();
     expect(updatedUser.steamId).toBe(steamUser.steamId);

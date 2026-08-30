@@ -35,7 +35,7 @@ export function createSteamGame(
     .insert(steamGame)
     .values({
       gameId: linkedGame.id,
-      appId: faker.number.bigInt({ min: 1n, max: 2_000_000_000n }),
+      appId: faker.number.int({ min: 1, max: 2_000_000_000 }),
       name: linkedGame.name,
       playtimeForever: faker.number.int({ min: 0, max: 10_000 }),
       playtime2weeks: faker.number.int({ min: 0, max: 1000 }),
@@ -83,7 +83,7 @@ export function createSteamUser(
   return db
     .insert(steamUser)
     .values({
-      steamId: faker.number.bigInt({ min: 1n, max: 2_000_000_000n }),
+      steamId: faker.string.numeric(17),
       userId: owner.id,
       personaName: faker.internet.username(),
       realName: faker.person.fullName(),

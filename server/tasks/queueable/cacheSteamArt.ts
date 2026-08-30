@@ -5,7 +5,7 @@ import { updateInProgressTask } from "~/server/tasks/queue";
 import type { Task } from "~/server/tasks/queue";
 import { steamGame, type SteamGame } from "~~/db/schema";
 
-async function cacheArtForSingleGame(task: Task, appId: bigint) {
+async function cacheArtForSingleGame(task: Task, appId: number) {
   const isCached = await isSteamArtCached(appId);
   if (!isCached) {
     console.log(`Caching steam art for app ${appId}`);

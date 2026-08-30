@@ -66,7 +66,7 @@ export function generateUnownedFakeUserGame(
   overrides: Partial<Pick<SteamGame, "appId" | "name">> = {},
 ): UserGame {
   return generateFakeUserGame({
-    appId: overrides.appId ?? faker.number.bigInt(),
+    appId: overrides.appId ?? faker.number.int({ min: 1, max: 2_000_000_000 }),
     name: overrides.name ?? faker.commerce.productName(),
   } as SteamGame);
 }
@@ -76,7 +76,7 @@ export function generateFakeUserInfo(
 ): UserInfo {
   return {
     ...{
-      steamid: faker.number.int({ min: 1, max: 2_000_000_000 }),
+      steamid: faker.string.numeric(17),
       personaname: faker.internet.username(),
       profileurl: faker.internet.url(),
       communityvisibilitystate: 3,

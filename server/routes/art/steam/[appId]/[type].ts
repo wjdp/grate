@@ -6,7 +6,7 @@ import {
 import fs from "fs";
 
 const PathSchema = z.object({
-  appId: z.coerce.bigint().positive(),
+  appId: z.coerce.number().int().positive(),
   type: z.enum(STEAM_ART_TYPES),
 });
 

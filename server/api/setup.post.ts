@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     const newUser = tx.insert(user).values({}).returning().get();
     tx.insert(steamUser)
       .values({
-        steamId: BigInt(steamUserInfo.steamid),
+        steamId: steamUserInfo.steamid,
         userId: newUser.id,
         personaName: steamUserInfo.personaname,
         realName: steamUserInfo.realname,

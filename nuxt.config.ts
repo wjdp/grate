@@ -10,7 +10,6 @@ export default defineNuxtConfig({
     transpile: ["trpc-nuxt"],
   },
   nitro: {
-    plugins: ["bigint.ts"],
     experimental: { tasks: true },
     scheduledTasks: {
       "0 * * * *": "scheduled:record-playtimes",

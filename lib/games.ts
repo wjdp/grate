@@ -1,9 +1,18 @@
 import type { GameState } from "@prisma/client";
 import prisma from "./prisma";
 
+export type PlaytimeProvider = "steam" | "gog";
+
+export interface GamePlaytimeRecord {
+  timestampStart: Date | null;
+  timestampEnd: Date;
+  playtimeMinutes: number;
+  provider: PlaytimeProvider;
+}
+
 export async function getGames() {
   return await prisma.game.findMany({
-    include: { steamGame: true },
+    include: { steamGame: true, gogGame: true },
     orderBy: { name: "asc" },
   });
 }
@@ -11,42 +20,65 @@ export async function getGames() {
 export async function getGame(id: number) {
   return await prisma.game.findUnique({
     where: { id },
-    include: { steamGame: { include: { appInfo: true } } },
+    include: { steamGame: { include: { appInfo: true } }, gogGame: true },
   });
 }
 
-export async function getGamePlaytimes(id: number) {
+function byTimestampStartDescending(
+  a: GamePlaytimeRecord,
+  b: GamePlaytimeRecord,
+) {
+  if (!a.timestampStart && !b.timestampStart) return 0;
+  if (!a.timestampStart) return 1;
+  if (!b.timestampStart) return -1;
+  return b.timestampStart.getTime() - a.timestampStart.getTime();
+}
+
+export async function getGamePlaytimes(
+  id: number,
+): Promise<GamePlaytimeRecord[]> {
   const game = await prisma.game.findUnique({
     where: { id },
-    include: { steamGame: true },
+    include: { steamGame: true, gogGame: true },
   });
   if (!game) {
     throw new Error("Game not found");
   }
-  if (!game.steamGame) {
-    throw new Error("Game is not a Steam game");
+  const records: GamePlaytimeRecord[] = [];
+  if (game.steamGame) {
+    const steamRecords = await prisma.steamGamePlaytime.findMany({
+      where: { steamAppId: game.steamGame.appId },
+    });
+    records.push(
+      ...steamRecords.map((record) => ({
+        timestampStart: record.timestampStart,
+        timestampEnd: record.timestampEnd,
+        playtimeMinutes: record.playtimeForever ?? 0,
+        provider: "steam" as const,
+      })),
+    );
   }
-  return await prisma.steamGamePlaytime.findMany({
-    where: { steamAppId: game.steamGame.appId },
-    orderBy: { timestampStart: "desc" },
-  });
+  if (game.gogGame) {
+    const gogRecords = await prisma.gogGamePlaytime.findMany({
+      where: { gogId: game.gogGame.gogId },
+    });
+    records.push(
+      ...gogRecords.map((record) => ({
+        timestampStart: record.timestampStart,
+        timestampEnd: record.timestampEnd,
+        playtimeMinutes: record.playtimeMinutes,
+        provider: "gog" as const,
+      })),
+    );
+  }
+  return records.sort(byTimestampStartDescending);
 }
 
 export async function getRecentGames(limit: number = 6) {
   return await prisma.game.findMany({
-    include: { steamGame: { include: { appInfo: true } } },
-    where: {
-      steamGame: {
-        rTimeLastPlayed: {
-          not: null,
-        },
-      },
-    },
-    orderBy: {
-      steamGame: {
-        rTimeLastPlayed: "desc",
-      },
-    },
+    include: { steamGame: { include: { appInfo: true } }, gogGame: true },
+    where: { lastPlayedAt: { not: null } },
+    orderBy: { lastPlayedAt: "desc" },
     take: limit,
   });
 }

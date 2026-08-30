@@ -7,6 +7,7 @@ import {
   setGameState,
 } from "~/lib/games";
 import { createGame, createSteamGame } from "~/lib/steam/fixtures/fake";
+import { createGogGame } from "~/lib/gog/fixtures/fake";
 import prisma from "~/lib/prisma";
 import { flushDb } from "~/test/db";
 
@@ -31,12 +32,17 @@ describe("getGames", () => {
     ]);
   });
 
-  it("includes steamGame, null for non-steam games", async () => {
+  it("includes steamGame and gogGame, null when the provider is absent", async () => {
     const steamGame = await createSteamGame({ name: "Aperture Desk Job" });
     await createGame({ name: "Blue Prince" });
+    const gogGame = await createGogGame({ name: "Cyberpunk 2077" });
     const games = await getGames();
     expect(games[0].steamGame?.appId).toBe(steamGame.appId);
+    expect(games[0].gogGame).toBeNull();
     expect(games[1].steamGame).toBeNull();
+    expect(games[1].gogGame).toBeNull();
+    expect(games[2].gogGame?.gogId).toBe(gogGame.gogId);
+    expect(games[2].steamGame).toBeNull();
   });
 });
 
@@ -81,10 +87,17 @@ describe("getGame", () => {
     expect(game?.steamGame?.appInfo?.name).toBe("Portal 2");
   });
 
-  it("returns null steamGame for a non-steam game", async () => {
+  it("returns null providers for a game with neither", async () => {
     const bareGame = await createGame({ name: "Tunic" });
     const game = await getGame(bareGame.id);
     expect(game?.steamGame).toBeNull();
+    expect(game?.gogGame).toBeNull();
+  });
+
+  it("returns the game with its gogGame", async () => {
+    const gogGame = await createGogGame({ name: "Baldur's Gate 3" });
+    const game = await getGame(gogGame.gameId);
+    expect(game?.gogGame?.gogId).toBe(gogGame.gogId);
   });
 });
 
@@ -97,11 +110,9 @@ describe("getGamePlaytimes", () => {
     await expect(getGamePlaytimes(123456)).rejects.toThrow("Game not found");
   });
 
-  it("throws when the game is not a Steam game", async () => {
+  it("returns an empty list for a game with no providers", async () => {
     const bareGame = await createGame({ name: "Hollow Knight" });
-    await expect(getGamePlaytimes(bareGame.id)).rejects.toThrow(
-      "Game is not a Steam game",
-    );
+    expect(await getGamePlaytimes(bareGame.id)).toStrictEqual([]);
   });
 
   it("returns the playtime records ordered by timestampStart descending", async () => {
@@ -136,6 +147,91 @@ describe("getGamePlaytimes", () => {
       new Date("2024-02-01T00:00:00.000Z"),
       new Date("2024-01-01T00:00:00.000Z"),
     ]);
+    expect(playtimes.map((playtime) => playtime.playtimeMinutes)).toStrictEqual(
+      [10, 10, 10],
+    );
+    expect(playtimes.every((playtime) => playtime.provider === "steam")).toBe(
+      true,
+    );
+  });
+
+  it("maps a null steam playtimeForever to zero minutes", async () => {
+    const steamGame = await createSteamGame();
+    await prisma.steamGamePlaytime.create({
+      data: {
+        steamAppId: steamGame.appId,
+        timestampStart: new Date("2024-01-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-01-02T00:00:00.000Z"),
+        playtimeForever: null,
+      },
+    });
+    const playtimes = await getGamePlaytimes(steamGame.gameId);
+    expect(playtimes[0].playtimeMinutes).toBe(0);
+  });
+
+  it("returns the gog records for a gog-only game", async () => {
+    const gogGame = await createGogGame();
+    await prisma.gogGamePlaytime.create({
+      data: {
+        gogId: gogGame.gogId,
+        timestampStart: new Date("2024-01-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-01-02T00:00:00.000Z"),
+        playtimeMinutes: 42,
+      },
+    });
+    const playtimes = await getGamePlaytimes(gogGame.gameId);
+    expect(playtimes).toStrictEqual([
+      {
+        timestampStart: new Date("2024-01-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-01-02T00:00:00.000Z"),
+        playtimeMinutes: 42,
+        provider: "gog",
+      },
+    ]);
+  });
+
+  it("merges both providers, ordering nulls last", async () => {
+    const steamGame = await createSteamGame();
+    const gogGame = await createGogGame();
+    await prisma.gogGame.update({
+      where: { gogId: gogGame.gogId },
+      data: { gameId: steamGame.gameId },
+    });
+    await prisma.steamGamePlaytime.create({
+      data: {
+        steamAppId: steamGame.appId,
+        timestampStart: new Date("2024-02-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-02-02T00:00:00.000Z"),
+        playtimeForever: 10,
+      },
+    });
+    await prisma.gogGamePlaytime.create({
+      data: {
+        gogId: gogGame.gogId,
+        timestampStart: new Date("2024-03-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-03-02T00:00:00.000Z"),
+        playtimeMinutes: 20,
+      },
+    });
+    await prisma.gogGamePlaytime.create({
+      data: {
+        gogId: gogGame.gogId,
+        timestampStart: null,
+        timestampEnd: new Date("2024-04-02T00:00:00.000Z"),
+        playtimeMinutes: 30,
+      },
+    });
+    const playtimes = await getGamePlaytimes(steamGame.gameId);
+    expect(
+      playtimes.map((playtime) => [
+        playtime.provider,
+        playtime.playtimeMinutes,
+      ]),
+    ).toStrictEqual([
+      ["gog", 20],
+      ["steam", 10],
+      ["gog", 30],
+    ]);
   });
 });
 
@@ -144,38 +240,46 @@ describe("getRecentGames", () => {
     await flushDb();
   });
 
-  it("excludes games without a steamGame", async () => {
+  it("excludes games with a null lastPlayedAt", async () => {
     await createGame({ name: "Balatro" });
+    await createSteamGame({ name: "Never Played" });
     expect(await getRecentGames()).toStrictEqual([]);
   });
 
-  it("excludes steam games with a null rTimeLastPlayed", async () => {
-    await createSteamGame({ name: "Never Played", rTimeLastPlayed: null });
-    expect(await getRecentGames()).toStrictEqual([]);
-  });
-
-  it("orders by rTimeLastPlayed descending", async () => {
-    await createSteamGame({ name: "Oldest", rTimeLastPlayed: 1000 });
-    await createSteamGame({ name: "Newest", rTimeLastPlayed: 3000 });
-    await createSteamGame({ name: "Middle", rTimeLastPlayed: 2000 });
+  it("orders by lastPlayedAt descending, across providers", async () => {
+    const steamGame = await createSteamGame({ name: "Newest" });
+    await prisma.game.update({
+      where: { id: steamGame.gameId },
+      data: { lastPlayedAt: new Date("2024-03-01T00:00:00.000Z") },
+    });
+    const gogGame = await createGogGame({ name: "Middle" });
+    await prisma.game.update({
+      where: { id: gogGame.gameId },
+      data: { lastPlayedAt: new Date("2024-02-01T00:00:00.000Z") },
+    });
+    await createGame({
+      name: "Oldest",
+      lastPlayedAt: new Date("2024-01-01T00:00:00.000Z"),
+    });
     const games = await getRecentGames();
     expect(games.map((game) => game.name)).toStrictEqual([
       "Newest",
       "Middle",
       "Oldest",
     ]);
+    expect(games[1].gogGame?.gogId).toBe(gogGame.gogId);
   });
 
   it("defaults to a limit of six", async () => {
     for (let index = 0; index < 8; index++) {
-      await createSteamGame({ rTimeLastPlayed: 1000 + index });
+      await createGame({ lastPlayedAt: new Date(2024, 0, index + 1) });
     }
     expect(await getRecentGames()).toHaveLength(6);
   });
 
   it("respects an explicit limit", async () => {
     for (let index = 0; index < 8; index++) {
-      await createSteamGame({ rTimeLastPlayed: 1000 + index });
+      await createGame({ lastPlayedAt: new Date(2024, 0, index + 1) });
     }
     expect(await getRecentGames(2)).toHaveLength(2);
   });

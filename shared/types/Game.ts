@@ -1,5 +1,6 @@
-import type { Game, SteamGame } from "@prisma/client";
+import type { Game, GogGame, SteamGame } from "@prisma/client";
 
-export interface GameWithSteam extends Game {
+export interface GameWithProviders extends Game {
   steamGame: SteamGame | null;
+  gogGame: GogGame | null;
 }

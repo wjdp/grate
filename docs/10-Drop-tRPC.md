@@ -1,6 +1,6 @@
 ---
 type: task
-status: todo
+status: done
 ---
 
 # Drop tRPC for Nuxt-native typed API
@@ -50,3 +50,36 @@ Existing `/api/setup`, `/api/sse`, `/api/push`, `/health`, `/art/steam/**` uncha
 - Route tests green; existing lib tests untouched.
 - `rg trpc` over the repo (excluding lockfile) returns nothing.
 - Manual: every page loads, set state, run task, GOG auth flow.
+
+## Done
+
+Implemented as planned. The route map grew to cover every procedure, not just
+the ones listed above: `mergeGames`, `splitGame`, `steamStatus`, `steamAuth`,
+`epicStatus` and `epicAuth` also became routes.
+
+Deviations:
+
+- `GET /api/games/:id` lives at `server/api/games/[id]/index.get.ts` so it sits
+  alongside `playtimes.get.ts` and `state.patch.ts` in one directory.
+- `shared/types/Game.ts` exports `GameWithProviders` and `GameDetail` derived
+  from `lib/games` return types, mapped through a local `Serialised<T>` so the
+  Date fields read as the ISO strings the client actually receives. The tRPC
+  types lied about this.
+- The provider pages use `try`/`catch` rather than `tryCatch`. Passing a
+  `$fetch` call into a generic function makes TypeScript give up on Nitro's
+  route-matching types with "Excessive stack depth"; awaiting it directly is
+  fine. Worth watching if more routes are added.
+- Client-side error text comes from `utils/fetchErrorMessage.ts`, which reads
+  ofetch's `error.data.message`.
+- `utils/createErrorFromSteamApiError.ts`, `utils/createUnknownError.ts` and
+  `utils/createErrorFromRequestValidation.ts` were already unused and are gone.
+- Route tests live in one file, `test/api/routes.e2e.test.ts`, rather than one
+  per resource: two files mean two concurrent `nuxt dev` servers writing the
+  same `.nuxt` directory, which is flaky. `@nuxt/test-utils`' own
+  `setup({ server: true })` could not be used — building Nuxt inside vitest
+  fails with "MagicString is not a constructor" — so `test/api/devServer.ts`
+  spawns a Nuxt server and the suite runs `setup({ host })` against it. That
+  server needs `NODE_ENV=development` (vitest sets `test`, under which
+  `nuxt dev` silently refuses to boot) and `NUXT_IGNORE_LOCK=1` (so it can run
+  beside a developer's own dev server).
+- `runTask` now returns the created task instead of nothing.

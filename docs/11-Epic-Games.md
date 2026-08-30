@@ -208,14 +208,13 @@ Art helpers (`shared/art.ts`) gain an Epic branch; Epic image URLs are absolute 
 
 ## Open questions (verify against a real account)
 
-Answered by the 2026-08-30 live test and removed: is `totalTime` seconds (yes, by magnitude — still want the launcher's own figure as a final check, see below); does `/all` omit last-played and include only nonzero artifacts (yes to both); does `authorization_code` return `display_name`/account identity (yes); does `bulk/items` accept multiple `id` params (yes); is `categories[].path` a usable DLC signal (no — `mainGameItem` only). Answered by the 2026-08-30 live sync and removed: refresh token lifetime (~363 days); art coverage (tall 206/206, wide 204/206, logo 2/206).
+Answered by the 2026-08-30 live test and removed: is `totalTime` seconds (yes, by magnitude, confirmed against the launcher's own displayed hours); does `/all` omit last-played and include only nonzero artifacts (yes to both); does `authorization_code` return `display_name`/account identity (yes); does `bulk/items` accept multiple `id` params (yes); is `categories[].path` a usable DLC signal (no — `mainGameItem` only). Answered by the 2026-08-30 live sync and removed: refresh token lifetime (~363 days); art coverage (tall 206/206, wide 204/206, logo 2/206).
 
 1. Do we need `X-Epic-Device-ID` on the token request? Community docs list it as a header EGL sends; legendary omits it.
 2. Does the catalog endpoint rate-limit under a full-library sync (hundreds of `bulk/items` calls), and at what point? None observed at ~250 items.
 3. Is the `pageSlug` GraphQL mapping present/stable for all titles, or does it 404 for some? GraphQL slug missing for ~1% of titles; store-content covers <50%.
 4. Does the launcher's `assets/Windows` endpoint add anything the library endpoint misses?
-5. Confirm `totalTime` magnitude against the launcher's own displayed "hours played" for at least one game — seconds is near-certain from magnitude alone but not yet cross-checked against the UI.
-6. Connect flow end-to-end and full library sync (304 catalog items) done live 2026-08-30; refresh grant still unexercised.
+5. Connect flow end-to-end and full library sync (304 catalog items) done live 2026-08-30; refresh grant still unexercised.
 
 ## Implementation
 

@@ -10,6 +10,12 @@ export function createTestDatabaseFile() {
   return join(mkdtempSync(join(tmpdir(), "grate-e2e-")), "e2e.sqlite");
 }
 
+// Likewise, tests get their own data directory so art route tests never
+// touch (or need) the real ./data directory.
+export function createTestDataDir() {
+  return mkdtempSync(join(tmpdir(), "grate-e2e-data-"));
+}
+
 function findFreePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const probe = createServer();
@@ -39,7 +45,7 @@ async function waitForServer(host: string, timeoutMs: number) {
   throw new Error(`Nuxt dev server did not start within ${timeoutMs}ms`);
 }
 
-export async function startNuxtServer(databaseFile: string) {
+export async function startNuxtServer(databaseFile: string, dataDir?: string) {
   const port = await findFreePort();
   const child = spawn(
     process.execPath,
@@ -51,6 +57,7 @@ export async function startNuxtServer(databaseFile: string) {
       env: {
         ...process.env,
         DATABASE_URL: `file:${databaseFile}`,
+        ...(dataDir ? { DATA_DIR: dataDir } : {}),
         // `nuxt dev` refuses to boot under NODE_ENV=test, which vitest sets.
         NODE_ENV: "development",
         NUXT_TELEMETRY_DISABLED: "1",

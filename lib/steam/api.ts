@@ -113,7 +113,6 @@ const userGameSchema = z.object({
 export type UserGame = z.infer<typeof userGameSchema>;
 
 export async function getUserGames(): Promise<UserGame[]> {
-  // @ts-ignore
   const parameters = new URLSearchParams({
     key: process.env.STEAM_API_KEY,
     steamid: process.env.STEAM_USER_ID,

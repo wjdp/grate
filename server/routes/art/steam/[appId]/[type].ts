@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
 
   const cachedArtFilePath = await checkAndReturnSteamArtPath(
     params.data.appId,
-    // @ts-ignore: doesn't really matter as long as it's a string
+    // @ts-expect-error: doesn't really matter as long as it's a string
     params.data.type,
   );
   if (!cachedArtFilePath) {

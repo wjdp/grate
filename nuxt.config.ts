@@ -25,13 +25,9 @@ export default defineNuxtConfig({
     },
   },
   vite: {
-    plugins: [
-      // @ts-ignore, not sure why this is throwing all the errors
-      tailwindcss(),
-    ],
+    plugins: [tailwindcss()],
     resolve: {
-      alias: {
-      },
+      alias: {},
     },
     server: {
       watch: {

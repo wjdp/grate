@@ -74,7 +74,7 @@ const controlState = ref<GameState | null>(null);
 
     <section class="flex flex-col gap-3">
       <h2 class="text-highlighted font-semibold">History grid</h2>
-      <HistoryGrid class="max-w-[64rem]" :year="2025" />
+      <HistoryGrid class="max-w-[64rem]" :year="2025" :days="[]" />
     </section>
   </div>
 </template>

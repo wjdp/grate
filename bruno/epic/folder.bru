@@ -22,11 +22,13 @@ docs {
   
   ## Getting authenticated
   
-  1. Log in at https://www.epicgames.com/id/login in the browser, then open
-     https://www.epicgames.com/id/api/redirect?clientId=34a02cf8f4414e29b15921876da36f9a&responseType=code
-     (legendary's short link https://legendary.gl/epiclogin redirects to the same place)
+  1. Open https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect%3FclientId%3D34a02cf8f4414e29b15921876da36f9a%26responseType%3Dcode
+     and log in (legendary's short link https://legendary.gl/epiclogin redirects to the
+     same place)
   2. The page body is JSON. Copy the `authorizationCode` value — it is not in the URL,
-     and it expires within a few minutes and is single use
+     and it expires within a few minutes and is single use. Note: refreshing the redirect
+     page afterwards gives `"authorizationCode": null` — re-run the login link above for
+     a new code, don't just reload
   3. Put it in `bruno/.env` as `EPIC_CODE`, then run "Get token"
   4. Copy `access_token`, `refresh_token` and `account_id` from the response into
      `EPIC_ACCESS_TOKEN`, `EPIC_REFRESH_TOKEN` and `EPIC_ACCOUNT_ID`

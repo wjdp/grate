@@ -324,7 +324,24 @@ export async function recordGogPlaytime(
     .all();
   const lastPlayedAt = gogLastPlayedAt(sessions);
   let record;
-  if (
+  if (!lastRecord && lastPlayedAt && lastPlayedAt < now) {
+    const values = {
+      gogId: playedGame.gogId,
+      playtimeMinutes: sessions.time_sum,
+      lastPlayedAt,
+    };
+    db.insert(gogGamePlaytime)
+      .values({ ...values, timestampStart: null, timestampEnd: lastPlayedAt })
+      .run();
+    record = db
+      .insert(gogGamePlaytime)
+      .values({ ...values, timestampStart: lastPlayedAt, timestampEnd: now })
+      .returning()
+      .get();
+    console.log(
+      `Recorded initial playtime for ${playedGame.name} grounded on its last session`,
+    );
+  } else if (
     lastRecord?.playtimeMinutes === sessions.time_sum &&
     penultimateRecord?.playtimeMinutes === sessions.time_sum
   ) {

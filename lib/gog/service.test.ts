@@ -551,20 +551,103 @@ describe("updateGogGames", () => {
 });
 
 describe("recordGogPlaytime", () => {
-  it("creates a first record with no start timestamp", async () => {
+  it("creates a first record with no start timestamp when there is no session date", async () => {
     const playedGame = await createGogGame({ gogId: 800 });
     const sessions = generateFakeGogPlaytimeSessions({
       time_sum: 60,
-      last_session_date: 1700000000,
+      last_session_date: null,
     });
     const now = new Date("2026-01-01T00:00:00.000Z");
 
     const record = await recordGogPlaytime(playedGame, sessions, now);
 
+    expect(await getGogPlaytimeRecords(800)).toHaveLength(1);
     expect(record.timestampStart).toBeNull();
     expect(record.timestampEnd).toStrictEqual(now);
     expect(record.playtimeMinutes).toBe(60);
-    expect(record.lastPlayedAt).toStrictEqual(new Date(1700000000 * 1000));
+    expect(record.lastPlayedAt).toBeNull();
+  });
+
+  it("grounds a first import on the last session date", async () => {
+    const playedGame = await createGogGame({ gogId: 805 });
+    const sessions = generateFakeGogPlaytimeSessions({
+      time_sum: 60,
+      last_session_date: 1700000000,
+    });
+    const lastPlayedAt = new Date(1700000000 * 1000);
+    const now = new Date("2026-01-01T00:00:00.000Z");
+
+    const record = await recordGogPlaytime(playedGame, sessions, now);
+
+    const records = await getGogPlaytimeRecords(805);
+    expect(records).toHaveLength(2);
+    expect(records[0].timestampStart).toBeNull();
+    expect(records[0].timestampEnd).toStrictEqual(lastPlayedAt);
+    expect(records[0].playtimeMinutes).toBe(60);
+    expect(records[0].lastPlayedAt).toStrictEqual(lastPlayedAt);
+    expect(records[1].timestampStart).toStrictEqual(lastPlayedAt);
+    expect(records[1].timestampEnd).toStrictEqual(now);
+    expect(records[1].playtimeMinutes).toBe(60);
+    expect(record.id).toBe(records[1].id);
+  });
+
+  it("does not ground a first import on a last session date in the future", async () => {
+    const playedGame = await createGogGame({ gogId: 806 });
+    const now = new Date("2026-01-01T00:00:00.000Z");
+    const sessions = generateFakeGogPlaytimeSessions({
+      time_sum: 60,
+      last_session_date: Math.floor(now.getTime() / 1000) + 60,
+    });
+
+    const record = await recordGogPlaytime(playedGame, sessions, now);
+
+    expect(await getGogPlaytimeRecords(806)).toHaveLength(1);
+    expect(record.timestampStart).toBeNull();
+  });
+
+  it("extends the grounded record when the playtime has not changed", async () => {
+    const playedGame = await createGogGame({ gogId: 807 });
+    const sessions = generateFakeGogPlaytimeSessions({
+      time_sum: 60,
+      last_session_date: 1700000000,
+    });
+    const now = new Date("2026-01-01T00:00:00.000Z");
+    const later = new Date("2026-01-02T00:00:00.000Z");
+
+    await recordGogPlaytime(playedGame, sessions, now);
+    const record = await recordGogPlaytime(playedGame, sessions, later);
+
+    const records = await getGogPlaytimeRecords(807);
+    expect(records).toHaveLength(2);
+    expect(record.timestampStart).toStrictEqual(new Date(1700000000 * 1000));
+    expect(record.timestampEnd).toStrictEqual(later);
+  });
+
+  it("creates a new record after a grounded import when the playtime changes", async () => {
+    const playedGame = await createGogGame({ gogId: 808 });
+    const now = new Date("2026-01-01T00:00:00.000Z");
+    const later = new Date("2026-01-02T00:00:00.000Z");
+
+    await recordGogPlaytime(
+      playedGame,
+      generateFakeGogPlaytimeSessions({
+        time_sum: 60,
+        last_session_date: 1700000000,
+      }),
+      now,
+    );
+    const record = await recordGogPlaytime(
+      playedGame,
+      generateFakeGogPlaytimeSessions({
+        time_sum: 90,
+        last_session_date: 1700000000,
+      }),
+      later,
+    );
+
+    expect(await getGogPlaytimeRecords(808)).toHaveLength(3);
+    expect(record.timestampStart).toStrictEqual(now);
+    expect(record.playtimeMinutes).toBe(90);
   });
 
   it("extends the last record when the playtime has not changed", async () => {

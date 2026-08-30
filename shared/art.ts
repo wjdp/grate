@@ -53,6 +53,16 @@ export function getPrimaryGogGame(game: GameWithProviders) {
   return game.gogGames[0] ?? null;
 }
 
+export function getPrimaryEpicGame(game: GameWithProviders) {
+  return game.epicGames[0] ?? null;
+}
+
+export function getEpicIconUrl(
+  epicGame: Pick<GameWithProviders["epicGames"][number], "boxArtTallUrl">,
+): string | null {
+  return epicGame.boxArtTallUrl ?? null;
+}
+
 export function getGameArtUrls(game: GameWithProviders): ArtUrls | null {
   const steamGame = getPrimarySteamGame(game);
   if (steamGame) {
@@ -81,6 +91,15 @@ export function getGameArtUrls(game: GameWithProviders): ArtUrls | null {
       poster: boxArt,
       posterSmall: boxArt,
       background,
+    };
+  }
+  const epicGame = getPrimaryEpicGame(game);
+  if (epicGame) {
+    return {
+      header: epicGame.logoUrl ?? epicGame.boxArtWideUrl,
+      poster: epicGame.boxArtTallUrl,
+      posterSmall: epicGame.boxArtTallUrl,
+      background: epicGame.boxArtWideUrl,
     };
   }
   return null;

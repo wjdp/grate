@@ -32,11 +32,12 @@ const matches = computed(() => {
 });
 
 const providerSummary = (
-  game: Pick<GameWithProviders, "steamGames" | "gogGames">,
+  game: Pick<GameWithProviders, "steamGames" | "gogGames" | "epicGames">,
 ) => {
   const parts: string[] = [];
   if (game.steamGames.length) parts.push(`Steam ×${game.steamGames.length}`);
   if (game.gogGames.length) parts.push(`GOG ×${game.gogGames.length}`);
+  if (game.epicGames.length) parts.push(`Epic ×${game.epicGames.length}`);
   return parts.join(", ") || "No provider rows";
 };
 

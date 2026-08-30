@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import type { GameWithProviders } from "~/shared/types/Game";
 import {
+  getEpicIconUrl,
   getGogIconUrl,
+  getPrimaryEpicGame,
   getPrimaryGogGame,
   getPrimarySteamGame,
 } from "~/shared/art";
@@ -19,6 +21,10 @@ const imgIconUrl = computed(() => {
   const gogGame = getPrimaryGogGame(props.game);
   if (gogGame) {
     return getGogIconUrl(gogGame);
+  }
+  const epicGame = getPrimaryEpicGame(props.game);
+  if (epicGame) {
+    return getEpicIconUrl(epicGame);
   }
   return null;
 });

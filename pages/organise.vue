@@ -25,6 +25,7 @@ const description = computed(
   () =>
     theGame.value?.steamGames?.[0]?.appInfo?.shortDescription ??
     theGame.value?.gogGames?.[0]?.description ??
+    theGame.value?.epicGames?.[0]?.description ??
     null,
 );
 const theArt = ref<ArtUrls | null>();

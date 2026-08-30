@@ -44,11 +44,13 @@ const onMerged = async () => {
 
 const steamGames = computed(() => game.value?.steamGames ?? []);
 const gogGames = computed(() => game.value?.gogGames ?? []);
+const epicGames = computed(() => game.value?.epicGames ?? []);
 
 const description = computed(
   () =>
     steamGames.value[0]?.appInfo?.shortDescription ??
     gogGames.value[0]?.description ??
+    epicGames.value[0]?.description ??
     null,
 );
 </script>

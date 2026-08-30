@@ -10,7 +10,7 @@ const { $client } = useNuxtApp();
 
 interface ProviderRow {
   key: string;
-  provider: "steam" | "gog";
+  provider: "steam" | "gog" | "epic";
   providerLabel: string;
   providerId: number;
   name: string;
@@ -44,6 +44,21 @@ const rows = computed<ProviderRow[]>(() => [
       : null,
     openUrl: `goggalaxy://openGameView/${gogRow.gogId}`,
     playUrl: `goggalaxy://runGame/${gogRow.gogId}`,
+  })),
+  ...props.game.epicGames.map((epicRow) => ({
+    key: `epic-${epicRow.epicId}`,
+    provider: "epic" as const,
+    providerLabel: "Epic",
+    providerId: epicRow.epicId,
+    name: epicRow.name,
+    playtimeMinutes: epicRow.playtimeMinutes ?? 0,
+    lastPlayed: epicRow.lastPlayedAt
+      ? new Date(epicRow.lastPlayedAt).toISOString()
+      : null,
+    openUrl: epicRow.storeSlug
+      ? `https://store.epicgames.com/p/${epicRow.storeSlug}`
+      : `com.epicgames.launcher://apps/${encodeURIComponent(`${epicRow.namespace}:${epicRow.catalogItemId}:${epicRow.appName}`)}?action=launch&silent=true`,
+    playUrl: `com.epicgames.launcher://apps/${encodeURIComponent(`${epicRow.namespace}:${epicRow.catalogItemId}:${epicRow.appName}`)}?action=launch&silent=true`,
   })),
 ]);
 

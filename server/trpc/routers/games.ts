@@ -5,7 +5,9 @@ import {
   getGamePlaytimes,
   getGames,
   getRecentGames,
+  mergeGames,
   setGameState,
+  splitGame,
 } from "~/lib/games";
 import { GAME_STATES } from "~~/shared/game-state";
 
@@ -37,6 +39,25 @@ export default router({
     .input(z.object({ id: gameId, state: z.union([GameStateEnum, z.null()]) }))
     .mutation(async ({ input }) => {
       const game = await setGameState(input.id, input.state);
+      return { game };
+    }),
+
+  mergeGames: publicProcedure
+    .input(z.object({ targetId: gameId, sourceIds: z.array(gameId).min(1) }))
+    .mutation(async ({ input }) => {
+      const game = await mergeGames(input.targetId, input.sourceIds);
+      return { game };
+    }),
+
+  splitGame: publicProcedure
+    .input(
+      z.object({
+        provider: z.enum(["steam", "gog"]),
+        providerId: z.number().positive(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const game = await splitGame(input.provider, input.providerId);
       return { game };
     }),
 });

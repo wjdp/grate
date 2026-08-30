@@ -19,7 +19,9 @@ import {
   getGamePlaytimes,
   getGames,
   getRecentGames,
+  mergeGames,
   setGameState,
+  splitGame,
 } from "~~/lib/games";
 import { flushDb } from "~~/test/db";
 
@@ -402,5 +404,293 @@ describe("setGameState", () => {
       "COMPLETED",
       null,
     ]);
+  });
+});
+
+function gameById(id: number) {
+  return db.select().from(gameTable).where(eq(gameTable.id, id)).get() ?? null;
+}
+
+function allGames() {
+  return db.select().from(gameTable).all();
+}
+
+describe("mergeGames", () => {
+  beforeEach(async () => {
+    await flushDb();
+  });
+
+  it("moves steam and gog rows onto the target and deletes the source", async () => {
+    const steamGame = createSteamGame({
+      name: "Cyberpunk 2077",
+      playtimeForever: 120,
+      rTimeLastPlayed: Math.floor(
+        new Date("2024-05-01T00:00:00.000Z").getTime() / 1000,
+      ),
+    });
+    const gogGame = createGogGame({
+      name: "Cyberpunk 2077 GOG",
+      playtimeMinutes: 30,
+      lastPlayedAt: new Date("2024-06-01T00:00:00.000Z"),
+    });
+    await setGameState(gogGame.gameId, "PLAYING");
+    const merged = await mergeGames(steamGame.gameId, [gogGame.gameId]);
+
+    expect(allGames()).toHaveLength(1);
+    expect(gameById(gogGame.gameId)).toBeNull();
+    expect(merged.name).toBe("Cyberpunk 2077");
+    expect(merged.playtimeMinutes).toBe(150);
+    expect(merged.lastPlayedAt).toStrictEqual(
+      new Date("2024-06-01T00:00:00.000Z"),
+    );
+    const game = await getGame(steamGame.gameId);
+    expect(game?.steamGames.map((row) => row.appId)).toStrictEqual([
+      steamGame.appId,
+    ]);
+    expect(game?.gogGames.map((row) => row.gogId)).toStrictEqual([
+      gogGame.gogId,
+    ]);
+    expect(
+      stateChangesFor(steamGame.gameId).map((change) => change.state),
+    ).toStrictEqual(["PLAYING", "PLAYING"]);
+  });
+
+  it("moves several rows of the same provider onto the target", async () => {
+    const first = createGogGame({
+      name: "The Witcher 3: Wild Hunt",
+      playtimeMinutes: 100,
+    });
+    const second = createGogGame({
+      name: "The Witcher 3: Wild Hunt Complete Edition",
+      playtimeMinutes: 250,
+    });
+    db.insert(gogGamePlaytimeTable)
+      .values({
+        gogId: first.gogId,
+        timestampStart: new Date("2024-01-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-01-02T00:00:00.000Z"),
+        playtimeMinutes: 100,
+      })
+      .run();
+    db.insert(gogGamePlaytimeTable)
+      .values({
+        gogId: second.gogId,
+        timestampStart: new Date("2024-02-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-02-02T00:00:00.000Z"),
+        playtimeMinutes: 250,
+      })
+      .run();
+    const merged = await mergeGames(first.gameId, [second.gameId]);
+
+    expect(merged.playtimeMinutes).toBe(350);
+    const game = await getGame(first.gameId);
+    expect(
+      game?.gogGames.map((row) => row.gogId).sort((a, b) => a - b),
+    ).toStrictEqual([first.gogId, second.gogId].sort((a, b) => a - b));
+    const playtimes = await getGamePlaytimes(first.gameId);
+    expect(
+      playtimes.map((playtime) => playtime.providerId).sort((a, b) => a - b),
+    ).toStrictEqual([first.gogId, second.gogId].sort((a, b) => a - b));
+  });
+
+  it("brings the playtime records of every source across", async () => {
+    const target = createSteamGame({ name: "Target" });
+    const source = createGogGame({ name: "Source" });
+    db.insert(steamGamePlaytimeTable)
+      .values({
+        steamAppId: target.appId,
+        timestampStart: new Date("2024-01-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-01-02T00:00:00.000Z"),
+        playtimeForever: 10,
+      })
+      .run();
+    db.insert(gogGamePlaytimeTable)
+      .values({
+        gogId: source.gogId,
+        timestampStart: new Date("2024-02-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-02-02T00:00:00.000Z"),
+        playtimeMinutes: 20,
+      })
+      .run();
+    await mergeGames(target.gameId, [source.gameId]);
+    const playtimes = await getGamePlaytimes(target.gameId);
+    expect(
+      playtimes.map((playtime) => [
+        playtime.provider,
+        playtime.playtimeMinutes,
+      ]),
+    ).toStrictEqual([
+      ["gog", 20],
+      ["steam", 10],
+    ]);
+  });
+
+  it("adopts the most recently changed source state when the target has none", async () => {
+    const target = createGame({ name: "Target" });
+    const older = createGame({ name: "Older" });
+    const newer = createGame({ name: "Newer" });
+    await setGameState(older.id, "BACKLOG");
+    await setGameState(newer.id, "COMPLETED");
+    db.update(gameStateChangeTable)
+      .set({ timestamp: new Date("2024-01-01T00:00:00.000Z") })
+      .where(eq(gameStateChangeTable.gameId, older.id))
+      .run();
+    db.update(gameStateChangeTable)
+      .set({ timestamp: new Date("2024-02-01T00:00:00.000Z") })
+      .where(eq(gameStateChangeTable.gameId, newer.id))
+      .run();
+
+    const merged = await mergeGames(target.id, [older.id, newer.id]);
+
+    expect(merged.state).toBe("COMPLETED");
+    const stateChanges = stateChangesFor(target.id);
+    expect(stateChanges).toHaveLength(3);
+    expect(stateChanges.at(-1)?.state).toBe("COMPLETED");
+  });
+
+  it("adopts a source state that has no history rows", async () => {
+    const target = createGame({ name: "Target" });
+    const source = createGame({ name: "Source", state: "PLAYING" });
+
+    const merged = await mergeGames(target.id, [source.id]);
+
+    expect(merged.state).toBe("PLAYING");
+    expect(
+      stateChangesFor(target.id).map((change) => change.state),
+    ).toStrictEqual(["PLAYING"]);
+  });
+
+  it("keeps the target state and discards the source state", async () => {
+    const target = createGame({ name: "Target" });
+    const source = createGame({ name: "Source" });
+    await setGameState(target.id, "PLAYING");
+    await setGameState(source.id, "COMPLETED");
+
+    const merged = await mergeGames(target.id, [source.id]);
+
+    expect(merged.state).toBe("PLAYING");
+    expect(
+      stateChangesFor(target.id).map((change) => change.state),
+    ).toStrictEqual(["PLAYING", "COMPLETED"]);
+  });
+
+  it("rejects an empty source list", async () => {
+    const target = createGame({ name: "Target" });
+    await expect(mergeGames(target.id, [])).rejects.toThrow(
+      "No source games given to merge",
+    );
+  });
+
+  it("rejects merging a game into itself", async () => {
+    const target = createGame({ name: "Target" });
+    await expect(mergeGames(target.id, [target.id])).rejects.toThrow(
+      "Cannot merge a game into itself",
+    );
+  });
+
+  it("rejects duplicate source ids", async () => {
+    const target = createGame({ name: "Target" });
+    const source = createGame({ name: "Source" });
+    await expect(mergeGames(target.id, [source.id, source.id])).rejects.toThrow(
+      "Duplicate source game ids",
+    );
+  });
+
+  it("rejects an unknown target", async () => {
+    const source = createGame({ name: "Source" });
+    await expect(mergeGames(123456, [source.id])).rejects.toThrow(
+      "Game 123456 not found",
+    );
+  });
+
+  it("writes nothing when a source is unknown", async () => {
+    const target = createSteamGame({ name: "Target" });
+    const source = createGogGame({ name: "Source" });
+    await setGameState(source.gameId, "PLAYING");
+
+    await expect(
+      mergeGames(target.gameId, [source.gameId, 123456]),
+    ).rejects.toThrow("Game 123456 not found");
+
+    expect(allGames()).toHaveLength(2);
+    expect(gameById(target.gameId)?.state).toBeNull();
+    expect(stateChangesFor(target.gameId)).toHaveLength(0);
+    expect(stateChangesFor(source.gameId)).toHaveLength(1);
+    const targetGame = await getGame(target.gameId);
+    expect(targetGame?.gogGames).toStrictEqual([]);
+  });
+});
+
+describe("splitGame", () => {
+  beforeEach(async () => {
+    await flushDb();
+  });
+
+  it("throws when the provider row does not exist", async () => {
+    await expect(splitGame("steam", 123456)).rejects.toThrow(
+      "No steam game 123456",
+    );
+    await expect(splitGame("gog", 123456)).rejects.toThrow(
+      "No gog game 123456",
+    );
+  });
+
+  it("is a no-op for a game with a single provider row", async () => {
+    const steamGame = createSteamGame({ name: "Portal 2" });
+    const result = await splitGame("steam", steamGame.appId);
+
+    expect(result.id).toBe(steamGame.gameId);
+    expect(allGames()).toHaveLength(1);
+  });
+
+  it("moves a provider row onto a fresh game and refreshes both", async () => {
+    const first = createGogGame({
+      name: "The Witcher 3: Wild Hunt",
+      playtimeMinutes: 100,
+      lastPlayedAt: new Date("2024-01-01T00:00:00.000Z"),
+    });
+    const second = createGogGame({
+      gameId: first.gameId,
+      name: "The Witcher 3: Wild Hunt Complete Edition",
+      playtimeMinutes: 250,
+      lastPlayedAt: new Date("2024-02-01T00:00:00.000Z"),
+    });
+
+    const splitOff = await splitGame("gog", second.gogId);
+
+    expect(splitOff.id).not.toBe(first.gameId);
+    expect(splitOff.name).toBe("The Witcher 3: Wild Hunt Complete Edition");
+    expect(splitOff.playtimeMinutes).toBe(250);
+    expect(splitOff.lastPlayedAt).toStrictEqual(
+      new Date("2024-02-01T00:00:00.000Z"),
+    );
+    expect(splitOff.state).toBeNull();
+    expect(stateChangesFor(splitOff.id)).toHaveLength(0);
+
+    const previousGame = gameById(first.gameId);
+    expect(previousGame?.playtimeMinutes).toBe(100);
+    expect(previousGame?.lastPlayedAt).toStrictEqual(
+      new Date("2024-01-01T00:00:00.000Z"),
+    );
+    const remaining = await getGame(first.gameId);
+    expect(remaining?.gogGames.map((row) => row.gogId)).toStrictEqual([
+      first.gogId,
+    ]);
+  });
+
+  it("splits a steam row off a mixed-provider game", async () => {
+    const gogGame = createGogGame({ name: "Cyberpunk 2077" });
+    const steamGame = createSteamGame({
+      gameId: gogGame.gameId,
+      name: "Cyberpunk 2077 Steam",
+      playtimeForever: 60,
+    });
+
+    const splitOff = await splitGame("steam", steamGame.appId);
+
+    expect(splitOff.name).toBe("Cyberpunk 2077 Steam");
+    expect(splitOff.playtimeMinutes).toBe(60);
+    const remaining = await getGame(gogGame.gameId);
+    expect(remaining?.steamGames).toStrictEqual([]);
   });
 });

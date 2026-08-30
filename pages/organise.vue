@@ -6,8 +6,7 @@ import { getPageTitle } from "#shared/title";
 
 useSeoMeta({ title: getPageTitle("Organise Games") });
 
-const { $client } = useNuxtApp();
-const { data } = useGames();
+const { data } = useFetch("/api/games");
 const games = computed(() => data.value?.games);
 const organisedGameIds = ref<number[]>([]);
 
@@ -41,10 +40,10 @@ const fetchTheGame = async () => {
   }
   const lengthOfArray = gamesToOrganise.value.length;
   const randomIndex = Math.floor(Math.random() * lengthOfArray);
-  const response = await $client.game.query({
-    id: gamesToOrganise.value[randomIndex].id,
-  });
-  theGame.value = response.game;
+  const { game } = await $fetch(
+    `/api/games/${gamesToOrganise.value[randomIndex].id}`,
+  );
+  theGame.value = game;
   theArt.value = getGameArtUrls(theGame.value);
   organiseState.value = "loaded";
 };
@@ -54,7 +53,10 @@ onMounted(() => {
 });
 
 const setGameState = async (state: GameState) => {
-  await $client.setGameState.mutate({ id: theGame.value.id, state });
+  await $fetch(`/api/games/${theGame.value.id}/state`, {
+    method: "PATCH",
+    body: { state },
+  });
   organisedGameIds.value.push(theGame.value.id);
   theGame.value = undefined;
   organiseState.value = "loading";

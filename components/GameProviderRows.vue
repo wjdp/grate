@@ -1,12 +1,7 @@
 <script lang="ts" setup>
-import type { inferRouterOutputs } from "@trpc/server";
-import type { AppRouter } from "~~/server/trpc/routers";
-
-type GameDetail = NonNullable<inferRouterOutputs<AppRouter>["game"]["game"]>;
+import type { GameDetail } from "#shared/types/Game";
 
 const props = defineProps<{ game: GameDetail }>();
-
-const { $client } = useNuxtApp();
 
 interface ProviderRow {
   key: string;
@@ -78,9 +73,9 @@ const split = async (row: ProviderRow) => {
   splittingKey.value = row.key;
   error.value = null;
   try {
-    const { game } = await $client.splitGame.mutate({
-      provider: row.provider,
-      providerId: row.providerId,
+    const { game } = await $fetch("/api/games/split", {
+      method: "POST",
+      body: { provider: row.provider, providerId: row.providerId },
     });
     await navigateTo(`/game/${game.id}`);
   } catch (splitError) {

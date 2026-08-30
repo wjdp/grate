@@ -2,7 +2,7 @@
 import { getPageTitle } from "#shared/title";
 
 useSeoMeta({ title: getPageTitle("Games") });
-const { data } = useGames();
+const { data } = useFetch("/api/games");
 const games = computed(() => data.value?.games);
 type FilterOption = "all" | "played" | "unplayed" | "recent";
 const filter = ref<FilterOption>("all");

@@ -6,10 +6,8 @@ import { getPageTitle } from "#shared/title";
 
 useSeoMeta({ title: getPageTitle("Tasks") });
 
-const { $client } = useNuxtApp();
-
 const triggerTask = async (taskName: TaskName) =>
-  await $client.runTask.mutate({ taskName });
+  await $fetch("/api/tasks", { method: "POST", body: { taskName } });
 
 const { onMessage, open } = useSseClient();
 const messages = ref<string[]>([]);
@@ -25,9 +23,9 @@ onMessage("message", async (event) => {
 const taskLogs = ref<SseTask[]>([]);
 
 // Fetch existing tasks, without this we'll only see new tasks via server events
-const currentTasks = await $client.listTasks.useQuery();
-if (currentTasks.data.value) {
-  taskLogs.value = currentTasks.data.value;
+const { data: currentTasks } = await useFetch("/api/tasks");
+if (currentTasks.value) {
+  taskLogs.value = currentTasks.value;
 }
 
 onMessage("task", (event) => {

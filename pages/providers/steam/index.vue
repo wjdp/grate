@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { parseSteamProfileInput } from "#shared/steam-profile";
 
-const { $client } = useNuxtApp();
-
-const { data: status, refresh: refreshStatus } = await useAsyncData(
-  "steam-status",
-  () => $client.steamStatus.query(),
+const { data: status, refresh: refreshStatus } = await useFetch(
+  "/api/providers/steam",
 );
 
 const apiKey = ref("");
@@ -23,14 +20,13 @@ const saveSteamCredentials = async () => {
     return;
   }
   errorMessage.value = "";
-  const { error } = await tryCatch(
-    $client.steamAuth.mutate({
-      apiKey: apiKey.value,
-      profile: profile.value,
-    }),
-  );
-  if (error) {
-    errorMessage.value = error.message;
+  try {
+    await $fetch("/api/providers/steam/auth", {
+      method: "POST",
+      body: { apiKey: apiKey.value, profile: profile.value },
+    });
+  } catch (error) {
+    errorMessage.value = fetchErrorMessage(error as Error);
     console.error(error);
     return;
   }

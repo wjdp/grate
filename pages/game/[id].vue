@@ -3,16 +3,16 @@ import type { GameState } from "#shared/game-state";
 import { getGameArtUrls } from "#shared/art";
 import { getPageTitle } from "#shared/title";
 
-const { $client } = useNuxtApp();
 const route = useRoute();
 const id = parseIntRouteParam(route.params.id);
-const { data, refresh } = await useGame(id);
+const { data, refresh } = await useFetch(`/api/games/${id}`);
 const game = computed(() => data.value?.game);
 
 if (game.value) useSeoMeta({ title: getPageTitle(game.value.name) });
 
-const { data: playtimeData, refresh: refreshPlaytimes } =
-  await $client.gamePlaytimes.useQuery({ id });
+const { data: playtimeData, refresh: refreshPlaytimes } = await useFetch(
+  `/api/games/${id}/playtimes`,
+);
 const playtimes = computed(() => playtimeData.value?.playtimes);
 const formatTimestamp = (timestamp: string) =>
   new Date(timestamp).toLocaleString();
@@ -31,7 +31,10 @@ const updateGameState = async (state: GameState | null) => {
   const previousState = game.value.state;
   game.value.state = state;
   try {
-    await $client.setGameState.mutate({ id, state });
+    await $fetch(`/api/games/${id}/state`, {
+      method: "PATCH",
+      body: { state },
+    });
   } catch (error) {
     console.error(error);
     game.value.state = previousState;

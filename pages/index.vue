@@ -3,7 +3,9 @@ import { getGameArtUrls } from "~/shared/art";
 
 const appConfig = useAppConfig();
 const { data: setupData } = useFetch(() => "/api/setup");
-const { data: recentGamesData } = useRecentGames(6);
+const { data: recentGamesData } = useFetch("/api/games/recent", {
+  query: { limit: 6 },
+});
 
 const recentGames = computed(() => recentGamesData.value?.games || []);
 </script>

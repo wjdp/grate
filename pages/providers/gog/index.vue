@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { getGogLoginUri } from "~/lib/gog/api";
 
-const { $client } = useNuxtApp();
-
 const authUri = getGogLoginUri();
 const openAuthPage = () => {
   window.open(authUri, "_blank")?.focus();
@@ -24,16 +22,17 @@ const getGogToken = async () => {
   if (!oAuthCode.value) {
     return;
   }
-  const { data, error } = await tryCatch(
-    $client.gogAuth.mutate({ code: oAuthCode.value }),
-  );
-  if (error) {
-    alert(error.message);
+  try {
+    const data = await $fetch("/api/providers/gog/auth", {
+      method: "POST",
+      body: { code: oAuthCode.value },
+    });
+    alert("GOG Token received, user created");
+    console.log(data);
+  } catch (error) {
+    alert(fetchErrorMessage(error as Error));
     console.error(error);
-    return;
   }
-  alert("GOG Token received, user created");
-  console.log(data);
 };
 </script>
 

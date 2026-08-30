@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { getEpicLoginUri } from "~/lib/epic/api";
 
-const { $client } = useNuxtApp();
-
-const { data: epicStatus, refresh: refreshStatus } = await useAsyncData(
-  "epic-status",
-  async () => ({ user: await $client.epicStatus.query() }),
+const { data: epicUser, refresh: refreshStatus } = await useFetch(
+  "/api/providers/epic",
 );
 
 const authUri = getEpicLoginUri();
@@ -41,11 +38,13 @@ const connectEpic = async () => {
     return;
   }
   errorMessage.value = "";
-  const { error } = await tryCatch(
-    $client.epicAuth.mutate({ code: authorizationCode.value }),
-  );
-  if (error) {
-    errorMessage.value = error.message;
+  try {
+    await $fetch("/api/providers/epic/auth", {
+      method: "POST",
+      body: { code: authorizationCode.value },
+    });
+  } catch (error) {
+    errorMessage.value = fetchErrorMessage(error as Error);
     console.error(error);
     return;
   }
@@ -58,9 +57,9 @@ const connectEpic = async () => {
   <div class="p-4">
     <h1>Epic Status</h1>
     <div class="my-4">
-      <template v-if="epicStatus?.user">
-        Connected as {{ epicStatus.user.displayName }} ({{
-          epicStatus.user.accountId
+      <template v-if="epicUser">
+        Connected as {{ epicUser.displayName }} ({{
+          epicUser.accountId
         }}).
       </template>
       <template v-else> No Epic account connected. </template>

@@ -1,15 +1,14 @@
 <script lang="ts" setup>
-import type { inferRouterOutputs } from "@trpc/server";
-import type { AppRouter } from "~~/server/trpc/routers";
-import type { GameWithProviders } from "#shared/types/Game";
-
-type GameDetail = NonNullable<inferRouterOutputs<AppRouter>["game"]["game"]>;
+import type { GameDetail, GameWithProviders } from "#shared/types/Game";
 
 const props = defineProps<{ game: GameDetail }>();
 const emit = defineEmits<{ merged: [] }>();
 
-const { $client } = useNuxtApp();
-const { data: gamesData, status, execute } = useGames({ immediate: false });
+const {
+  data: gamesData,
+  status,
+  execute,
+} = useFetch("/api/games", { immediate: false });
 
 const open = ref(false);
 const query = ref("");
@@ -63,7 +62,10 @@ const merge = async (targetId: number, sourceIds: number[]) => {
   pending.value = true;
   error.value = null;
   try {
-    const { game } = await $client.mergeGames.mutate({ targetId, sourceIds });
+    const { game } = await $fetch("/api/games/merge", {
+      method: "POST",
+      body: { targetId, sourceIds },
+    });
     if (game.id === props.game.id) {
       closeDialog();
       emit("merged");

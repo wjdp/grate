@@ -1,6 +1,11 @@
 import { faker } from "@faker-js/faker";
 import type { GogGame, GogUser as PrismaGogUser } from "@prisma/client";
-import type { getGogToken, getGogUserData, GogGameDetail } from "~/lib/gog/api";
+import type {
+  getGogToken,
+  getGogUserData,
+  GogGameDetail,
+  GogPlaytimeSessions,
+} from "~/lib/gog/api";
 import prisma from "~/lib/prisma";
 import { createGame } from "~/lib/steam/fixtures/fake";
 
@@ -119,4 +124,16 @@ export async function createGogUser(
       ...overrides,
     },
   });
+}
+
+export function generateFakeGogPlaytimeSessions(
+  overrides: Partial<GogPlaytimeSessions> = {},
+): GogPlaytimeSessions {
+  return {
+    game_id: faker.number.int({ min: 1, max: 2_000_000_000 }),
+    user_id: faker.string.numeric(18),
+    time_sum: faker.number.int({ min: 0, max: 10_000 }),
+    last_session_date: Math.floor(faker.date.recent().getTime() / 1000),
+    ...overrides,
+  };
 }

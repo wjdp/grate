@@ -2,25 +2,48 @@ import { z } from "zod";
 
 export class GogApiError extends Error {
   statusCode: number;
+  retriable: boolean;
 
   constructor({
     message,
     statusCode,
+    retriable = false,
   }: {
     message: string;
     statusCode: number;
+    retriable?: boolean;
   }) {
     super(message);
     this.name = "GogApiError";
     this.statusCode = statusCode;
+    this.retriable = retriable;
   }
+}
+
+const NETWORK_ERROR_STATUS_CODE = 0;
+
+function isRetriableStatusCode(statusCode: number): boolean {
+  return statusCode === 429 || statusCode >= 500;
 }
 
 function createGogApiError(response: Response): GogApiError {
   return new GogApiError({
     message: response.statusText,
     statusCode: response.status,
+    retriable: isRetriableStatusCode(response.status),
   });
+}
+
+async function gogFetch(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    throw new GogApiError({
+      message: `Network request to ${url} failed: ${error}`,
+      statusCode: NETWORK_ERROR_STATUS_CODE,
+      retriable: true,
+    });
+  }
 }
 
 // OAuth client that all the open-source launcher apps use
@@ -47,7 +70,7 @@ const GogTokenSchema = z.object({
 type GogToken = z.infer<typeof GogTokenSchema>;
 
 export async function getGogToken(code: string): Promise<GogToken> {
-  const response = await fetch(
+  const response = await gogFetch(
     `https://auth.gog.com/token?client_id=${GOG_CLIENT_ID}&client_secret=${GOG_CLIENT_SECRET}&grant_type=${GOG_GRANT_TYPE}&code=${code}&redirect_uri=${GOG_REDIRECT_URI}`,
   );
   const data = await response.json();
@@ -58,7 +81,7 @@ export async function getGogToken(code: string): Promise<GogToken> {
 }
 
 export async function refreshGogToken(refreshToken: string): Promise<GogToken> {
-  const response = await fetch(
+  const response = await gogFetch(
     `https://auth.gog.com/token?client_id=${GOG_CLIENT_ID}&client_secret=${GOG_CLIENT_SECRET}&grant_type=refresh_token&refresh_token=${refreshToken}`,
   );
   const data = await response.json();
@@ -83,7 +106,7 @@ const GogUserSchema = z.object({
 type GogUser = z.infer<typeof GogUserSchema>;
 
 export async function getGogUserData(accessToken: string): Promise<GogUser> {
-  const response = await fetch("https://embed.gog.com/userData.json", {
+  const response = await gogFetch("https://embed.gog.com/userData.json", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const data = await response.json();
@@ -94,8 +117,10 @@ export async function getGogUserData(accessToken: string): Promise<GogUser> {
   return GogUserSchema.parse(data);
 }
 
+const GogUserGamesSchema = z.object({ owned: z.array(z.number()) });
+
 export async function getGogUserGames(accessToken: string): Promise<number[]> {
-  const response = await fetch("https://embed.gog.com/user/data/games", {
+  const response = await gogFetch("https://embed.gog.com/user/data/games", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok) {
@@ -103,13 +128,7 @@ export async function getGogUserGames(accessToken: string): Promise<number[]> {
     throw createGogApiError(response);
   }
   const data = await response.json();
-  if (!data?.owned) {
-    throw new GogApiError({
-      message: "No games found",
-      statusCode: 404,
-    });
-  }
-  return data.owned;
+  return GogUserGamesSchema.parse(data).owned;
 }
 
 const GogProductLink = z.object({ href: z.string().nullable() });
@@ -159,17 +178,40 @@ const GogGameDetailSchema = z.object({
 export type GogGameDetail = z.infer<typeof GogGameDetailSchema>;
 
 export async function getGogGameDetail(id: number): Promise<GogGameDetail> {
-  const response = await fetch(`https://api.gog.com/v2/games/${id}`);
+  const response = await gogFetch(`https://api.gog.com/v2/games/${id}`);
   if (!response.ok) {
     console.error(await response.text());
     throw createGogApiError(response);
   }
   const data = await response.json();
-  try {
-    console.log(`Parsing game ${id}`);
-    return GogGameDetailSchema.parse(data);
-  } catch (e) {
-    console.error(e);
-    throw e;
+  return GogGameDetailSchema.parse(data);
+}
+
+// time_sum is in minutes, last_session_date is a unix timestamp in seconds.
+// Only sessions reported by Galaxy or Heroic are counted by GOG.
+const GogPlaytimeSessionsSchema = z.object({
+  game_id: z.coerce.number().optional(),
+  user_id: z.string().optional(),
+  time_sum: z.number(),
+  last_session_date: z.number().nullable().optional(),
+});
+
+export type GogPlaytimeSessions = z.infer<typeof GogPlaytimeSessionsSchema>;
+
+// userId here is GogUser.gogUserId
+export async function getGogGamePlaytime(
+  gameId: number,
+  userId: string,
+  accessToken: string,
+): Promise<GogPlaytimeSessions> {
+  const response = await gogFetch(
+    `https://gameplay.gog.com/games/${gameId}/users/${userId}/sessions`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!response.ok) {
+    console.error(await response.text());
+    throw createGogApiError(response);
   }
+  const data = await response.json();
+  return GogPlaytimeSessionsSchema.parse(data);
 }

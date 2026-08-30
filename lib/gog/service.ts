@@ -1,14 +1,18 @@
 import {
   getGogGameDetail,
+  getGogGamePlaytime,
   getGogToken,
   getGogUserData,
   getGogUserGames,
+  GogApiError,
   type GogGameDetail,
+  type GogPlaytimeSessions,
   refreshGogToken,
 } from "~/lib/gog/api";
 import tryCatch from "~/utils/tryCatch";
 import prisma from "~/lib/prisma";
-import type { GogUser } from "@prisma/client";
+import { refreshGameAggregates } from "~/lib/gameAggregates";
+import type { GogGame, GogUser } from "@prisma/client";
 
 function getTokenExpiresAt(expiresIn: number) {
   return new Date(Date.now() + expiresIn * 1000);
@@ -109,8 +113,26 @@ export async function updateGogUser() {
 // GOG return multiple product types, but we only care about games
 // Others are DLC, PACK
 const GOG_PRODUCT_TYPES_INCLUDE = ["GAME"];
-// GOG products that should be ignored
-const GOG_IGNORED_PRODUCT_IDS = [1185685769];
+// GOG products that should always be ignored
+const GOG_MANUALLY_IGNORED_PRODUCT_IDS = [1185685769];
+
+async function ensureManualIgnores() {
+  for (const gogId of GOG_MANUALLY_IGNORED_PRODUCT_IDS) {
+    await prisma.gogIgnoredProduct.upsert({
+      where: { gogId },
+      create: { gogId, reason: "MANUAL" },
+      update: {},
+    });
+  }
+}
+
+async function ignoreProduct(gogId: number, reason: string) {
+  await prisma.gogIgnoredProduct.upsert({
+    where: { gogId },
+    create: { gogId, reason },
+    update: { reason },
+  });
+}
 
 export async function updateGogGames() {
   const currentUser = await getGogUser();
@@ -118,41 +140,77 @@ export async function updateGogGames() {
     return;
   }
   const user = await handleRefreshToken(currentUser);
+  await ensureManualIgnores();
   const { data: gameIds, error } = await tryCatch(
     getGogUserGames(user.accessToken),
   );
   if (error) {
     throw new Error("Failed to get user games from GOG");
   }
+  const ignoredProducts = await prisma.gogIgnoredProduct.findMany({
+    select: { gogId: true },
+  });
+  const ignoredGogIds = new Set(ignoredProducts.map((p) => p.gogId));
+  let failureCount = 0;
   for (const gameId of gameIds) {
+    if (ignoredGogIds.has(gameId)) continue;
+
     const { data: game, error: gameError } = await tryCatch(
       getGogGameDetail(gameId),
     );
-    // Some are expected 404s, so for now just skip and continue
-    if (gameError || !game) continue;
+    if (gameError || !game) {
+      if (gameError instanceof GogApiError && gameError.statusCode === 404) {
+        await ignoreProduct(gameId, "NOT_FOUND");
+      } else if (gameError instanceof GogApiError && gameError.retriable) {
+        console.error(
+          `Transient error fetching GOG game ${gameId}: ${gameError.message}`,
+        );
+      } else {
+        console.error(`Failed to fetch GOG game ${gameId}: ${gameError}`);
+      }
+      failureCount++;
+      continue;
+    }
 
-    const isGame = GOG_PRODUCT_TYPES_INCLUDE.includes(
-      game._embedded.productType,
-    );
-    // Only process games, ignore DLCs and packs
-    if (!isGame) continue;
-
+    const productType = game._embedded.productType;
     const gogId = game._embedded.product.id;
     const gogGameTitle = game._embedded.product.title;
 
-    if (GOG_IGNORED_PRODUCT_IDS.includes(gogId)) continue;
+    if (!GOG_PRODUCT_TYPES_INCLUDE.includes(productType)) {
+      await ignoreProduct(gameId, productType);
+      continue;
+    }
 
-    const existingGame = await prisma.gogGame.findFirst({
-      where: { gogId: gogId },
-    });
-    if (existingGame) {
-      await updateGame(game);
-      console.log(`Updated game ${gogGameTitle}`);
-    } else {
-      await createGame(game);
-      console.log(`Created game ${gogGameTitle}`);
+    const { error: writeError } = await tryCatch(
+      updateOrCreateGogGame(game, gogId, gogGameTitle),
+    );
+    if (writeError) {
+      console.error(`Failed to store GOG game ${gogId}: ${writeError}`);
+      failureCount++;
     }
   }
+  if (failureCount > 0) {
+    console.error(`Failed to sync ${failureCount} GOG products`);
+  }
+}
+
+async function updateOrCreateGogGame(
+  game: GogGameDetail,
+  gogId: number,
+  gogGameTitle: string,
+) {
+  const existingGame = await prisma.gogGame.findFirst({
+    where: { gogId },
+  });
+  if (existingGame) {
+    const updated = await updateGame(game);
+    await refreshGameAggregates(updated.gameId);
+    console.log(`Updated game ${gogGameTitle}`);
+    return;
+  }
+  const created = await createGame(game);
+  await refreshGameAggregates(created.id);
+  console.log(`Created game ${gogGameTitle}`);
 }
 
 async function createGame(gogGameDetail: GogGameDetail) {
@@ -163,6 +221,7 @@ async function createGame(gogGameDetail: GogGameDetail) {
         create: {
           gogId: gogGameDetail._embedded.product.id,
           name: gogGameDetail._embedded.product.title,
+          productType: gogGameDetail._embedded.productType,
           releaseDate:
             gogGameDetail._embedded.product.globalReleaseDate ||
             gogGameDetail._embedded.product.gogReleaseDate,
@@ -187,10 +246,13 @@ async function createGame(gogGameDetail: GogGameDetail) {
 }
 
 async function updateGame(gogGameDetail: GogGameDetail) {
+  const title = gogGameDetail._embedded.product.title;
   return await prisma.gogGame.update({
     where: { gogId: gogGameDetail._embedded.product.id },
     data: {
-      name: gogGameDetail._embedded.product.title,
+      name: title,
+      productType: gogGameDetail._embedded.productType,
+      game: { update: { name: title } },
       releaseDate:
         gogGameDetail._embedded.product.globalReleaseDate ||
         gogGameDetail._embedded.product.gogReleaseDate,
@@ -210,4 +272,79 @@ async function updateGame(gogGameDetail: GogGameDetail) {
         gogGameDetail._links.galaxyBackgroundImage?.href,
     },
   });
+}
+
+function gogLastPlayedAt(sessions: GogPlaytimeSessions): Date | null {
+  return sessions.last_session_date
+    ? new Date(sessions.last_session_date * 1000)
+    : null;
+}
+
+export async function recordGogPlaytime(
+  gogGame: GogGame,
+  sessions: GogPlaytimeSessions,
+  now: Date,
+) {
+  const [lastRecord, penultimateRecord] = await prisma.gogGamePlaytime.findMany(
+    {
+      where: { gogId: gogGame.gogId },
+      orderBy: { timestampEnd: "desc" },
+      take: 2,
+    },
+  );
+  const lastPlayedAt = gogLastPlayedAt(sessions);
+  let record;
+  if (
+    lastRecord?.playtimeMinutes === sessions.time_sum &&
+    penultimateRecord?.playtimeMinutes === sessions.time_sum
+  ) {
+    console.log(`No new playtime for ${gogGame.name}`);
+    record = await prisma.gogGamePlaytime.update({
+      where: { id: lastRecord.id },
+      data: { timestampEnd: now },
+    });
+  } else {
+    record = await prisma.gogGamePlaytime.create({
+      data: {
+        gogGame: { connect: { gogId: gogGame.gogId } },
+        timestampStart: lastRecord ? lastRecord.timestampEnd : undefined,
+        timestampEnd: now,
+        playtimeMinutes: sessions.time_sum,
+        lastPlayedAt,
+      },
+    });
+    console.log(`Recorded playtime for ${gogGame.name}`);
+  }
+  await prisma.gogGame.update({
+    where: { gogId: gogGame.gogId },
+    data: { playtimeMinutes: sessions.time_sum, lastPlayedAt },
+  });
+  await refreshGameAggregates(gogGame.gameId);
+  return record;
+}
+
+export async function recordGogPlaytimes() {
+  const currentUser = await getGogUser();
+  if (!currentUser) {
+    return;
+  }
+  const user = await handleRefreshToken(currentUser);
+  const gogGames = await prisma.gogGame.findMany();
+  const now = new Date();
+  for (const gogGame of gogGames) {
+    const { data: sessions, error } = await tryCatch(
+      getGogGamePlaytime(gogGame.gogId, user.gogUserId, user.accessToken),
+    );
+    if (error || !sessions) {
+      console.error(
+        `Failed to fetch GOG playtime for ${gogGame.name}: ${error}`,
+      );
+      continue;
+    }
+    await recordGogPlaytime(gogGame, sessions, now);
+  }
+}
+
+export async function getGogPlaytimeRecords(gogId: number) {
+  return prisma.gogGamePlaytime.findMany({ where: { gogId } });
 }

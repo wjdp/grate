@@ -6,16 +6,22 @@ WORKDIR /app
 # --- Stage to build the app ---
 FROM base AS build
 
+# better-sqlite3 has no prebuilt binary for this Node version, so compile it
+RUN apt-get update -y && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
 RUN npm install -g pnpm
-COPY --link package.json pnpm-lock.yaml ./
+COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY --link . .
 RUN pnpm build
 
 FROM base AS runtime
 
+# better-sqlite3 has no prebuilt binary for this Node version, so compile it
+RUN apt-get update -y && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
 RUN npm install -g pnpm
-COPY --link package.json pnpm-lock.yaml ./
+COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
 # --- Stage to release the app ---

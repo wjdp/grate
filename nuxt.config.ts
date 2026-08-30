@@ -6,9 +6,6 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ["@nuxt/test-utils/module", "@nuxt/fonts", "@nuxt/icon"],
   css: ["~/assets/css/main.css"],
-  build: {
-    transpile: ["trpc-nuxt"],
-  },
   nitro: {
     experimental: { tasks: true },
     scheduledTasks: {

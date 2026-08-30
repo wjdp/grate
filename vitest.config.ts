@@ -5,6 +5,7 @@ export default defineVitestConfig({
     // Test files share a single SQLite database and flush it between tests,
     // so they must not run concurrently.
     fileParallelism: false,
+    exclude: ["**/node_modules/**", ".claude/**"],
     env: {
       DATABASE_URL: "file:./test.db",
     },

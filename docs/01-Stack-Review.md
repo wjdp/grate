@@ -28,4 +28,5 @@ Stack: Nuxt 3, Nitro tasks (experimental), tRPC v10 via trpc-nuxt, Prisma 6 on S
 2. 03 typecheck — cheap, catches the most.
 3. 05 tests — largely done as part of GOG work; remainder is per-file in-memory DB, which lands naturally with 02.
 4. 02 Drizzle — do once tests exist; they are the safety net.
-5. 06, 04, 07, 08 in any order.
+5. 10 tRPC → Nitro, ideally alongside 02 since both touch the data boundary.
+6. 06, 04, 07, 08 in any order.

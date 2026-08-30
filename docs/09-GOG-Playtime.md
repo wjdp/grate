@@ -19,5 +19,9 @@ Started 2026-08-30. Goal: parity with Steam — games, playtime, last played, hi
 
 ## Remaining
 
+None in scope. Unverified without a running app: GOG image `{formatter}` presets used in `shared/art.ts` (`glx_logo_2x`, `product_card_v2_mobile_slider_639`, `glx_bg_top_padding_7`, `glx_icon_square`), `goggalaxy://` links, and the `gameplay.gog.com` sessions response shape — check against a real account on first deploy.
+
+## Done in wave 3
+
 4. Nitro: `recordGogPlaytimes` queueable + scheduled task alongside `scheduled:record-playtimes`.
 5. `lib/games.ts` + pages: read `Game.playtimeMinutes`/`lastPlayedAt`; include `gogGame`; `getGamePlaytimes` returns either provider's history; `GameIcon`/art from `GogGame.*Url`; "Open in GOG" (`goggalaxy://openGameView/{id}`).

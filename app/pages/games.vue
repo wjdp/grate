@@ -177,7 +177,7 @@ const clearFilters = () => {
           placeholder="Search games"
           class="w-48 sm:w-64"
         />
-        <UButtonGroup>
+        <UFieldGroup>
           <UButton
             icon="i-lucide-layout-grid"
             :variant="view === 'wall' ? 'solid' : 'outline'"
@@ -192,7 +192,7 @@ const clearFilters = () => {
             aria-label="List"
             @click="view = 'list'"
           />
-        </UButtonGroup>
+        </UFieldGroup>
       </div>
     </div>
 

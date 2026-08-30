@@ -5,7 +5,12 @@ import { getPageTitle } from "#shared/title";
 
 const route = useRoute();
 const id = parseIntRouteParam(route.params.id);
-const { data, refresh } = await useFetch(`/api/games/${id}`);
+const { data, error: fetchError, refresh } = await useFetch(`/api/games/${id}`);
+
+if (fetchError.value?.statusCode === 404) {
+  throw createError({ statusCode: 404, statusMessage: "Game not found" });
+}
+
 const game = computed(() => data.value?.game);
 
 if (game.value) useSeoMeta({ title: getPageTitle(game.value.name) });
@@ -13,9 +18,11 @@ if (game.value) useSeoMeta({ title: getPageTitle(game.value.name) });
 const { data: playtimeData, refresh: refreshPlaytimes } = await useFetch(
   `/api/games/${id}/playtimes`,
 );
-const playtimes = computed(() => playtimeData.value?.playtimes);
+const playtimes = computed(() => playtimeData.value?.playtimes ?? []);
+
 const formatTimestamp = (timestamp: string) =>
-  new Date(timestamp).toLocaleString();
+  new Date(timestamp).toLocaleString("en-GB");
+
 const state = ref(game.value?.state ?? null);
 watch(
   () => game.value?.state,
@@ -63,56 +70,165 @@ const description = computed(
     epicGames.value[0]?.description ??
     null,
 );
+
+const providerCount = computed(
+  () =>
+    steamGames.value.length + gogGames.value.length + epicGames.value.length,
+);
+
+interface LaunchTarget {
+  playtimeMinutes: number;
+  playUrl: string;
+}
+
+const primaryLaunch = computed<LaunchTarget | null>(() => {
+  const targets: LaunchTarget[] = [
+    ...steamGames.value.map((steamRow) => ({
+      playtimeMinutes: steamRow.playtimeForever ?? 0,
+      playUrl: `steam://run/${steamRow.appId}`,
+    })),
+    ...gogGames.value.map((gogRow) => ({
+      playtimeMinutes: gogRow.playtimeMinutes ?? 0,
+      playUrl: `goggalaxy://runGame/${gogRow.gogId}`,
+    })),
+    ...epicGames.value.map((epicRow) => ({
+      playtimeMinutes: epicRow.playtimeMinutes ?? 0,
+      playUrl: `com.epicgames.launcher://apps/${encodeURIComponent(`${epicRow.namespace}:${epicRow.catalogItemId}:${epicRow.appName}`)}?action=launch&silent=true`,
+    })),
+  ];
+  return (
+    targets.reduce<LaunchTarget | null>(
+      (best, target) =>
+        !best || target.playtimeMinutes > best.playtimeMinutes ? target : best,
+      null,
+    ) ?? null
+  );
+});
+
+const ProviderLabels = {
+  steam: "Steam",
+  gog: "GOG",
+  epic: "Epic Games",
+};
+
+const playtimeColumns = [
+  { accessorKey: "timestampStart", header: "Start" },
+  { accessorKey: "timestampEnd", header: "End" },
+  { accessorKey: "provider", header: "Provider" },
+  { accessorKey: "providerName", header: "Name" },
+  {
+    accessorKey: "playtimeMinutes",
+    header: "Playtime",
+    meta: { class: { th: "text-right", td: "text-right font-mono" } },
+  },
+];
+
+// Records are cumulative snapshots, newest first: a row whose total matches the
+// next-older one records no new play.
+const playtimeMeta = {
+  class: {
+    tr: (row: { index: number }) =>
+      playtimes.value[row.index + 1]?.playtimeMinutes ===
+      playtimes.value[row.index]?.playtimeMinutes
+        ? "text-dimmed"
+        : "",
+  },
+};
 </script>
 
 <template>
-  <div class="p-4">
-    <h1 v-if="game" class="text-2xl font-bold">
-      <GameIcon :game="game" class="inline" />
-      {{ game?.name ?? id }}
-    </h1>
-    <div class="my-4">
-      <GameStateControl v-model="state" @change="updateGameState(state)" />
-      {{ state }}
+  <div v-if="game" class="space-y-6">
+    <ArtHero
+      :background="art?.background ?? null"
+      :header="art?.header ?? null"
+      :title="game.name"
+    >
+      <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
+        <GameStateControl v-model="state" @change="updateGameState(state)" />
+        <PlayButton v-if="primaryLaunch" :href="primaryLaunch.playUrl" />
+      </div>
+    </ArtHero>
+
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatTile
+        label="Playtime"
+        icon="i-lucide-clock"
+        :value="formatPlaytime(game.playtimeMinutes) || 'None'"
+      />
+      <StatTile
+        label="Last played"
+        icon="i-lucide-calendar"
+        :value="
+          game.lastPlayedAt ? formatLastPlayed(game.lastPlayedAt) : 'Never'
+        "
+      />
+      <StatTile
+        label="Providers"
+        icon="i-lucide-library"
+        :value="providerCount"
+      />
+      <div class="bg-elevated border-default rounded-lg border p-4">
+        <div class="text-muted flex items-center gap-1.5 text-xs tracking-wide">
+          <UIcon name="i-lucide-tag" class="size-4 shrink-0" />
+          <span class="truncate">State</span>
+        </div>
+        <div class="mt-2">
+          <GameStateBadge :state="game.state" />
+        </div>
+      </div>
     </div>
-    <p v-if="description" class="my-4">
-      {{ description }}
-      <img v-if="art?.header" :src="art.header" />
-    </p>
-    <GameProviderRows v-if="game" :game="game" />
-    <GameMergeDialog v-if="game" :game="game" @merged="onMerged" />
-    <table v-if="playtimes" class="my-4">
-      <thead>
-        <tr>
-          <th>Start</th>
-          <th>End</th>
-          <th>Provider</th>
-          <th>Name</th>
-          <th>Running total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="(playtime, i) in playtimes"
-          :key="i"
-          :class="{
-            'text-grey-500':
-              playtimes[i + 1]?.playtimeMinutes == playtime.playtimeMinutes,
-          }"
+
+    <p v-if="description" class="text-muted max-w-prose">{{ description }}</p>
+
+    <GameProviderRows :game="game" />
+
+    <section class="space-y-3">
+      <h2 class="font-display text-highlighted text-lg font-semibold">
+        History
+      </h2>
+      <div v-if="playtimes.length" class="overflow-x-auto">
+        <UTable
+          :data="playtimes"
+          :columns="playtimeColumns"
+          :meta="playtimeMeta"
         >
-          <td class="p-1">
-            {{
-              playtime.timestampStart
-                ? formatTimestamp(playtime.timestampStart)
-                : "-"
-            }}
-          </td>
-          <td class="p-1">{{ formatTimestamp(playtime.timestampEnd) }}</td>
-          <td class="p-1">{{ playtime.provider }}</td>
-          <td class="p-1">{{ playtime.providerName }}</td>
-          <td class="p-1">{{ playtime.playtimeMinutes }}</td>
-        </tr>
-      </tbody>
-    </table>
+          <template #timestampStart-cell="{ row }">
+            <span class="font-mono text-xs">
+              {{
+                row.original.timestampStart
+                  ? formatTimestamp(row.original.timestampStart)
+                  : "—"
+              }}
+            </span>
+          </template>
+          <template #timestampEnd-cell="{ row }">
+            <span class="font-mono text-xs">
+              {{ formatTimestamp(row.original.timestampEnd) }}
+            </span>
+          </template>
+          <template #provider-cell="{ row }">
+            <span class="flex items-center gap-1.5">
+              <ProviderIcon :provider="row.original.provider" />
+              {{ ProviderLabels[row.original.provider] }}
+            </span>
+          </template>
+          <template #playtimeMinutes-cell="{ row }">
+            {{ formatPlaytime(row.original.playtimeMinutes) || "None" }}
+          </template>
+        </UTable>
+      </div>
+      <p v-else class="text-muted">No playtime recorded yet</p>
+    </section>
+
+    <section class="space-y-3">
+      <h2 class="font-display text-highlighted text-lg font-semibold">
+        Manage
+      </h2>
+      <p class="text-muted max-w-prose text-sm">
+        Merge this game with another entry, or split a provider row into its own
+        game from the provider cards above.
+      </p>
+      <GameMergeDialog :game="game" @merged="onMerged" />
+    </section>
   </div>
 </template>

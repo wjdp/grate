@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import type { GameWithSteam } from "~/shared/types/Game";
+import type { GameWithProviders } from "~/shared/types/Game";
 import { GameStateNames } from "#shared/game-state";
 
 defineProps<{
-  game: GameWithSteam;
+  game: GameWithProviders;
 }>();
 </script>
 
@@ -20,8 +20,8 @@ defineProps<{
           {{ game.name }}
         </h4>
         <div class="text-sm">
-          <span v-if="game.steamGame?.playtimeForever">
-            {{ formatPlaytime(game.steamGame?.playtimeForever ?? 0) }}
+          <span v-if="game.playtimeMinutes">
+            {{ formatPlaytime(game.playtimeMinutes) }}
           </span>
           <span v-else> Unplayed </span>
         </div>

@@ -1,14 +1,21 @@
 <script lang="ts" setup>
-import type { GameWithSteam } from "~/shared/types/Game";
+import type { GameWithProviders } from "~/shared/types/Game";
+import { getGogIconUrl } from "~/shared/art";
 import { computed } from "vue";
 
 const props = defineProps<{
-  game: GameWithSteam;
+  game: GameWithProviders;
 }>();
 
-const imgIconUrl = computed(() =>
-  props.game.steamGame ? `/art/steam/${props.game.steamGame.appId}/icon` : null,
-);
+const imgIconUrl = computed(() => {
+  if (props.game.steamGame) {
+    return `/art/steam/${props.game.steamGame.appId}/icon`;
+  }
+  if (props.game.gogGame) {
+    return getGogIconUrl(props.game.gogGame);
+  }
+  return null;
+});
 </script>
 
 <template>

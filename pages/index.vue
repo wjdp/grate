@@ -53,14 +53,11 @@ const recentGames = computed(() => recentGamesData.value?.games || []);
                 {{ game.name }}
               </h3>
               <div class="text-xs text-gray-400">
-                <div v-if="game.steamGame?.playtimeForever">
-                  {{ formatPlaytime(game.steamGame.playtimeForever) }}
+                <div v-if="game.playtimeMinutes">
+                  {{ formatPlaytime(game.playtimeMinutes) }}
                 </div>
-                <div
-                  v-if="game.steamGame?.rTimeLastPlayed"
-                  class="text-xs text-gray-500"
-                >
-                  {{ formatLastPlayed(game.steamGame.rTimeLastPlayed) }}
+                <div v-if="game.lastPlayedAt" class="text-xs text-gray-500">
+                  {{ formatLastPlayed(game.lastPlayedAt) }}
                 </div>
               </div>
             </div>

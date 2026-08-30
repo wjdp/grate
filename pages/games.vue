@@ -6,15 +6,19 @@ const { data } = useGames();
 const games = computed(() => data.value?.games);
 type FilterOption = "all" | "played" | "unplayed" | "recent";
 const filter = ref<FilterOption>("all");
+
+const RECENT_DAYS = 14;
+const isRecentlyPlayed = (lastPlayedAt: Date | string | null) => {
+  if (!lastPlayedAt) return false;
+  const cutoff = Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000;
+  return new Date(lastPlayedAt).getTime() >= cutoff;
+};
+
 const filteredGames = computed(() => {
   return games.value?.filter((game) => {
-    if (!game.steamGame) return false;
-    if (filter.value === "played")
-      return (game.steamGame.playtimeForever ?? 0) > 0;
-    if (filter.value === "unplayed")
-      return (game.steamGame.playtimeForever ?? 0) === 0;
-    if (filter.value === "recent")
-      return (game.steamGame.playtime2weeks ?? 0) > 0;
+    if (filter.value === "played") return game.playtimeMinutes > 0;
+    if (filter.value === "unplayed") return game.playtimeMinutes === 0;
+    if (filter.value === "recent") return isRecentlyPlayed(game.lastPlayedAt);
     return true;
   });
 });
@@ -24,19 +28,13 @@ const sort = ref<SortOption>("name");
 const sortedGames = computed(() => {
   return filteredGames.value?.sort((a, b) => {
     if (sort.value === "name") return a.name.localeCompare(b.name);
-    if (sort.value === "playtime")
-      return (
-        (b.steamGame?.playtimeForever ?? 0) -
-        (a.steamGame?.playtimeForever ?? 0)
-      );
+    if (sort.value === "playtime") return b.playtimeMinutes - a.playtimeMinutes;
     return 0;
   });
 });
 
 const totalPlaytime = computed(() => {
-  return games.value?.reduce((acc, game) => {
-    return acc + (game.steamGame?.playtimeForever ?? 0);
-  }, 0);
+  return games.value?.reduce((acc, game) => acc + game.playtimeMinutes, 0);
 });
 const totalPlaytimeFormatted = computed(() => {
   if (!totalPlaytime.value) return "";
@@ -44,19 +42,14 @@ const totalPlaytimeFormatted = computed(() => {
 });
 const totalGames = computed(() => games.value?.length);
 const totalPlayedGames = computed(() => {
-  return games.value?.filter(
-    (game) => (game.steamGame?.playtimeForever ?? 0) > 0,
-  ).length;
+  return games.value?.filter((game) => game.playtimeMinutes > 0).length;
 });
 const totalUnplayedGames = computed(() => {
-  return games.value?.filter(
-    (game) => (game.steamGame?.playtimeForever ?? 0) === 0,
-  ).length;
+  return games.value?.filter((game) => game.playtimeMinutes === 0).length;
 });
 const totalRecentGames = computed(() => {
-  return games.value?.filter(
-    (game) => (game.steamGame?.playtime2weeks ?? 0) > 0,
-  ).length;
+  return games.value?.filter((game) => isRecentlyPlayed(game.lastPlayedAt))
+    .length;
 });
 </script>
 

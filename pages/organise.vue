@@ -15,12 +15,18 @@ const gamesToOrganise = computed(() =>
   games.value?.filter(
     (game) =>
       !game.state &&
-      (game.steamGame?.playtimeForever ?? 0) > 0 &&
+      game.playtimeMinutes > 0 &&
       !organisedGameIds.value.includes(game.id),
   ),
 );
 
 const theGame = ref();
+const description = computed(
+  () =>
+    theGame.value?.steamGame?.appInfo?.shortDescription ??
+    theGame.value?.gogGame?.description ??
+    null,
+);
 const theArt = ref<ArtUrls | null>();
 const organiseState = ref<"loading" | "empty" | "loaded">("loading");
 
@@ -84,15 +90,15 @@ const skipGame = async () => {
       <h1 class="my-4 text-center text-3xl font-semibold tracking-tight">
         {{ theGame.name }}
       </h1>
-      <p v-if="theGame.steamGame?.appInfo" class="my-4">
-        {{ theGame.steamGame.appInfo.shortDescription }}
+      <p v-if="description" class="my-4">
+        {{ description }}
       </p>
       <div class="my-4 flex w-full flex-row space-x-4">
         <div class="basis-full">
           <p class="mb-4 text-center">
             Playtime
             <span class="font-semibold">
-              {{ formatPlaytime(theGame?.steamGame?.playtimeForever) }}
+              {{ formatPlaytime(theGame?.playtimeMinutes ?? 0) }}
             </span>
           </p>
           <div class="flex flex-col space-y-4">
@@ -114,7 +120,11 @@ const skipGame = async () => {
           <p class="mb-4 text-center">
             Last played
             <span class="font-semibold">
-              {{ formatLastPlayed(theGame?.steamGame?.rTimeLastPlayed) }}
+              {{
+                theGame?.lastPlayedAt
+                  ? formatLastPlayed(theGame.lastPlayedAt)
+                  : "Never"
+              }}
             </span>
           </p>
           <div class="flex flex-col space-y-4">

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-const props = defineProps<{ steamAppId: number | string }>();
+const props = defineProps<{ href: string }>();
 
 const launchGame = () => {
-  window.open(`steam://run/${props.steamAppId}`, "_self");
+  window.open(props.href, "_self");
 };
 </script>
 

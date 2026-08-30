@@ -38,6 +38,20 @@ const openSteamGame = () => {
     "_self",
   );
 };
+
+const openGogGame = () => {
+  window.open(
+    `goggalaxy://openGameView/${game.value?.gogGame?.gogId}`,
+    "_self",
+  );
+};
+
+const description = computed(
+  () =>
+    game.value?.steamGame?.appInfo?.shortDescription ??
+    game.value?.gogGame?.description ??
+    null,
+);
 </script>
 
 <template>
@@ -46,37 +60,38 @@ const openSteamGame = () => {
       <GameIcon :game="game" class="inline" />
       {{ game?.name ?? id }}
     </h1>
-    <!-- <div v-if="game?.steamGame">
-      <p>appid {{ game.steamGame.appId }}</p>
-      <p>Playtime: {{ game.steamGame.playtimeForever }}</p>
-    </div> -->
     <div class="my-4">
       <GameStateControl v-model="state" @change="updateGameState(state)" />
       {{ state }}
     </div>
-    <p v-if="game?.steamGame?.appInfo" class="my-4">
-      {{ game.steamGame.appInfo.shortDescription }}
-      <img v-if="art" :src="art.header" />
+    <p v-if="description" class="my-4">
+      {{ description }}
+      <img v-if="art?.header" :src="art.header" />
     </p>
     <div v-if="game?.steamGame" class="my-4">
       <Button @click="openSteamGame" class="mr-2">Open in Steam</Button>
-      <PlayButton :steam-app-id="game.steamGame.appId" />
+      <PlayButton :href="`steam://run/${game.steamGame.appId}`" />
+    </div>
+    <div v-else-if="game?.gogGame" class="my-4">
+      <Button @click="openGogGame" class="mr-2">Open in GOG</Button>
+      <PlayButton :href="`goggalaxy://runGame/${game.gogGame.gogId}`" />
     </div>
     <table v-if="playtimes" class="my-4">
       <thead>
         <tr>
           <th>Start</th>
           <th>End</th>
+          <th>Provider</th>
           <th>Running total</th>
         </tr>
       </thead>
       <tbody>
         <tr
           v-for="(playtime, i) in playtimes"
-          :key="playtime.id"
+          :key="i"
           :class="{
             'text-grey-500':
-              playtimes[i + 1]?.playtimeForever == playtime.playtimeForever,
+              playtimes[i + 1]?.playtimeMinutes == playtime.playtimeMinutes,
           }"
         >
           <td class="p-1">
@@ -87,7 +102,8 @@ const openSteamGame = () => {
             }}
           </td>
           <td class="p-1">{{ formatTimestamp(playtime.timestampEnd) }}</td>
-          <td class="p-1">{{ playtime.playtimeForever }}</td>
+          <td class="p-1">{{ playtime.provider }}</td>
+          <td class="p-1">{{ playtime.playtimeMinutes }}</td>
         </tr>
       </tbody>
     </table>

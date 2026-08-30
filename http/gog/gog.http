@@ -32,6 +32,10 @@ Authorization: Bearer {{access_token}}
 GET https://gameplay.gog.com/games/1207664643/users/{{user_id}}/sessions
 Authorization: Bearer {{access_token}}
 
+### Get playtime for all games, only games with playtime above zero are returned
+GET https://gameplay.gog.com/users/{{galaxy_user_id}}/sessions
+Authorization: Bearer {{access_token}}
+
 ### Get GOG game details
 GET https://api.gog.com/v2/games/1207664663
 

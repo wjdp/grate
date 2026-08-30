@@ -217,3 +217,33 @@ export async function getGogGamePlaytime(
   const data = await response.json();
   return GogPlaytimeSessionsSchema.parse(data);
 }
+
+const GogUserPlaytimesSchema = z.object({
+  total_sum: z.number(),
+  game_time: z.array(
+    z.object({
+      game_id: z.coerce.number(),
+      time_sum: z.number(),
+      last_session_date: z.number().nullable().optional(),
+    }),
+  ),
+});
+
+export type GogUserPlaytimes = z.infer<typeof GogUserPlaytimesSchema>;
+
+// Only games with playtime above zero are returned
+export async function getGogUserPlaytimes(
+  galaxyUserId: string,
+  accessToken: string,
+): Promise<GogUserPlaytimes> {
+  const response = await gogFetch(
+    `https://gameplay.gog.com/users/${galaxyUserId}/sessions`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!response.ok) {
+    console.error(await response.text());
+    throw createGogApiError(response);
+  }
+  const data = await response.json();
+  return GogUserPlaytimesSchema.parse(data);
+}

@@ -1,10 +1,10 @@
 import { desc, eq } from "drizzle-orm";
 import {
   getGogGameDetail,
-  getGogGamePlaytime,
   getGogToken,
   getGogUserData,
   getGogUserGames,
+  getGogUserPlaytimes,
   GogApiError,
   type GogGameDetail,
   type GogPlaytimeSessions,
@@ -363,18 +363,20 @@ export async function recordGogPlaytimes() {
     return;
   }
   const user = await handleRefreshToken(currentUser);
+  const { data: playtimes, error } = await tryCatch(
+    getGogUserPlaytimes(user.galaxyUserId, user.accessToken),
+  );
+  if (error || !playtimes) {
+    console.error(`Failed to fetch GOG playtimes: ${error}`);
+    return;
+  }
+  const playtimeByGogId = new Map(
+    playtimes.game_time.map((entry) => [entry.game_id, entry]),
+  );
   const gogGames = db.select().from(gogGame).all();
   const now = new Date();
   for (const playedGame of gogGames) {
-    const { data: sessions, error } = await tryCatch(
-      getGogGamePlaytime(playedGame.gogId, user.galaxyUserId, user.accessToken),
-    );
-    if (error || !sessions) {
-      console.error(
-        `Failed to fetch GOG playtime for ${playedGame.name}: ${error}`,
-      );
-      continue;
-    }
+    const sessions = playtimeByGogId.get(playedGame.gogId) ?? { time_sum: 0 };
     await recordGogPlaytime(playedGame, sessions, now);
   }
 }

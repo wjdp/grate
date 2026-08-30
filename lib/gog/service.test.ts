@@ -2,10 +2,10 @@ import { asc, eq } from "drizzle-orm";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   getGogGameDetail,
-  getGogGamePlaytime,
   getGogToken,
   getGogUserData,
   getGogUserGames,
+  getGogUserPlaytimes,
   GogApiError,
   type GogGameDetail,
   refreshGogToken,
@@ -49,10 +49,10 @@ function firstOrThrow<T>(rows: T[]): T {
 vi.mock("~/lib/gog/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~/lib/gog/api")>()),
   getGogGameDetail: vi.fn(),
-  getGogGamePlaytime: vi.fn(),
   getGogToken: vi.fn(),
   getGogUserData: vi.fn(),
   getGogUserGames: vi.fn(),
+  getGogUserPlaytimes: vi.fn(),
   refreshGogToken: vi.fn(),
 }));
 
@@ -642,31 +642,60 @@ describe("recordGogPlaytime", () => {
 describe("recordGogPlaytimes", () => {
   it("does nothing when there is no user", async () => {
     expect(await recordGogPlaytimes()).toBeUndefined();
-    expect(getGogGamePlaytime).not.toHaveBeenCalled();
+    expect(getGogUserPlaytimes).not.toHaveBeenCalled();
   });
 
-  it("records playtime for each game, skipping those whose fetch fails", async () => {
+  it("records playtime for each game from the bulk response", async () => {
     const user = await createGogUser();
     await createGogGame({ gogId: 900 });
     await createGogGame({ gogId: 901 });
-    vi.mocked(getGogGamePlaytime).mockImplementation(async (gameId: number) => {
-      if (gameId === 901) throw new Error("nope");
-      return generateFakeGogPlaytimeSessions({ time_sum: 42 });
+    vi.mocked(getGogUserPlaytimes).mockResolvedValue({
+      total_sum: 84,
+      game_time: [
+        { game_id: 900, time_sum: 42 },
+        { game_id: 901, time_sum: 42 },
+      ],
     });
 
     await recordGogPlaytimes();
 
-    expect(getGogGamePlaytime).toHaveBeenCalledWith(
-      900,
+    expect(getGogUserPlaytimes).toHaveBeenCalledWith(
       user.galaxyUserId,
       user.accessToken,
     );
-    expect(getGogGamePlaytime).not.toHaveBeenCalledWith(
-      900,
-      user.gogUserId,
-      user.accessToken,
-    );
     expect(await getGogPlaytimeRecords(900)).toHaveLength(1);
-    expect(await getGogPlaytimeRecords(901)).toHaveLength(0);
+    expect(await getGogPlaytimeRecords(901)).toHaveLength(1);
+  });
+
+  it("records zero minutes for games absent from the bulk response", async () => {
+    await createGogUser();
+    await createGogGame({ gogId: 902 });
+    vi.mocked(getGogUserPlaytimes).mockResolvedValue({
+      total_sum: 0,
+      game_time: [],
+    });
+
+    await recordGogPlaytimes();
+
+    const record = firstOrThrow(await getGogPlaytimeRecords(902));
+    expect(record.playtimeMinutes).toBe(0);
+    expect(record.lastPlayedAt).toBeNull();
+  });
+
+  it("logs and records nothing when the bulk request fails", async () => {
+    await createGogUser();
+    await createGogGame({ gogId: 903 });
+    vi.mocked(getGogUserPlaytimes).mockRejectedValue(new Error("nope"));
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    await recordGogPlaytimes();
+
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining("Failed to fetch GOG playtimes"),
+    );
+    expect(await getGogPlaytimeRecords(903)).toHaveLength(0);
+    consoleError.mockRestore();
   });
 });

@@ -1,0 +1,31 @@
+meta {
+  name: Get store slug for a namespace
+  type: http
+  seq: 10
+}
+
+post {
+  url: https://launcher.store.epicgames.com/graphql
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) EpicGamesLauncher
+}
+
+body:json {
+  {
+    "query": "{ Catalog { catalogNs(namespace: \"{{epic_namespace}}\") { mappings(pageType: \"productHome\") { pageSlug pageType } } } }"
+  }
+}
+
+vars:pre-request {
+  epic_namespace: 33956bcb55d4452d8c47e16b94e294bd
+}
+
+docs {
+  Heroic's method for deriving a store URL: take the productHome mapping's pageSlug and
+  build https://www.epicgames.com/store/p/{pageSlug}. Falls back to a slugified title.
+}

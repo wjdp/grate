@@ -1,0 +1,45 @@
+meta {
+  name: Get catalog items, titles and art for one namespace
+  type: http
+  seq: 7
+}
+
+get {
+  url: https://{{epic_catalog_host}}/catalog/api/shared/namespace/{{epic_namespace}}/bulk/items?id={{epic_catalog_item_id}}&includeDLCDetails=true&includeMainGameDetails=true&country=GB&locale=en-GB
+  body: none
+  auth: bearer
+}
+
+params:query {
+  id: {{epic_catalog_item_id}}
+  includeDLCDetails: true
+  includeMainGameDetails: true
+  country: GB
+  locale: en-GB
+}
+
+auth:bearer {
+  token: {{process.env.EPIC_ACCESS_TOKEN}}
+}
+
+headers {
+  User-Agent: {{epic_user_agent}}
+}
+
+vars:pre-request {
+  epic_namespace: 33956bcb55d4452d8c47e16b94e294bd
+  epic_catalog_item_id: 729a86a5146640a2ace9e8c595414c56
+}
+
+docs {
+  Defaults are Among Us, from the Lele docs. Substitute a namespace and catalogItemId
+  from the library listing.
+  
+  Response is keyed by catalogItemId. Fields of interest: title, description, developer,
+  categories[].path, creationDate, releaseInfo[] (appId — this is the artifactId used by
+  the playtime endpoints), customAttributes, dlcItemList, mainGameItem, and keyImages[]
+  with types DieselGameBoxTall, DieselGameBox, DieselGameBoxLogo, DieselStoreFrontTall.
+  
+  mainGameItem present means the item is DLC. namespace "ue" or a categories path of
+  assets/asset-format/plugins/projects means Unreal Marketplace content.
+}

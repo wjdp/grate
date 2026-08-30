@@ -1,0 +1,55 @@
+meta {
+  name: epic
+  seq: 3
+}
+
+vars:pre-request {
+  epic_client_id: 34a02cf8f4414e29b15921876da36f9a
+  epic_client_secret: daafbccc737745039dffe53d94fc76cf
+  epic_user_agent: UELauncher/11.0.1-14907503+++Portal+Release-Live Windows/10.0.19041.1.256.64bit
+  epic_oauth_host: account-public-service-prod03.ol.epicgames.com
+  epic_launcher_host: launcher-public-service-prod06.ol.epicgames.com
+  epic_catalog_host: catalog-public-service-prod06.ol.epicgames.com
+  epic_library_host: library-service.live.use1a.on.epicgames.com
+}
+
+docs {
+  # Epic Games Store API
+  
+  Epic publish no third-party API. These requests use the Epic Games Launcher's own
+  OAuth client (`launcherAppClient2`), the same one legendary, Heroic and Lutris use.
+  Client id and secret are in `vars:pre-request` above.
+  
+  ## Getting authenticated
+  
+  1. Log in at https://www.epicgames.com/id/login in the browser, then open
+     https://www.epicgames.com/id/api/redirect?clientId=34a02cf8f4414e29b15921876da36f9a&responseType=code
+     (legendary's short link https://legendary.gl/epiclogin redirects to the same place)
+  2. The page body is JSON. Copy the `authorizationCode` value — it is not in the URL,
+     and it expires within a few minutes and is single use
+  3. Put it in `bruno/.env` as `EPIC_CODE`, then run "Get token"
+  4. Copy `access_token`, `refresh_token` and `account_id` from the response into
+     `EPIC_ACCESS_TOKEN`, `EPIC_REFRESH_TOKEN` and `EPIC_ACCOUNT_ID`
+  
+  Access tokens are short lived (hours). Re-run "Refresh token" rather than the whole
+  login flow. Tokens are bound to the client id they were issued for.
+  
+  Secrets are read from a gitignored `bruno/.env`: copy `bruno/.env.example` to
+  `bruno/.env` and fill in the values. Never commit `bruno/.env`.
+  
+  ## Notes
+  
+  - `artifactId` in the playtime endpoints is the library `appName` (== the catalog
+    item's `releaseInfo[].appId`), not the `catalogItemId`.
+  - The library endpoint returns identifiers only; titles and art need a catalog call
+    per (namespace, catalogItemId).
+  - Never call the playtime PUT endpoints — those write playtime to the account.
+  
+  ## References
+  
+  - https://github.com/derrod/legendary/blob/master/legendary/api/egs.py
+  - https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/blob/main/src/backend/storeManagers/legendary/library.ts
+  - https://github.com/lutris/lutris/blob/master/lutris/services/egs.py
+  - https://github.com/MixV2/EpicResearch
+  - https://github.com/LeleDerGrasshalmi/FortniteEndpointsDocumentation/tree/main/EpicGames/LibraryService
+}

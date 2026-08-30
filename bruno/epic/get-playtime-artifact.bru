@@ -1,0 +1,27 @@
+meta {
+  name: Get playtime for one artifact
+  type: http
+  seq: 9
+}
+
+get {
+  url: https://{{epic_library_host}}/library/api/public/playtime/account/{{process.env.EPIC_ACCOUNT_ID}}/artifact/{{epic_artifact_id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{process.env.EPIC_ACCESS_TOKEN}}
+}
+
+headers {
+  User-Agent: {{epic_user_agent}}
+}
+
+vars:pre-request {
+  epic_artifact_id: Fortnite
+}
+
+docs {
+  artifactId is the library appName, which is the catalog item's releaseInfo[].appId.
+}

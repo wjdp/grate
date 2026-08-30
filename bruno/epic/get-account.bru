@@ -1,0 +1,24 @@
+meta {
+  name: Get account info
+  type: http
+  seq: 4
+}
+
+get {
+  url: https://{{epic_oauth_host}}/account/api/public/account/{{process.env.EPIC_ACCOUNT_ID}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{process.env.EPIC_ACCESS_TOKEN}}
+}
+
+headers {
+  User-Agent: {{epic_user_agent}}
+}
+
+docs {
+  Own account returns displayName, country, preferredLanguage, email, lastLogin.
+  No avatar is exposed.
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Get playtime for all artifacts
+  type: http
+  seq: 8
+}
+
+get {
+  url: https://{{epic_library_host}}/library/api/public/playtime/account/{{process.env.EPIC_ACCOUNT_ID}}/all
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{process.env.EPIC_ACCESS_TOKEN}}
+}
+
+headers {
+  User-Agent: {{epic_user_agent}}
+}
+
+docs {
+  Returns [{accountId, artifactId, totalTime}]. totalTime is believed to be seconds —
+  confirm against the launcher's own "You've played" figure. No last-played timestamp
+  and no session history are returned.
+}

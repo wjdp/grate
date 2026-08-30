@@ -1,0 +1,29 @@
+meta {
+  name: Get launcher assets, installable Windows builds only
+  type: http
+  seq: 6
+}
+
+get {
+  url: https://{{epic_launcher_host}}/launcher/api/public/assets/Windows?label=Live
+  body: none
+  auth: bearer
+}
+
+params:query {
+  label: Live
+}
+
+auth:bearer {
+  token: {{process.env.EPIC_ACCESS_TOKEN}}
+}
+
+headers {
+  User-Agent: {{epic_user_agent}}
+}
+
+docs {
+  Legacy endpoint: appName, assetId, buildVersion, catalogItemId, labelName, namespace.
+  Misses third-party-managed and non-Windows titles, so the library endpoint is the
+  better primary source. Reported to be slow on large accounts.
+}

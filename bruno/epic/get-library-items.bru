@@ -1,0 +1,33 @@
+meta {
+  name: Get library items, everything owned
+  type: http
+  seq: 5
+}
+
+get {
+  url: https://{{epic_library_host}}/library/api/public/items?includeMetadata=true
+  body: none
+  auth: bearer
+}
+
+params:query {
+  includeMetadata: true
+  ~cursor: eyJvZmZzZXQiOjEwMH0=
+  ~limit: 100
+  ~platform: Windows
+  ~excludeNs: ue
+}
+
+auth:bearer {
+  token: {{process.env.EPIC_ACCESS_TOKEN}}
+}
+
+headers {
+  User-Agent: {{epic_user_agent}}
+}
+
+docs {
+  Records carry namespace, catalogItemId, appName, productId, sandboxName, sandboxType,
+  recordType and acquisitionDate — no titles. Page with
+  responseMetadata.nextCursor until it is absent; the cursor is base64 {"offset":N}.
+}

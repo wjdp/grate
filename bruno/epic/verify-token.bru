@@ -1,0 +1,28 @@
+meta {
+  name: Verify token, also returns account id and display name
+  type: http
+  seq: 3
+}
+
+get {
+  url: https://{{epic_oauth_host}}/account/api/oauth/verify?includePerms=true
+  body: none
+  auth: bearer
+}
+
+params:query {
+  includePerms: true
+}
+
+auth:bearer {
+  token: {{process.env.EPIC_ACCESS_TOKEN}}
+}
+
+headers {
+  User-Agent: {{epic_user_agent}}
+}
+
+docs {
+  Use this to check what the launcher client is actually allowed to read. The perms
+  list should include library:public:items and library:public:{accountId}:playtime:all.
+}

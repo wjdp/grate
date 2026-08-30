@@ -8,6 +8,7 @@ const TABLES = [
   "GameStateChange",
   "SteamUser",
   "GogIgnoredProduct",
+  "SteamAppInfo",
   "SteamGame",
   "GogGame",
   "Game",
@@ -16,11 +17,9 @@ const TABLES = [
 ];
 
 export async function flushDb() {
-  const sql = TABLES.map(
-    (table) => `delete
-                from ${table};`,
-  ).join("\n");
-  await prisma.$executeRawUnsafe(sql);
+  for (const table of TABLES) {
+    await prisma.$executeRawUnsafe(`delete from ${table};`);
+  }
 }
 
 export async function resetDb() {

@@ -20,8 +20,8 @@ const NO_PLAYTIME: FakeUserGameOverrides = {
 };
 
 describe("recordPlaytime", () => {
-  beforeEach(() => {
-    flushDb();
+  beforeEach(async () => {
+    await flushDb();
   });
   it("should record playtime", async () => {
     const steamGame = await createSteamGame();

@@ -6,8 +6,8 @@ import { flushDb } from "~/test/db";
 import prisma from "~/lib/prisma";
 
 describe("refreshGameAggregates", () => {
-  beforeEach(() => {
-    flushDb();
+  beforeEach(async () => {
+    await flushDb();
   });
 
   it("uses steam playtime and lastPlayedAt when only steam game present", async () => {

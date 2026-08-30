@@ -197,6 +197,10 @@ describe("updateGames", () => {
     expect(steamGame?.game.name).toBe("Brand New Game");
     expect(steamGame?.playtimeForever).toBe(userGame.playtime_forever);
     expect(steamGame?.appInfoState).toBe("NOT_FETCHED");
+    expect(steamGame?.game.playtimeMinutes).toBe(userGame.playtime_forever);
+    expect(steamGame?.game.lastPlayedAt).toStrictEqual(
+      new Date(userGame.rtime_last_played! * 1000),
+    );
   });
 
   it("updates an existing steam game", async () => {
@@ -215,8 +219,12 @@ describe("updateGames", () => {
     });
     expect(steamGame?.name).toBe("New Name");
     expect(steamGame?.playtimeForever).toBe(4321);
-    // The owning Game keeps its original name; only the SteamGame is renamed
-    expect(steamGame?.game.name).toBe("Old Name");
+    // The owning Game is renamed alongside the SteamGame
+    expect(steamGame?.game.name).toBe("New Name");
+    expect(steamGame?.game.playtimeMinutes).toBe(4321);
+    expect(steamGame?.game.lastPlayedAt).toStrictEqual(
+      new Date(userGame.rtime_last_played! * 1000),
+    );
   });
 
   it("returns the games reported by the steam api", async () => {

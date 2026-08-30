@@ -1,5 +1,6 @@
 import type { SteamGame, SteamGamePlaytime } from "@prisma/client";
 import prisma from "../prisma";
+import { refreshGameAggregates } from "~/lib/gameAggregates";
 import { getUserGames, getUserInfo, type UserGame } from "./api";
 import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
 
@@ -82,6 +83,7 @@ async function updateGame(game: UserGame) {
       hasWorkshop: game.has_workshop,
       hasDlc: game.has_dlc,
       hasLeaderboards: game.has_leaderboards,
+      game: { update: { name: game.name } },
     },
   });
   return updatedGame;
@@ -92,13 +94,16 @@ async function updateOrCreateGame(game: UserGame) {
   const existingGame = await prisma.steamGame.findFirst({
     where: { appId: game.appid },
   });
+  let steamGame: SteamGame;
   if (existingGame) {
-    const updatedGame = await updateGame(game);
-    console.log(`Updated game ${updatedGame.name}`);
-    return updatedGame;
+    steamGame = await updateGame(game);
+    console.log(`Updated game ${steamGame.name}`);
+  } else {
+    steamGame = await createGame(game);
+    console.log(`Created game ${steamGame.name}`);
   }
-  const createdGame = await createGame(game);
-  console.log(`Created game ${createdGame.name}`);
+  await refreshGameAggregates(steamGame.gameId);
+  return steamGame;
 }
 
 export async function updateGames() {

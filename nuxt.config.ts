@@ -16,6 +16,8 @@ export default defineNuxtConfig({
       "*/15 * * * *": "scheduled:update-steam-user",
       "30 * * * *": "scheduled:record-gog-playtimes",
       "5-59/15 * * * *": "scheduled:update-gog-user",
+      "45 * * * *": "scheduled:record-epic-playtimes",
+      "10-59/15 * * * *": "scheduled:update-epic-user",
     },
   },
   vite: {

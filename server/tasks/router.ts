@@ -9,6 +9,9 @@ import cacheSteamArt from "./queueable/cacheSteamArt";
 import updateGogUser from "./queueable/updateGogUser";
 import updateGogGames from "./queueable/updateGogGames";
 import recordGogPlaytimes from "./queueable/recordGogPlaytimes";
+import updateEpicUser from "./queueable/updateEpicUser";
+import updateEpicGames from "./queueable/updateEpicGames";
+import recordEpicPlaytimes from "./queueable/recordEpicPlaytimes";
 
 import type { TaskName } from "#shared/tasks";
 import type { Task } from "~/server/tasks/queue";
@@ -25,4 +28,7 @@ export const TaskMap: { [k in TaskName]: (task: Task) => Promise<void> } = {
   updateGogUser,
   updateGogGames,
   recordGogPlaytimes,
+  updateEpicUser,
+  updateEpicGames,
+  recordEpicPlaytimes,
 };

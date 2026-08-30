@@ -1,28 +1,32 @@
-import prisma from "~/lib/prisma";
-
-import * as child_process from "node:child_process";
+import { db } from "~~/lib/db";
+import {
+  game,
+  gameStateChange,
+  gogGame,
+  gogGamePlaytime,
+  gogIgnoredProduct,
+  gogUser,
+  steamAppInfo,
+  steamGame,
+  steamGamePlaytime,
+  steamUser,
+  user,
+} from "~~/db/schema";
 
 const TABLES = [
-  "SteamGamePlaytime",
-  "GogGamePlaytime",
-  "GameStateChange",
-  "SteamUser",
-  "GogIgnoredProduct",
-  "SteamAppInfo",
-  "SteamGame",
-  "GogGame",
-  "Game",
-  "User",
-  "GogUser",
+  steamGamePlaytime,
+  gogGamePlaytime,
+  gameStateChange,
+  steamUser,
+  gogIgnoredProduct,
+  steamAppInfo,
+  steamGame,
+  gogGame,
+  game,
+  user,
+  gogUser,
 ];
 
-export async function flushDb() {
-  for (const table of TABLES) {
-    await prisma.$executeRawUnsafe(`delete from ${table};`);
-  }
-}
-
-export async function resetDb() {
-  const command = "npx prisma migrate reset --force --skip-seed";
-  child_process.execSync(command, { stdio: "inherit" });
+export function flushDb() {
+  for (const table of TABLES) db.delete(table).run();
 }

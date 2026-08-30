@@ -1,6 +1,6 @@
 ---
 type: task
-status: in-progress
+status: done
 ---
 
 # Test infrastructure
@@ -11,11 +11,15 @@ status: in-progress
 - Test files ran in parallel against a single `test.db`; files flushed each other's rows mid-test. Fixed: `fileParallelism: false` in `vitest.config.ts`.
 - Coverage before today: three `recordPlaytime` cases and a store snapshot. Now: `lib/games`, `lib/gameAggregates`, `lib/steam/service`, `lib/gog/service` characterised.
 
+## Update 2026-08-30
+
+Coverage since grown: `lib/epic/service`, `lib/activity`, `lib/steam/store`, `db/migrate`, `db/realDb`, `shared/steam-profile` all tested. tRPC replaced by Nitro `/api` routes.
+
 ## Remaining
 
 1. ~~Per-file in-memory DB instead of a shared file, so parallelism can return.~~ Done: `DATABASE_URL=":memory:"` plus `test/setup.ts` running `runMigrations`; each file has its own module graph, hence its own database. `fileParallelism` is back to the default.
 2. ~~`pnpm test:db:create` must be run manually before tests and after every migration.~~ Done: script removed, no database file to create.
-3. HTTP-level tests for tRPC routers and Nitro routes (`/art/steam/...`, `/health`) via `@nuxt/test-utils` `setup()`. None exist.
-4. Component tests: only `.story.vue` files exist; no assertions.
-5. CI: no workflow runs tests. Add `lint:ci`, `typecheck`, `test --run`.
-6. Fixture generators (`lib/*/fixtures/fake.ts`) duplicate the Prisma schema by hand; consider `@anatine/zod-mock`-style generation from the zod API schemas so API shape changes fail loudly.
+3. ~~HTTP-level tests for tRPC routers and Nitro routes via `@nuxt/test-utils` `setup()`. None exist.~~ Done: `test/api/routes.e2e.test.ts` covers `/api/games`, `/api/games/:id`, `PATCH /api/games/:id/state`, `/api/tasks`; `test/api/artHealth.e2e.test.ts` covers `/health` and `/art/steam/...`, with `DATA_DIR` made env-overridable so the art route can be pointed at a fixture directory.
+4. ~~Component tests: none. (`.story.vue` files removed in the UI overhaul.)~~ Done for the logic-bearing components: `app/components/{HistoryGrid,GameStateControl,GameProviderRows}.test.ts`, colocated as `lib/` tests are. `happy-dom` plus a per-file `// @vitest-environment nuxt` pragma and `mountSuspended` from `@nuxt/test-utils/runtime` gets auto-imports and Nuxt UI components; everything else stays on the node environment. `HistoryGrid` covers the leap-year/weekday-offset grid, cell titles and the amber buckets; `GameStateControl` drives the real `USelectMenu` and asserts the emitted state (including the null unsorted case); `GameProviderRows` covers row ordering across providers, playtime/last-played fallbacks, the protocol URLs, the split control being hidden for a single row, and split success/failure with `/api/games/split` stubbed via `registerEndpoint` and `navigateTo` mocked.
+5. ~~CI: no workflow runs tests.~~ Done: `main.yml` gates release on `lint:ci`, `typecheck`, `vitest`.
+6. ~~Fixture generators (`lib/*/fixtures/fake.ts`, now steam/gog/epic) duplicate the Drizzle schema by hand; consider `@anatine/zod-mock`-style generation from the zod API schemas so API shape changes fail loudly.~~ Done: the fixtures now parse through the exported zod API schemas, so a shape change fails loudly. Caveat: the Epic and Steam schemas are loose, so renaming an optional field still passes silently.

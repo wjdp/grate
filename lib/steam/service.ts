@@ -352,6 +352,12 @@ function doesPlaytimeRecordMatchCurrentState(
   );
 }
 
+function steamLastPlayedAt(userGame: UserGame): Date | null {
+  return userGame.rtime_last_played
+    ? new Date(userGame.rtime_last_played * 1000)
+    : null;
+}
+
 export async function recordPlaytime(userGame: UserGame, now: Date) {
   const [lastPlaytimeRecord, penultimatePlaytimeRecord] = db
     .select()
@@ -360,6 +366,32 @@ export async function recordPlaytime(userGame: UserGame, now: Date) {
     .orderBy(desc(steamGamePlaytime.timestampEnd))
     .limit(2)
     .all();
+  const lastPlayedAt = steamLastPlayedAt(userGame);
+  if (!lastPlaytimeRecord && lastPlayedAt && lastPlayedAt < now) {
+    const values = {
+      steamAppId: userGame.appid,
+      playtimeForever: userGame.playtime_forever,
+      playtime2weeks: userGame.playtime_2weeks,
+      playtimeWindowsForever: userGame.playtime_windows_forever,
+      playtimeMacForever: userGame.playtime_mac_forever,
+      playtimeLinuxForever: userGame.playtime_linux_forever,
+      playtimeDeckForever: userGame.playtime_deck_forever,
+      playtimeDisconnected: userGame.playtime_disconnected,
+      rTimeLastPlayed: userGame.rtime_last_played,
+    };
+    db.insert(steamGamePlaytime)
+      .values({ ...values, timestampStart: null, timestampEnd: lastPlayedAt })
+      .run();
+    const groundedRecord = db
+      .insert(steamGamePlaytime)
+      .values({ ...values, timestampStart: lastPlayedAt, timestampEnd: now })
+      .returning()
+      .get();
+    console.log(
+      `Recorded initial playtime for ${userGame.name} grounded on its last session`,
+    );
+    return groundedRecord;
+  }
   if (
     lastPlaytimeRecord &&
     doesPlaytimeRecordMatchCurrentState(lastPlaytimeRecord, userGame) &&

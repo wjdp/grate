@@ -82,7 +82,10 @@ describe("recordPlaytime", () => {
   });
   it("should record playtime", async () => {
     const steamGame = createSteamGame();
-    const userGame = generateFakeUserGame(steamGame);
+    const userGame = {
+      ...generateFakeUserGame(steamGame),
+      rtime_last_played: undefined,
+    };
     const now = new Date();
     const record = await recordPlaytime(userGame, now);
     expect(record).toBeDefined();
@@ -92,7 +95,10 @@ describe("recordPlaytime", () => {
   });
   it("should record and extend zero playtime in single record", async () => {
     const steamGame = createSteamGame();
-    const userGame = generateFakeUserGame(steamGame, NO_PLAYTIME);
+    const userGame = {
+      ...generateFakeUserGame(steamGame, NO_PLAYTIME),
+      rtime_last_played: undefined,
+    };
     userGame.playtime_2weeks = undefined;
     const nowFirst = DateTime.now();
     const nowSecond = nowFirst.plus({ hours: 1 });
@@ -117,22 +123,40 @@ describe("recordPlaytime", () => {
     // This test simulates an initial import, followed by two play sessions
     // with a break in between.
     const steamGame = createSteamGame();
-    const userGame1 = generateFakeUserGame(steamGame, { playtime_forever: 10 });
+    const userGame1 = {
+      ...generateFakeUserGame(steamGame, { playtime_forever: 10 }),
+      rtime_last_played: undefined,
+    };
     const nowFirst = DateTime.now();
     await recordPlaytime(userGame1, nowFirst.toJSDate());
-    const userGame2 = generateFakeUserGame(steamGame, { playtime_forever: 20 });
+    const userGame2 = {
+      ...generateFakeUserGame(steamGame, { playtime_forever: 20 }),
+      rtime_last_played: undefined,
+    };
     const nowSecond = nowFirst.plus({ hours: 1 });
     await recordPlaytime(userGame2, nowSecond.toJSDate());
-    const userGame3 = generateFakeUserGame(steamGame, { playtime_forever: 20 });
+    const userGame3 = {
+      ...generateFakeUserGame(steamGame, { playtime_forever: 20 }),
+      rtime_last_played: undefined,
+    };
     const nowThird = nowSecond.plus({ hours: 1 });
     await recordPlaytime(userGame3, nowThird.toJSDate());
-    const userGame4 = generateFakeUserGame(steamGame, { playtime_forever: 30 });
+    const userGame4 = {
+      ...generateFakeUserGame(steamGame, { playtime_forever: 30 }),
+      rtime_last_played: undefined,
+    };
     const nowFourth = nowThird.plus({ hours: 1 });
     await recordPlaytime(userGame4, nowFourth.toJSDate());
-    const userGame5 = generateFakeUserGame(steamGame, { playtime_forever: 30 });
+    const userGame5 = {
+      ...generateFakeUserGame(steamGame, { playtime_forever: 30 }),
+      rtime_last_played: undefined,
+    };
     const nowFifth = nowFourth.plus({ hours: 1 });
     await recordPlaytime(userGame5, nowFifth.toJSDate());
-    const userGame6 = generateFakeUserGame(steamGame, { playtime_forever: 30 });
+    const userGame6 = {
+      ...generateFakeUserGame(steamGame, { playtime_forever: 30 }),
+      rtime_last_played: undefined,
+    };
     const nowSixth = nowFifth.plus({ hours: 1 });
     await recordPlaytime(userGame6, nowSixth.toJSDate());
 
@@ -148,6 +172,86 @@ describe("recordPlaytime", () => {
     ]);
     const playtimes = records.map((r) => r.playtimeForever);
     expect(playtimes).toStrictEqual([10, 20, 20, 30, 30]);
+  });
+  it("grounds the initial import on the last session", async () => {
+    const steamGame = createSteamGame();
+    const now = DateTime.now();
+    const lastPlayed = now.minus({ days: 30 });
+    const userGame = {
+      ...generateFakeUserGame(steamGame, { playtime_forever: 235 }),
+      rtime_last_played: Math.floor(lastPlayed.toSeconds()),
+    };
+    const record = await recordPlaytime(userGame, now.toJSDate());
+
+    const records = await getPlaytimeRecords(steamGame.appId);
+    expect(records).toHaveLength(2);
+    const groundedAt = new Date(userGame.rtime_last_played * 1000);
+    expect(
+      records.map((r) => [r.timestampStart, r.timestampEnd]),
+    ).toStrictEqual([
+      [null, groundedAt],
+      [groundedAt, now.toJSDate()],
+    ]);
+    expect(records.map((r) => r.playtimeForever)).toStrictEqual([235, 235]);
+    expect(records.map((r) => r.rTimeLastPlayed)).toStrictEqual([
+      userGame.rtime_last_played,
+      userGame.rtime_last_played,
+    ]);
+    expect(record.id).toBe(records[1].id);
+  });
+  it("records a single row when the last session is unknown", async () => {
+    const steamGame = createSteamGame();
+    const userGame = {
+      ...generateFakeUserGame(steamGame, { playtime_forever: 235 }),
+      rtime_last_played: undefined,
+    };
+    await recordPlaytime(userGame, new Date());
+    expect(await getPlaytimeRecords(steamGame.appId)).toHaveLength(1);
+  });
+  it("records a single row when the game has never been played", async () => {
+    const steamGame = createSteamGame();
+    const userGame = {
+      ...generateFakeUserGame(steamGame, NO_PLAYTIME),
+      rtime_last_played: 0,
+    };
+    await recordPlaytime(userGame, new Date());
+    const records = await getPlaytimeRecords(steamGame.appId);
+    expect(records).toHaveLength(1);
+    expect(records[0].timestampStart).toBeNull();
+  });
+  it("extends the grounded import on a later run", async () => {
+    const steamGame = createSteamGame();
+    const first = DateTime.now();
+    const lastPlayed = first.minus({ days: 30 });
+    const rtime_last_played = Math.floor(lastPlayed.toSeconds());
+    const groundedAt = new Date(rtime_last_played * 1000);
+    await recordPlaytime(
+      {
+        ...generateFakeUserGame(steamGame, { playtime_forever: 235 }),
+        rtime_last_played,
+      },
+      first.toJSDate(),
+    );
+    const second = first.plus({ hours: 1 });
+    await recordPlaytime(
+      {
+        ...generateFakeUserGame(steamGame, { playtime_forever: 300 }),
+        rtime_last_played,
+      },
+      second.toJSDate(),
+    );
+
+    const records = await getPlaytimeRecords(steamGame.appId);
+    expect(
+      records.map((r) => [r.timestampStart, r.timestampEnd]),
+    ).toStrictEqual([
+      [null, groundedAt],
+      [groundedAt, first.toJSDate()],
+      [first.toJSDate(), second.toJSDate()],
+    ]);
+    expect(records.map((r) => r.playtimeForever)).toStrictEqual([
+      235, 235, 300,
+    ]);
   });
 });
 
@@ -434,8 +538,14 @@ describe("recordPlaytimes", () => {
     const firstSteamGame = createSteamGame();
     const secondSteamGame = createSteamGame();
     vi.mocked(getUserGames).mockResolvedValue([
-      generateFakeUserGame(firstSteamGame, { playtime_forever: 11 }),
-      generateFakeUserGame(secondSteamGame, { playtime_forever: 22 }),
+      {
+        ...generateFakeUserGame(firstSteamGame, { playtime_forever: 11 }),
+        rtime_last_played: undefined,
+      },
+      {
+        ...generateFakeUserGame(secondSteamGame, { playtime_forever: 22 }),
+        rtime_last_played: undefined,
+      },
     ]);
     await recordPlaytimes();
     const firstRecords = await getPlaytimeRecords(firstSteamGame.appId);

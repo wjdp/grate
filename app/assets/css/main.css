@@ -46,6 +46,9 @@
   --ui-border: var(--color-grey-300);
   --ui-border-muted: var(--color-grey-300);
   --ui-border-accented: var(--color-grey-400);
+  /* Nuxt UI picks shade 500 for light mode; #fed250 is far too pale to carry
+     white text, so light mode uses the darker end of the amber family. */
+  --ui-primary: var(--ui-color-primary-800);
 }
 
 .dark {

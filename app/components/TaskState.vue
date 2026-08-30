@@ -1,27 +1,38 @@
 <script setup lang="ts">
 import type { SseTask } from "~~/lib/hooks";
+import type { BadgeProps } from "@nuxt/ui";
 
-const props = defineProps<{
+defineProps<{
   state: SseTask["state"];
 }>();
 
-const NameMap: Record<SseTask["state"], string> = {
+const Labels: Record<SseTask["state"], string> = {
   pending: "Pending",
   in_progress: "Running",
   done: "Done",
   failed: "Failed",
 };
+
+const Colours: Record<SseTask["state"], BadgeProps["color"]> = {
+  pending: "neutral",
+  in_progress: "info",
+  done: "success",
+  failed: "error",
+};
+
+const Icons: Record<SseTask["state"], string> = {
+  pending: "i-lucide-clock",
+  in_progress: "i-lucide-loader",
+  done: "i-lucide-check",
+  failed: "i-lucide-triangle-alert",
+};
 </script>
 
 <template>
-  <span
-    class="rounded px-2 py-1 font-semibold"
-    :class="{
-      'bg-grey-600': state === 'pending',
-      'bg-blue-600': state === 'in_progress',
-      'bg-green-600': state === 'done',
-      'bg-red-600': state === 'failed',
-    }"
-    >{{ NameMap[state] }}</span
-  >
+  <UBadge
+    variant="soft"
+    :color="Colours[state]"
+    :icon="Icons[state]"
+    :label="Labels[state]"
+  />
 </template>

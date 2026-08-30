@@ -31,5 +31,11 @@ const imgIconUrl = computed(() => {
 </script>
 
 <template>
-  <img v-if="imgIconUrl" :src="imgIconUrl" :alt="`${game.name} Icon`" />
+  <img v-if="imgIconUrl" :src="imgIconUrl" :alt="`${game.name} icon`" />
+  <UAvatar
+    v-else
+    icon="i-lucide-gamepad-2"
+    :alt="game.name"
+    class="size-full rounded-md"
+  />
 </template>

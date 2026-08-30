@@ -2,7 +2,9 @@ import { asc, desc, eq, isNotNull } from "drizzle-orm";
 import {
   game,
   gameStateChange,
+  gogGame,
   gogGamePlaytime,
+  steamGame,
   steamGamePlaytime,
 } from "~~/db/schema";
 import { db } from "~~/lib/db";
@@ -15,11 +17,23 @@ export interface GamePlaytimeRecord {
   timestampEnd: Date;
   playtimeMinutes: number;
   provider: PlaytimeProvider;
+  providerId: number;
+  providerName: string;
 }
+
+const providerRows = {
+  steamGames: { orderBy: asc(steamGame.appId) },
+  gogGames: { orderBy: asc(gogGame.gogId) },
+} as const;
+
+const providerRowsWithAppInfo = {
+  steamGames: { orderBy: asc(steamGame.appId), with: { appInfo: true } },
+  gogGames: { orderBy: asc(gogGame.gogId) },
+} as const;
 
 export async function getGames() {
   return await db.query.game.findMany({
-    with: { steamGame: true, gogGame: true },
+    with: providerRows,
     orderBy: asc(game.name),
   });
 }
@@ -28,7 +42,7 @@ export async function getGame(id: number) {
   return (
     (await db.query.game.findFirst({
       where: eq(game.id, id),
-      with: { steamGame: { with: { appInfo: true } }, gogGame: true },
+      with: providerRowsWithAppInfo,
     })) ?? null
   );
 }
@@ -48,17 +62,17 @@ export async function getGamePlaytimes(
 ): Promise<GamePlaytimeRecord[]> {
   const gameRecord = await db.query.game.findFirst({
     where: eq(game.id, id),
-    with: { steamGame: true, gogGame: true },
+    with: providerRows,
   });
   if (!gameRecord) {
     throw new Error("Game not found");
   }
   const records: GamePlaytimeRecord[] = [];
-  if (gameRecord.steamGame) {
+  for (const steamRow of gameRecord.steamGames) {
     const steamRecords = await db
       .select()
       .from(steamGamePlaytime)
-      .where(eq(steamGamePlaytime.steamAppId, gameRecord.steamGame.appId))
+      .where(eq(steamGamePlaytime.steamAppId, steamRow.appId))
       .all();
     records.push(
       ...steamRecords.map((record) => ({
@@ -66,14 +80,16 @@ export async function getGamePlaytimes(
         timestampEnd: record.timestampEnd,
         playtimeMinutes: record.playtimeForever ?? 0,
         provider: "steam" as const,
+        providerId: steamRow.appId,
+        providerName: steamRow.name,
       })),
     );
   }
-  if (gameRecord.gogGame) {
+  for (const gogRow of gameRecord.gogGames) {
     const gogRecords = await db
       .select()
       .from(gogGamePlaytime)
-      .where(eq(gogGamePlaytime.gogId, gameRecord.gogGame.gogId))
+      .where(eq(gogGamePlaytime.gogId, gogRow.gogId))
       .all();
     records.push(
       ...gogRecords.map((record) => ({
@@ -81,6 +97,8 @@ export async function getGamePlaytimes(
         timestampEnd: record.timestampEnd,
         playtimeMinutes: record.playtimeMinutes,
         provider: "gog" as const,
+        providerId: gogRow.gogId,
+        providerName: gogRow.name,
       })),
     );
   }
@@ -89,7 +107,7 @@ export async function getGamePlaytimes(
 
 export async function getRecentGames(limit: number = 6) {
   return await db.query.game.findMany({
-    with: { steamGame: { with: { appInfo: true } }, gogGame: true },
+    with: providerRowsWithAppInfo,
     where: isNotNull(game.lastPlayedAt),
     orderBy: desc(game.lastPlayedAt),
     limit,

@@ -32,24 +32,26 @@ const updateGameState = async (state: GameState | null) => {
   }
 };
 
-const openSteamGame = () => {
-  window.open(
-    `steam://nav/games/details/${game.value?.steamGame?.appId}`,
-    "_self",
-  );
+const openSteamGame = (appId: number) => {
+  window.open(`steam://nav/games/details/${appId}`, "_self");
 };
 
-const openGogGame = () => {
-  window.open(
-    `goggalaxy://openGameView/${game.value?.gogGame?.gogId}`,
-    "_self",
-  );
+const openGogGame = (gogId: number) => {
+  window.open(`goggalaxy://openGameView/${gogId}`, "_self");
 };
+
+const steamGames = computed(() => game.value?.steamGames ?? []);
+const gogGames = computed(() => game.value?.gogGames ?? []);
+const hasMultipleProviderRows = computed(
+  () => steamGames.value.length + gogGames.value.length > 1,
+);
+const providerLabel = (base: string, name: string) =>
+  hasMultipleProviderRows.value ? `${base}: ${name}` : base;
 
 const description = computed(
   () =>
-    game.value?.steamGame?.appInfo?.shortDescription ??
-    game.value?.gogGame?.description ??
+    steamGames.value[0]?.appInfo?.shortDescription ??
+    gogGames.value[0]?.description ??
     null,
 );
 </script>
@@ -68,13 +70,21 @@ const description = computed(
       {{ description }}
       <img v-if="art?.header" :src="art.header" />
     </p>
-    <div v-if="game?.steamGame" class="my-4">
-      <Button @click="openSteamGame" class="mr-2">Open in Steam</Button>
-      <PlayButton :href="`steam://run/${game.steamGame.appId}`" />
+    <div
+      v-for="steamRow in steamGames"
+      :key="`steam-${steamRow.appId}`"
+      class="my-4"
+    >
+      <Button @click="openSteamGame(steamRow.appId)" class="mr-2">
+        {{ providerLabel("Open in Steam", steamRow.name) }}
+      </Button>
+      <PlayButton :href="`steam://run/${steamRow.appId}`" />
     </div>
-    <div v-else-if="game?.gogGame" class="my-4">
-      <Button @click="openGogGame" class="mr-2">Open in GOG</Button>
-      <PlayButton :href="`goggalaxy://runGame/${game.gogGame.gogId}`" />
+    <div v-for="gogRow in gogGames" :key="`gog-${gogRow.gogId}`" class="my-4">
+      <Button @click="openGogGame(gogRow.gogId)" class="mr-2">
+        {{ providerLabel("Open in GOG", gogRow.name) }}
+      </Button>
+      <PlayButton :href="`goggalaxy://runGame/${gogRow.gogId}`" />
     </div>
     <table v-if="playtimes" class="my-4">
       <thead>
@@ -82,6 +92,7 @@ const description = computed(
           <th>Start</th>
           <th>End</th>
           <th>Provider</th>
+          <th>Name</th>
           <th>Running total</th>
         </tr>
       </thead>
@@ -103,6 +114,7 @@ const description = computed(
           </td>
           <td class="p-1">{{ formatTimestamp(playtime.timestampEnd) }}</td>
           <td class="p-1">{{ playtime.provider }}</td>
+          <td class="p-1">{{ playtime.providerName }}</td>
           <td class="p-1">{{ playtime.playtimeMinutes }}</td>
         </tr>
       </tbody>

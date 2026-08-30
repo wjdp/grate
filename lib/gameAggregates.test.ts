@@ -53,6 +53,25 @@ describe("refreshGameAggregates", () => {
     expect(gogGame.gogId).toBeDefined();
   });
 
+  it("sums across two gog rows on one game and takes the max lastPlayedAt", async () => {
+    const firstLastPlayedAt = new Date("2024-01-01T00:00:00.000Z");
+    const secondLastPlayedAt = new Date("2024-06-01T00:00:00.000Z");
+    const first = createGogGame({
+      name: "The Witcher 3: Wild Hunt",
+      playtimeMinutes: 200,
+      lastPlayedAt: firstLastPlayedAt,
+    });
+    createGogGame({
+      gameId: first.gameId,
+      name: "The Witcher 3: Wild Hunt GOTY",
+      playtimeMinutes: 300,
+      lastPlayedAt: secondLastPlayedAt,
+    });
+    const game = await refreshGameAggregates(first.gameId);
+    expect(game.playtimeMinutes).toBe(500);
+    expect(game.lastPlayedAt).toStrictEqual(secondLastPlayedAt);
+  });
+
   it("defaults to zero playtime and null lastPlayedAt when neither present", async () => {
     const bareGame = createGame({ name: "Bare" });
     const game = await refreshGameAggregates(bareGame.id);

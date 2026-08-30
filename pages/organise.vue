@@ -23,8 +23,8 @@ const gamesToOrganise = computed(() =>
 const theGame = ref();
 const description = computed(
   () =>
-    theGame.value?.steamGame?.appInfo?.shortDescription ??
-    theGame.value?.gogGame?.description ??
+    theGame.value?.steamGames?.[0]?.appInfo?.shortDescription ??
+    theGame.value?.gogGames?.[0]?.description ??
     null,
 );
 const theArt = ref<ArtUrls | null>();

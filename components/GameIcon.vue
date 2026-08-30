@@ -1,6 +1,10 @@
 <script lang="ts" setup>
 import type { GameWithProviders } from "~/shared/types/Game";
-import { getGogIconUrl } from "~/shared/art";
+import {
+  getGogIconUrl,
+  getPrimaryGogGame,
+  getPrimarySteamGame,
+} from "~/shared/art";
 import { computed } from "vue";
 
 const props = defineProps<{
@@ -8,11 +12,13 @@ const props = defineProps<{
 }>();
 
 const imgIconUrl = computed(() => {
-  if (props.game.steamGame) {
-    return `/art/steam/${props.game.steamGame.appId}/icon`;
+  const steamGame = getPrimarySteamGame(props.game);
+  if (steamGame) {
+    return `/art/steam/${steamGame.appId}/icon`;
   }
-  if (props.game.gogGame) {
-    return getGogIconUrl(props.game.gogGame);
+  const gogGame = getPrimaryGogGame(props.game);
+  if (gogGame) {
+    return getGogIconUrl(gogGame);
   }
   return null;
 });

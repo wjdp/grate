@@ -35,7 +35,7 @@ const GOG_ICON_FORMATTER = "glx_icon_square";
 
 export function getGogIconUrl(
   gogGame: Pick<
-    NonNullable<GameWithProviders["gogGame"]>,
+    GameWithProviders["gogGames"][number],
     "iconSquareUrl" | "iconUrl"
   >,
 ): string | null {
@@ -45,9 +45,17 @@ export function getGogIconUrl(
   );
 }
 
+export function getPrimarySteamGame(game: GameWithProviders) {
+  return game.steamGames[0] ?? null;
+}
+
+export function getPrimaryGogGame(game: GameWithProviders) {
+  return game.gogGames[0] ?? null;
+}
+
 export function getGameArtUrls(game: GameWithProviders): ArtUrls | null {
-  if (game.steamGame) {
-    const { steamGame } = game;
+  const steamGame = getPrimarySteamGame(game);
+  if (steamGame) {
     return {
       header: `${ART_URL_BASE_PATH}/${steamGame.appId}/header`,
       poster: `${ART_URL_BASE_PATH}/${steamGame.appId}/poster`,
@@ -55,8 +63,8 @@ export function getGameArtUrls(game: GameWithProviders): ArtUrls | null {
       background: `${ART_URL_BASE_PATH}/${steamGame.appId}/backgroundV6B`,
     };
   }
-  if (game.gogGame) {
-    const { gogGame } = game;
+  const gogGame = getPrimaryGogGame(game);
+  if (gogGame) {
     const logo = resolveGogImageUrl(gogGame.logoUrl, GOG_LOGO_FORMATTER);
     const boxArt = resolveGogImageUrl(
       gogGame.boxArtImageUrl,

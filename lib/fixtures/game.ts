@@ -30,13 +30,14 @@ export function createGame(overrides: Partial<NewGame> = {}): Game {
 export function createSteamGame(
   overrides: Partial<NewSteamGame> = {},
 ): SteamGame {
-  const linkedGame = createGame({ name: overrides.name });
+  const gameId = overrides.gameId ?? createGame({ name: overrides.name }).id;
+  const name = overrides.name ?? faker.commerce.productName();
   return db
     .insert(steamGame)
     .values({
-      gameId: linkedGame.id,
+      gameId,
+      name,
       appId: faker.number.int({ min: 1, max: 2_000_000_000 }),
-      name: linkedGame.name,
       playtimeForever: faker.number.int({ min: 0, max: 10_000 }),
       playtime2weeks: faker.number.int({ min: 0, max: 1000 }),
       playtimeWindowsForever: faker.number.int({ min: 0, max: 10_000 }),
@@ -61,13 +62,14 @@ export function createSteamGame(
 }
 
 export function createGogGame(overrides: Partial<NewGogGame> = {}): GogGame {
-  const linkedGame = createGame({ name: overrides.name });
+  const gameId = overrides.gameId ?? createGame({ name: overrides.name }).id;
+  const name = overrides.name ?? faker.commerce.productName();
   return db
     .insert(gogGame)
     .values({
-      gameId: linkedGame.id,
+      gameId,
+      name,
       gogId: faker.number.int({ min: 1, max: 2_000_000_000 }),
-      name: linkedGame.name,
       tags: [],
       properties: [],
       ...overrides,

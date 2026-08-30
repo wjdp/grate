@@ -18,18 +18,26 @@ function maxDate(a: Date | null, b: Date | null): Date | null {
 export async function refreshGameAggregates(gameId: number): Promise<Game> {
   const gameRecord = await db.query.game.findFirst({
     where: eq(game.id, gameId),
-    with: { steamGame: true, gogGame: true },
+    with: { steamGames: true, gogGames: true },
   });
   if (!gameRecord) {
     throw new Error(`Game ${gameId} not found`);
   }
   const playtimeMinutes =
-    (gameRecord.steamGame?.playtimeForever ?? 0) +
-    (gameRecord.gogGame?.playtimeMinutes ?? 0);
-  const lastPlayedAt = maxDate(
-    steamLastPlayedAt(gameRecord.steamGame?.rTimeLastPlayed),
-    gameRecord.gogGame?.lastPlayedAt ?? null,
-  );
+    gameRecord.steamGames.reduce(
+      (total, row) => total + (row.playtimeForever ?? 0),
+      0,
+    ) +
+    gameRecord.gogGames.reduce(
+      (total, row) => total + (row.playtimeMinutes ?? 0),
+      0,
+    );
+  const lastPlayedAt = [
+    ...gameRecord.steamGames.map((row) =>
+      steamLastPlayedAt(row.rTimeLastPlayed),
+    ),
+    ...gameRecord.gogGames.map((row) => row.lastPlayedAt),
+  ].reduce<Date | null>(maxDate, null);
   return db
     .update(game)
     .set({ playtimeMinutes, lastPlayedAt })

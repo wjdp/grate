@@ -37,7 +37,9 @@ Migration: drizzle generate → one SQL file (index drop/recreate). No data migr
 ```ts
 mergeGames(targetId: number, sourceIds: number[]): Promise<Game>
 ```
+
 Transaction:
+
 1. Reject if `sourceIds` contains `targetId`, or any id missing.
 2. `UPDATE SteamGame/GogGame SET gameId = target WHERE gameId IN sources`.
 3. `UPDATE GameStateChange SET gameId = target WHERE gameId IN sources`.
@@ -50,6 +52,7 @@ Target keeps its `name`. The UI picks direction, which is the user's way of choo
 ```ts
 splitGame(provider: "steam" | "gog", providerId: number): Promise<Game>
 ```
+
 Transaction: refuse if the row's `Game` has only one provider row (no-op, return existing). Otherwise insert a new `Game` named from the provider row (`state` null, no history), re-point the provider row, refresh aggregates on both `Game`s.
 
 Both exported through `server/trpc/routers/games.ts` as `mergeGames`, `splitGame` mutations.
@@ -71,6 +74,7 @@ Both exported through `server/trpc/routers/games.ts` as `mergeGames`, `splitGame
 ## UI
 
 `pages/game/[id].vue`:
+
 - "Merge into…" button → picker over `games` (client-side filter by name, excludes self). Confirm shows both names, provider rows, playtime, and states; states that would be lost are called out. On confirm: `mergeGames({ targetId: picked, sourceIds: [this] })`, navigate to target.
 - Also offer the reverse ("Merge … into this") so the user can keep the current page's name/state without opening the other game.
 - Provider rows section: each row lists provider, provider name, id, playtime; "Split" button (hidden when only one row) → `splitGame`, navigate to new `Game`.
@@ -80,6 +84,7 @@ No suggestions UI in this task.
 ## Tests
 
 `lib/games.test.ts`:
+
 - merge steam+gog → one `Game`, two rows, playtime summed, lastPlayed max, state/history moved, source deleted.
 - merge gog+gog (Witcher case) → both `GogGame` rows on target, `getGamePlaytimes` returns both with distinct `providerId`.
 - target state null + source state set → target adopts it with a `GameStateChange`.

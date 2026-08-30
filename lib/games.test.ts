@@ -53,17 +53,34 @@ describe("getGames", () => {
     ]);
   });
 
-  it("includes steamGame and gogGame, null when the provider is absent", async () => {
+  it("includes provider rows, empty when the provider is absent", async () => {
     const steamGame = createSteamGame({ name: "Aperture Desk Job" });
     createGame({ name: "Blue Prince" });
     const gogGame = createGogGame({ name: "Cyberpunk 2077" });
     const games = await getGames();
-    expect(games[0].steamGame?.appId).toBe(steamGame.appId);
-    expect(games[0].gogGame).toBeNull();
-    expect(games[1].steamGame).toBeNull();
-    expect(games[1].gogGame).toBeNull();
-    expect(games[2].gogGame?.gogId).toBe(gogGame.gogId);
-    expect(games[2].steamGame).toBeNull();
+    expect(games[0].steamGames.map((row) => row.appId)).toStrictEqual([
+      steamGame.appId,
+    ]);
+    expect(games[0].gogGames).toStrictEqual([]);
+    expect(games[1].steamGames).toStrictEqual([]);
+    expect(games[1].gogGames).toStrictEqual([]);
+    expect(games[2].gogGames.map((row) => row.gogId)).toStrictEqual([
+      gogGame.gogId,
+    ]);
+    expect(games[2].steamGames).toStrictEqual([]);
+  });
+
+  it("returns several rows of the same provider on one game", async () => {
+    const first = createGogGame({ name: "The Witcher 3: Wild Hunt" });
+    const second = createGogGame({
+      gameId: first.gameId,
+      name: "The Witcher 3: Wild Hunt GOTY",
+    });
+    const games = await getGames();
+    expect(games).toHaveLength(1);
+    expect(games[0].gogGames.map((row) => row.gogId)).toStrictEqual(
+      [first.gogId, second.gogId].sort((a, b) => a - b),
+    );
   });
 });
 
@@ -105,20 +122,20 @@ describe("getGame", () => {
       .run();
     const game = await getGame(steamGame.gameId);
     expect(game?.name).toBe("Portal 2");
-    expect(game?.steamGame?.appInfo?.name).toBe("Portal 2");
+    expect(game?.steamGames[0]?.appInfo?.name).toBe("Portal 2");
   });
 
-  it("returns null providers for a game with neither", async () => {
+  it("returns no provider rows for a game with neither", async () => {
     const bareGame = createGame({ name: "Tunic" });
     const game = await getGame(bareGame.id);
-    expect(game?.steamGame).toBeNull();
-    expect(game?.gogGame).toBeNull();
+    expect(game?.steamGames).toStrictEqual([]);
+    expect(game?.gogGames).toStrictEqual([]);
   });
 
-  it("returns the game with its gogGame", async () => {
+  it("returns the game with its gog row", async () => {
     const gogGame = createGogGame({ name: "Baldur's Gate 3" });
     const game = await getGame(gogGame.gameId);
-    expect(game?.gogGame?.gogId).toBe(gogGame.gogId);
+    expect(game?.gogGames[0]?.gogId).toBe(gogGame.gogId);
   });
 });
 
@@ -207,8 +224,42 @@ describe("getGamePlaytimes", () => {
         timestampEnd: new Date("2024-01-02T00:00:00.000Z"),
         playtimeMinutes: 42,
         provider: "gog",
+        providerId: gogGame.gogId,
+        providerName: gogGame.name,
       },
     ]);
+  });
+
+  it("returns a record per provider row when one game owns two gog rows", async () => {
+    const first = createGogGame({ name: "The Witcher 3: Wild Hunt" });
+    const second = createGogGame({
+      gameId: first.gameId,
+      name: "The Witcher 3: Wild Hunt GOTY",
+    });
+    db.insert(gogGamePlaytimeTable)
+      .values({
+        gogId: first.gogId,
+        timestampStart: new Date("2024-01-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-01-02T00:00:00.000Z"),
+        playtimeMinutes: 10,
+      })
+      .run();
+    db.insert(gogGamePlaytimeTable)
+      .values({
+        gogId: second.gogId,
+        timestampStart: new Date("2024-02-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-02-02T00:00:00.000Z"),
+        playtimeMinutes: 20,
+      })
+      .run();
+    const playtimes = await getGamePlaytimes(first.gameId);
+    expect(playtimes).toHaveLength(2);
+    expect(
+      playtimes.map((playtime) => playtime.providerId).sort((a, b) => a - b),
+    ).toStrictEqual([first.gogId, second.gogId].sort((a, b) => a - b));
+    expect(new Set(playtimes.map((playtime) => playtime.providerName))).toEqual(
+      new Set([first.name, second.name]),
+    );
   });
 
   it("merges both providers, ordering nulls last", async () => {
@@ -288,7 +339,7 @@ describe("getRecentGames", () => {
       "Middle",
       "Oldest",
     ]);
-    expect(games[1].gogGame?.gogId).toBe(gogGame.gogId);
+    expect(games[1].gogGames[0]?.gogId).toBe(gogGame.gogId);
   });
 
   it("defaults to a limit of six", async () => {

@@ -1,11 +1,12 @@
 // Check the setup state of the application
 
-import prisma from "~/lib/prisma";
+import { db } from "~~/lib/db";
+import { user } from "~~/db/schema";
 
 // e.g. user exists in the database
 export default defineEventHandler(async (event) => {
-  const user = await prisma.user.findFirst();
+  const existingUser = db.select().from(user).limit(1).get() ?? null;
   return {
-    user: user,
+    user: existingUser,
   };
 });

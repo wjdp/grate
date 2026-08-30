@@ -1,9 +1,9 @@
 import { cacheSteamArtForApp, isSteamArtCached } from "~/server/steam/art";
-import prisma from "~/lib/prisma";
+import { db } from "~~/lib/db";
 import { cacheSteamIconForApp, isSteamIconCached } from "~/server/steam/icon";
 import { updateInProgressTask } from "~/server/tasks/queue";
 import type { Task } from "~/server/tasks/queue";
-import type { SteamGame } from "@prisma/client";
+import { steamGame, type SteamGame } from "~~/db/schema";
 
 async function cacheArtForSingleGame(task: Task, appId: bigint) {
   const isCached = await isSteamArtCached(appId);
@@ -22,7 +22,7 @@ async function cacheIconForSingleGame(task: Task, steamGame: SteamGame) {
 }
 
 export default async (task: Task) => {
-  const steamGames = await prisma.steamGame.findMany();
+  const steamGames = db.select().from(steamGame).all();
   const numGames = steamGames.length;
   let i = 0;
   for (const game of steamGames) {

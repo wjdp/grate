@@ -98,6 +98,17 @@ function recordDrizzleBaseline(sqlite: Database, folder: string) {
     .run(baseline.hash, baseline.folderMillis);
 }
 
+// The gog_playtime backfill wrote ISO text into a column the app otherwise
+// fills with unix milliseconds; SQLite sorts integers before text, which would
+// misorder "recently played" until every row is rewritten.
+function normaliseGameLastPlayedAt(sqlite: Database) {
+  sqlite.exec(
+    `UPDATE "Game"
+     SET "lastPlayedAt" = CAST(strftime('%s', "lastPlayedAt") AS INTEGER) * 1000
+     WHERE typeof("lastPlayedAt") = 'text'`,
+  );
+}
+
 function adoptPrismaDatabase(sqlite: Database, folder: string) {
   const applied = appliedPrismaMigrations(sqlite);
   const missing = PRISMA_MIGRATIONS_COVERED_BY_BASELINE.filter(
@@ -118,6 +129,7 @@ function adoptPrismaDatabase(sqlite: Database, folder: string) {
     recordPrismaMigration(sqlite, FINAL_PRISMA_MIGRATION, sql);
   }
 
+  normaliseGameLastPlayedAt(sqlite);
   recordDrizzleBaseline(sqlite, folder);
 }
 

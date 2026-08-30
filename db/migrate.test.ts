@@ -106,6 +106,23 @@ function rowCounts(path: string) {
   return counts;
 }
 
+function lastPlayedAt(path: string) {
+  const sqlite = new Database(path);
+  const rows = sqlite
+    .prepare(
+      `SELECT "id", typeof("lastPlayedAt"), "lastPlayedAt"
+       FROM "Game" WHERE "lastPlayedAt" IS NOT NULL ORDER BY "id"`,
+    )
+    .raw()
+    .all() as [number, string, string | number][];
+  sqlite.close();
+  return rows;
+}
+
+function lastPlayedAtTypes(path: string) {
+  return [...new Set(lastPlayedAt(path).map(([, type]) => type))];
+}
+
 describe("runMigrations", () => {
   it("creates every table on a fresh database", () => {
     const { db, sqlite } = open(":memory:");
@@ -155,12 +172,15 @@ describe("runMigrations", () => {
          FROM "Game" g JOIN "SteamGame" s ON s."gameId" = g."id" ORDER BY g."id"`,
       )
       .raw()
-      .all() as [number | bigint, string | null, number | bigint][];
+      .all() as [number | bigint, number | bigint | null, number | bigint][];
     expect(backfilled.map(([minutes]) => Number(minutes))).toEqual([
       1200, 0, 45,
     ]);
-    expect(backfilled[0]![1]).toBe("2025-03-24T01:00:00.000Z");
+    expect(Number(backfilled[0]![1])).toBe(
+      Date.parse("2025-03-24T01:00:00.000Z"),
+    );
     expect(backfilled[1]![1]).toBeNull();
+    expect(lastPlayedAtTypes(path)).toEqual(["integer"]);
 
     expect(rowCounts(path)).toEqual({
       ...before,
@@ -172,6 +192,8 @@ describe("runMigrations", () => {
   it("only marks the baseline when the Prisma database is already at head", () => {
     const path = fixtureAtPrismaHead();
     const before = rowCounts(path);
+    const isoBefore = lastPlayedAt(path);
+    expect(lastPlayedAtTypes(path)).toEqual(["text"]);
 
     const { db, sqlite } = open(path);
     runMigrations(sqlite, db);
@@ -183,6 +205,13 @@ describe("runMigrations", () => {
       sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
     ).toEqual([1n]);
     expect(rowCounts(path)).toEqual(before);
+    expect(lastPlayedAt(path)).toEqual(
+      isoBefore.map(([id, , value]) => [
+        id,
+        "integer",
+        Date.parse(value as string),
+      ]),
+    );
   });
 
   it("refuses a database that predates the adoption baseline", () => {

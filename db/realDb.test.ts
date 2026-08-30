@@ -64,6 +64,19 @@ function rowCounts(path: string) {
   return counts;
 }
 
+function lastPlayedAt(path: string) {
+  const sqlite = new Database(path);
+  const rows = sqlite
+    .prepare(
+      `SELECT "id", typeof("lastPlayedAt"), "lastPlayedAt" FROM "Game"
+       WHERE "lastPlayedAt" IS NOT NULL ORDER BY "id"`,
+    )
+    .raw()
+    .all() as [number, string, string | number][];
+  sqlite.close();
+  return rows;
+}
+
 describe.skipIf(!realDb)("adoption of a real database", () => {
   it("matches the schema Prisma would produce and keeps every row", () => {
     const source = join(process.cwd(), realDb!);
@@ -90,6 +103,14 @@ describe.skipIf(!realDb)("adoption of a real database", () => {
     expect(
       sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
     ).toEqual([1n]);
+
+    expect(lastPlayedAt(adopted)).toEqual(
+      lastPlayedAt(reference).map(([id, , value]) => [
+        id,
+        "integer",
+        typeof value === "string" ? Date.parse(value) : value,
+      ]),
+    );
 
     const schemaAfterFirstRun = schemaOf(adopted);
     runMigrations(sqlite, db);

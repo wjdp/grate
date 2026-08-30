@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import type { Db } from "~~/lib/db";
+import { db } from "~~/lib/db";
 import {
   game,
   gogGame,
@@ -16,7 +16,7 @@ import {
   type SteamUser,
 } from "~~/db/schema";
 
-export function createGame(db: Db, overrides: Partial<NewGame> = {}): Game {
+export function createGame(overrides: Partial<NewGame> = {}): Game {
   return db
     .insert(game)
     .values({ name: faker.commerce.productName(), ...overrides })
@@ -25,10 +25,9 @@ export function createGame(db: Db, overrides: Partial<NewGame> = {}): Game {
 }
 
 export function createSteamGame(
-  db: Db,
   overrides: Partial<NewSteamGame> = {},
 ): SteamGame {
-  const linkedGame = createGame(db, { name: overrides.name });
+  const linkedGame = createGame({ name: overrides.name });
   return db
     .insert(steamGame)
     .values({
@@ -58,11 +57,8 @@ export function createSteamGame(
     .get();
 }
 
-export function createGogGame(
-  db: Db,
-  overrides: Partial<NewGogGame> = {},
-): GogGame {
-  const linkedGame = createGame(db, { name: overrides.name });
+export function createGogGame(overrides: Partial<NewGogGame> = {}): GogGame {
+  const linkedGame = createGame({ name: overrides.name });
   return db
     .insert(gogGame)
     .values({
@@ -78,7 +74,6 @@ export function createGogGame(
 }
 
 export function createSteamUser(
-  db: Db,
   overrides: Partial<NewSteamUser> = {},
 ): SteamUser {
   const owner = db.insert(user).values({}).returning().get();

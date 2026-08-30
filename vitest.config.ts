@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { defineVitestConfig } from "@nuxt/test-utils/config";
 
 export default defineVitestConfig({
@@ -7,7 +8,9 @@ export default defineVitestConfig({
     fileParallelism: false,
     exclude: ["**/node_modules/**", ".claude/**"],
     env: {
-      DATABASE_URL: "file:./test.db",
+      // Absolute so Prisma (relative to prisma/) and better-sqlite3 (relative
+      // to cwd) open the same file while both are in use.
+      DATABASE_URL: `file:${resolve(import.meta.dirname, "prisma/test.db")}`,
     },
   },
 });

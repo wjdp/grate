@@ -8,7 +8,19 @@ import { checkFileExists } from "~/server/files";
 const ART_FETCH_PER_MINUTE = 600;
 const TIME_PER_ART_FETCH = 60_000 / ART_FETCH_PER_MINUTE;
 
-function getFilePathForArt(appId: bigint, type: keyof SteamArtUrls) {
+export const STEAM_ART_TYPES = [
+  "logo",
+  "header",
+  "hero",
+  "posterSmall",
+  "poster",
+  "background",
+  "backgroundV6B",
+  "icon",
+] as const satisfies readonly (keyof SteamArtUrls | "icon")[];
+export type SteamArtType = (typeof STEAM_ART_TYPES)[number];
+
+function getFilePathForArt(appId: bigint, type: SteamArtType) {
   return `${ART_DIR}/steam/${appId}/${type}.jpg`;
 }
 
@@ -50,7 +62,7 @@ export async function cacheSteamArtForApp(appId: bigint) {
 
 export async function checkAndReturnSteamArtPath(
   appId: bigint,
-  type: keyof SteamArtUrls,
+  type: SteamArtType,
 ): Promise<string | null> {
   const filePath = getFilePathForArt(appId, type);
   const exists = await checkFileExists(filePath);

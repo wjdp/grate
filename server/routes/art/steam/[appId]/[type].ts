@@ -1,10 +1,13 @@
 import { z } from "zod";
-import { checkAndReturnSteamArtPath } from "~/server/steam/art";
+import {
+  checkAndReturnSteamArtPath,
+  STEAM_ART_TYPES,
+} from "~/server/steam/art";
 import fs from "fs";
 
 const PathSchema = z.object({
   appId: z.coerce.bigint().positive(),
-  type: z.string(),
+  type: z.enum(STEAM_ART_TYPES),
 });
 
 export default defineEventHandler(async (event) => {
@@ -20,7 +23,6 @@ export default defineEventHandler(async (event) => {
 
   const cachedArtFilePath = await checkAndReturnSteamArtPath(
     params.data.appId,
-    // @ts-expect-error: doesn't really matter as long as it's a string
     params.data.type,
   );
   if (!cachedArtFilePath) {

@@ -88,39 +88,69 @@ const split = async (row: ProviderRow) => {
 </script>
 
 <template>
-  <section class="my-4">
-    <h2 class="text-lg font-bold">Provider rows</h2>
-    <p v-if="error" class="my-2 text-red-400">{{ error }}</p>
-    <div
-      v-for="row in rows"
-      :key="row.key"
-      class="my-2 border border-slate-600 p-2"
-    >
-      <div class="flex flex-wrap items-baseline gap-x-3">
-        <span class="font-semibold">{{ row.providerLabel }}</span>
-        <span>{{ row.name }}</span>
-        <span class="text-grey-400">#{{ row.providerId }}</span>
-        <span class="text-grey-400">
-          {{ formatPlaytime(row.playtimeMinutes) || "No playtime" }}
-        </span>
-        <span v-if="row.lastPlayed" class="text-grey-400">
-          Last played {{ formatLastPlayed(row.lastPlayed) }}
-        </span>
-      </div>
-      <div class="mt-2 flex flex-wrap gap-2">
-        <Button @click="openUrl(row.openUrl)">
-          Open in {{ row.providerLabel }}
-        </Button>
-        <PlayButton :href="row.playUrl" />
-        <Button
-          v-if="canSplit"
-          class="bg-slate-600"
-          :disabled="splittingKey === row.key"
-          @click="split(row)"
-        >
-          Split
-        </Button>
-      </div>
+  <section class="space-y-3">
+    <h2 class="font-display text-highlighted text-lg font-semibold">
+      Providers
+    </h2>
+
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="soft"
+      icon="i-lucide-triangle-alert"
+      :description="error"
+    />
+
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <UCard v-for="row in rows" :key="row.key">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <ProviderIcon :provider="row.provider" class="size-5 shrink-0" />
+            <span class="text-muted">{{ row.providerLabel }}</span>
+            <span class="text-dimmed font-mono text-xs">
+              #{{ row.providerId }}
+            </span>
+          </div>
+          <p class="text-highlighted mt-1 font-medium">{{ row.name }}</p>
+        </template>
+
+        <dl class="space-y-1 text-sm">
+          <div class="flex justify-between gap-2">
+            <dt class="text-muted">Playtime</dt>
+            <dd class="font-mono">
+              {{ formatPlaytime(row.playtimeMinutes) || "None" }}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-2">
+            <dt class="text-muted">Last played</dt>
+            <dd>
+              {{ row.lastPlayed ? formatLastPlayed(row.lastPlayed) : "Never" }}
+            </dd>
+          </div>
+        </dl>
+
+        <template #footer>
+          <div class="flex flex-wrap gap-2">
+            <PlayButton :href="row.playUrl" />
+            <UButton
+              variant="outline"
+              color="neutral"
+              icon="i-lucide-external-link"
+              :label="`Open in ${row.providerLabel}`"
+              @click="openUrl(row.openUrl)"
+            />
+            <UButton
+              v-if="canSplit"
+              variant="ghost"
+              color="neutral"
+              icon="i-lucide-split"
+              label="Split off"
+              :loading="splittingKey === row.key"
+              @click="split(row)"
+            />
+          </div>
+        </template>
+      </UCard>
     </div>
   </section>
 </template>

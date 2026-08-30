@@ -1,10 +1,37 @@
 <script lang="ts" setup>
-import type { GameState } from "#shared/game-state";
 import { getGameArtUrls } from "#shared/art";
 import type { ArtUrls } from "#shared/art";
+import {
+  GameStateHues,
+  GameStateIcons,
+  GameStateNames,
+  type GameState,
+} from "#shared/game-state";
+import type { GameDetail } from "#shared/types/Game";
 import { getPageTitle } from "#shared/title";
 
 useSeoMeta({ title: getPageTitle("Organise Games") });
+
+interface StateGroup {
+  label: string;
+  states: GameState[];
+}
+
+const STATE_GROUPS: StateGroup[] = [
+  {
+    label: "Still going",
+    states: ["BACKLOG", "PLAYING", "PERIODIC", "SHELVED"],
+  },
+  {
+    label: "Finished with",
+    states: ["PLAYED", "COMPLETED", "RETIRED", "ABANDONED"],
+  },
+];
+
+const STATES_IN_DISPLAY_ORDER = STATE_GROUPS.flatMap((group) => group.states);
+
+const shortcutKeyFor = (state: GameState) =>
+  String(STATES_IN_DISPLAY_ORDER.indexOf(state) + 1);
 
 const { data } = useFetch("/api/games");
 const games = computed(() => data.value?.games);
@@ -19,7 +46,9 @@ const gamesToOrganise = computed(() =>
   ),
 );
 
-const theGame = ref();
+const remainingCount = computed(() => gamesToOrganise.value?.length ?? 0);
+
+const theGame = ref<GameDetail>();
 const description = computed(
   () =>
     theGame.value?.steamGames?.[0]?.appInfo?.shortDescription ??
@@ -34,17 +63,16 @@ const fetchTheGame = async () => {
   if (!gamesToOrganise.value) {
     return null;
   }
-  if (gamesToOrganise.value?.length === 0) {
+  if (gamesToOrganise.value.length === 0) {
     organiseState.value = "empty";
     return null;
   }
-  const lengthOfArray = gamesToOrganise.value.length;
-  const randomIndex = Math.floor(Math.random() * lengthOfArray);
+  const randomIndex = Math.floor(Math.random() * gamesToOrganise.value.length);
   const { game } = await $fetch(
     `/api/games/${gamesToOrganise.value[randomIndex].id}`,
   );
   theGame.value = game;
-  theArt.value = getGameArtUrls(theGame.value);
+  theArt.value = getGameArtUrls(game);
   organiseState.value = "loaded";
 };
 
@@ -52,109 +80,145 @@ onMounted(() => {
   fetchTheGame();
 });
 
+const moveOn = async (pauseMs: number) => {
+  organisedGameIds.value.push(theGame.value!.id);
+  theGame.value = undefined;
+  theArt.value = null;
+  organiseState.value = "loading";
+  await sleep(pauseMs); // to give the user a chance to see the game disappear
+  await fetchTheGame();
+};
+
 const setGameState = async (state: GameState) => {
+  if (!theGame.value) return;
   await $fetch(`/api/games/${theGame.value.id}/state`, {
     method: "PATCH",
     body: { state },
   });
-  organisedGameIds.value.push(theGame.value.id);
-  theGame.value = undefined;
-  organiseState.value = "loading";
-  await sleep(300); // to give the user a chance to see the game disappear
-  await fetchTheGame();
+  await moveOn(300);
 };
 
 const skipGame = async () => {
-  organisedGameIds.value.push(theGame.value.id);
-  theGame.value = undefined;
-  organiseState.value = "loading";
-  await sleep(200); // to give the user a chance to see the game disappear
-  await fetchTheGame();
+  if (!theGame.value) return;
+  await moveOn(200);
 };
+
+defineShortcuts({
+  ...Object.fromEntries(
+    STATES_IN_DISPLAY_ORDER.map((state) => [
+      shortcutKeyFor(state),
+      () => setGameState(state),
+    ]),
+  ),
+  s: skipGame,
+});
 </script>
 
 <template>
-  <div class="flex justify-center">
-    <div
-      v-if="theGame"
-      class="my-4 max-w-xl grow border-2 border-slate-500 px-4"
-      :style="{
-        backgroundImage: theArt ? `url(${theArt.background})` : '',
-      }"
-    >
-      <div class="my-4 text-center">
-        <img
+  <div class="mx-auto w-full max-w-2xl">
+    <div v-if="theGame" class="flex flex-col gap-6">
+      <ArtHero
+        :background="theArt?.background ?? null"
+        :header="theArt?.header ?? null"
+        :title="theGame.name"
+      />
+
+      <div>
+        <h1
           v-if="theArt?.header"
-          :src="theArt.header"
-          :alt="`${theGame.name}`"
-          class="inline-block w-full"
+          class="font-display text-highlighted text-2xl font-semibold tracking-tight"
+        >
+          {{ theGame.name }}
+        </h1>
+        <p v-if="description" class="text-muted mt-2 text-sm">
+          {{ description }}
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <StatTile
+          label="Playtime"
+          icon="i-lucide-clock"
+          :value="formatPlaytime(theGame.playtimeMinutes)"
+        />
+        <StatTile
+          label="Last played"
+          icon="i-lucide-calendar"
+          :value="
+            theGame.lastPlayedAt
+              ? formatLastPlayed(theGame.lastPlayedAt)
+              : 'Never'
+          "
         />
       </div>
-      <h1 class="my-4 text-center text-3xl font-semibold tracking-tight">
-        {{ theGame.name }}
+
+      <div
+        v-for="group in STATE_GROUPS"
+        :key="group.label"
+        class="flex flex-col gap-2"
+      >
+        <p class="text-dimmed text-xs tracking-wide">{{ group.label }}</p>
+        <div class="grid gap-2 sm:grid-cols-2">
+          <UButton
+            v-for="state in group.states"
+            :key="state"
+            variant="soft"
+            color="neutral"
+            size="lg"
+            :icon="GameStateIcons[state]"
+            class="w-full"
+            :ui="{ label: 'flex flex-1 items-center gap-2' }"
+            @click="setGameState(state)"
+          >
+            <span
+              :class="GameStateHues[state].dot"
+              class="size-2 shrink-0 rounded-full"
+              aria-hidden="true"
+            />
+            <span class="flex-1 text-left">{{ GameStateNames[state] }}</span>
+            <UKbd :value="shortcutKeyFor(state)" />
+          </UButton>
+        </div>
+      </div>
+
+      <div class="flex flex-col items-center gap-2">
+        <UButton variant="ghost" color="neutral" @click="skipGame">
+          Skip
+          <UKbd value="s" />
+        </UButton>
+        <p class="text-dimmed text-xs">{{ remainingCount }} left to organise</p>
+      </div>
+    </div>
+
+    <div v-else-if="organiseState === 'loading'" class="flex flex-col gap-6">
+      <USkeleton class="h-48 w-full rounded-lg" />
+      <div class="flex flex-col gap-2">
+        <USkeleton class="h-7 w-1/2" />
+        <USkeleton class="h-4 w-full" />
+        <USkeleton class="h-4 w-3/4" />
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <USkeleton class="h-20 rounded-lg" />
+        <USkeleton class="h-20 rounded-lg" />
+      </div>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <USkeleton v-for="index in 8" :key="index" class="h-10 rounded-md" />
+      </div>
+    </div>
+
+    <div
+      v-else-if="organiseState === 'empty'"
+      class="flex flex-col items-center gap-3 py-16 text-center"
+    >
+      <UIcon name="i-lucide-check-check" class="text-muted size-10" />
+      <h1
+        class="font-display text-highlighted text-xl font-semibold tracking-tight"
+      >
+        Everything is organised
       </h1>
-      <p v-if="description" class="my-4">
-        {{ description }}
-      </p>
-      <div class="my-4 flex w-full flex-row space-x-4">
-        <div class="basis-full">
-          <p class="mb-4 text-center">
-            Playtime
-            <span class="font-semibold">
-              {{ formatPlaytime(theGame?.playtimeMinutes ?? 0) }}
-            </span>
-          </p>
-          <div class="flex flex-col space-y-4">
-            <Button class="bg-orange-800" @click="setGameState('BACKLOG')">
-              On Backlog
-            </Button>
-            <Button class="bg-blue-500" @click="setGameState('PLAYING')">
-              Currently Playing
-            </Button>
-            <Button class="bg-yellow-600" @click="setGameState('PERIODIC')">
-              Periodic
-            </Button>
-            <Button class="bg-grey-600" @click="setGameState('SHELVED')">
-              Shelved
-            </Button>
-          </div>
-        </div>
-        <div class="basis-full">
-          <p class="mb-4 text-center">
-            Last played
-            <span class="font-semibold">
-              {{
-                theGame?.lastPlayedAt
-                  ? formatLastPlayed(theGame.lastPlayedAt)
-                  : "Never"
-              }}
-            </span>
-          </p>
-          <div class="flex flex-col space-y-4">
-            <Button class="bg-cyan-600" @click="setGameState('PLAYED')">
-              Played
-            </Button>
-            <Button class="bg-green-600" @click="setGameState('COMPLETED')">
-              Completed
-            </Button>
-            <Button class="bg-yellow-800" @click="setGameState('RETIRED')">
-              Retired
-            </Button>
-            <Button class="bg-red-900" @click="setGameState('ABANDONED')">
-              Abandoned
-            </Button>
-          </div>
-        </div>
-      </div>
-      <div class="my-4">
-        <Button class="bg-grey-600 w-full" @click="skipGame">Skip</Button>
-      </div>
-    </div>
-    <div v-else-if="organiseState === 'loading'">
-      <p>Loading...</p>
-    </div>
-    <div v-else-if="organiseState === 'empty'">
-      <p>No games to organise</p>
+      <UButton to="/games" color="neutral" variant="subtle">
+        Back to library
+      </UButton>
     </div>
   </div>
 </template>

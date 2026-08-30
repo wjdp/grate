@@ -1,0 +1,293 @@
+import { relations, sql } from "drizzle-orm";
+import { sqliteTable, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { GAME_STATES } from "../shared/game-state";
+import {
+  autoIncrementId,
+  bigint,
+  boolean,
+  datetime,
+  integer,
+  json,
+  text,
+} from "./customTypes";
+
+export const STEAM_APP_INFO_STATES = [
+  "FETCHED",
+  "NOT_FETCHED",
+  "UNAVAILABLE",
+] as const;
+
+export type SteamAppInfoState = (typeof STEAM_APP_INFO_STATES)[number];
+
+export const user = sqliteTable("User", {
+  id: autoIncrementId(),
+});
+
+export const steamUser = sqliteTable(
+  "SteamUser",
+  {
+    steamId: bigint().primaryKey(),
+    userId: integer()
+      .notNull()
+      .references(() => user.id, {
+        onDelete: "restrict",
+        onUpdate: "cascade",
+      }),
+    personaName: text().notNull(),
+    realName: text(),
+    profileUrl: text().notNull(),
+    avatar: text().notNull(),
+    avatarMedium: text().notNull(),
+    avatarFull: text().notNull(),
+    avatarHash: text().notNull(),
+    lastLogoff: integer().notNull(),
+  },
+  (table) => [uniqueIndex("SteamUser_userId_key").on(table.userId)],
+);
+
+export const gogUser = sqliteTable("GogUser", {
+  gogUserId: text().primaryKey(),
+  galaxyUserId: text().notNull(),
+  username: text().notNull(),
+  country: text().notNull(),
+  checksumGames: text().notNull(),
+  avatarUrl: text().notNull(),
+  accessToken: text().notNull(),
+  accessTokenExpiresAt: datetime().notNull(),
+  refreshToken: text().notNull(),
+});
+
+export const game = sqliteTable("Game", {
+  id: autoIncrementId(),
+  name: text().notNull(),
+  state: text({ enum: GAME_STATES }),
+  playtimeMinutes: integer().notNull().default(0),
+  lastPlayedAt: datetime(),
+});
+
+export const gameStateChange = sqliteTable("GameStateChange", {
+  id: autoIncrementId(),
+  gameId: integer()
+    .notNull()
+    .references(() => game.id, { onDelete: "restrict", onUpdate: "cascade" }),
+  state: text({ enum: GAME_STATES }),
+  timestamp: datetime().notNull(),
+});
+
+export const steamGame = sqliteTable(
+  "SteamGame",
+  {
+    appId: bigint().primaryKey(),
+    gameId: integer()
+      .notNull()
+      .references(() => game.id, { onDelete: "restrict", onUpdate: "cascade" }),
+    appInfoState: text({ enum: STEAM_APP_INFO_STATES })
+      .notNull()
+      .default("NOT_FETCHED"),
+    name: text().notNull(),
+    playtimeForever: integer(),
+    playtime2weeks: integer(),
+    playtimeWindowsForever: integer(),
+    playtimeMacForever: integer(),
+    playtimeLinuxForever: integer(),
+    playtimeDeckForever: integer(),
+    playtimeDisconnected: integer(),
+    rTimeLastPlayed: integer(),
+    imgIconUrl: text().notNull(),
+    capsuleFilename: text().notNull(),
+    hasCommunityVisibleStats: boolean().notNull().default(false),
+    hasWorkshop: boolean().notNull().default(false),
+    hasDlc: boolean().notNull().default(false),
+    hasLeaderboards: boolean().notNull().default(false),
+  },
+  (table) => [uniqueIndex("SteamGame_gameId_key").on(table.gameId)],
+);
+
+export const steamAppInfo = sqliteTable("SteamAppInfo", {
+  appId: bigint()
+    .primaryKey()
+    .references(() => steamGame.appId, {
+      onDelete: "restrict",
+      onUpdate: "cascade",
+    }),
+  fetchedAt: datetime().notNull(),
+  type: text().notNull(),
+  name: text().notNull(),
+  requiredAge: integer(),
+  isFree: boolean().notNull(),
+  detailedDescription: text().notNull(),
+  aboutTheGame: text().notNull(),
+  shortDescription: text().notNull(),
+  headerImage: text().notNull(),
+  capsuleImage: text().notNull(),
+  capsuleImagev5: text().notNull(),
+  website: text(),
+  developers: json<string[]>().notNull(),
+  publishers: json<string[]>().notNull(),
+  platformWindows: boolean().notNull(),
+  platformMac: boolean().notNull(),
+  platformLinux: boolean().notNull(),
+  metacriticScore: integer(),
+  metacriticUrl: text(),
+  categories: json().notNull(),
+  genres: json().notNull(),
+  screenshots: json().notNull(),
+  releaseDate: datetime(),
+  comingSoon: boolean(),
+  background: text().notNull(),
+  backgroundRaw: text().notNull(),
+});
+
+export const steamGamePlaytime = sqliteTable("SteamGamePlaytime", {
+  id: autoIncrementId(),
+  steamAppId: bigint()
+    .notNull()
+    .references(() => steamGame.appId, {
+      onDelete: "restrict",
+      onUpdate: "cascade",
+    }),
+  timestampStart: datetime(),
+  timestampEnd: datetime().notNull(),
+  playtimeForever: integer(),
+  playtime2weeks: integer(),
+  playtimeWindowsForever: integer(),
+  playtimeMacForever: integer(),
+  playtimeLinuxForever: integer(),
+  playtimeDeckForever: integer(),
+  playtimeDisconnected: integer(),
+  rTimeLastPlayed: integer(),
+});
+
+export const gogGame = sqliteTable(
+  "GogGame",
+  {
+    gogId: autoIncrementId(),
+    gameId: integer()
+      .notNull()
+      .references(() => game.id, { onDelete: "restrict", onUpdate: "cascade" }),
+    name: text().notNull(),
+    releaseDate: datetime(),
+    description: text(),
+    publisher: text(),
+    developer: text(),
+    tags: json().notNull(),
+    properties: json().notNull(),
+    iconUrl: text(),
+    iconSquareUrl: text(),
+    logoUrl: text(),
+    boxArtImageUrl: text(),
+    backgroundImageUrl: text(),
+    galaxyBackgroundImageUrl: text(),
+    productType: text().notNull().default("GAME"),
+    playtimeMinutes: integer(),
+    lastPlayedAt: datetime(),
+  },
+  (table) => [uniqueIndex("GogGame_gameId_key").on(table.gameId)],
+);
+
+export const gogGamePlaytime = sqliteTable("GogGamePlaytime", {
+  id: autoIncrementId(),
+  gogId: integer()
+    .notNull()
+    .references(() => gogGame.gogId, {
+      onDelete: "restrict",
+      onUpdate: "cascade",
+    }),
+  timestampStart: datetime(),
+  timestampEnd: datetime().notNull(),
+  playtimeMinutes: integer().notNull(),
+  lastPlayedAt: datetime(),
+});
+
+export const gogIgnoredProduct = sqliteTable("GogIgnoredProduct", {
+  gogId: autoIncrementId(),
+  reason: text().notNull(),
+  createdAt: datetime()
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const userRelations = relations(user, ({ one }) => ({
+  steamUser: one(steamUser),
+}));
+
+export const steamUserRelations = relations(steamUser, ({ one }) => ({
+  user: one(user, { fields: [steamUser.userId], references: [user.id] }),
+}));
+
+export const gameRelations = relations(game, ({ one, many }) => ({
+  steamGame: one(steamGame),
+  gogGame: one(gogGame),
+  stateChanges: many(gameStateChange),
+}));
+
+export const gameStateChangeRelations = relations(
+  gameStateChange,
+  ({ one }) => ({
+    game: one(game, {
+      fields: [gameStateChange.gameId],
+      references: [game.id],
+    }),
+  }),
+);
+
+export const steamGameRelations = relations(steamGame, ({ one, many }) => ({
+  game: one(game, { fields: [steamGame.gameId], references: [game.id] }),
+  appInfo: one(steamAppInfo),
+  playtimeRecords: many(steamGamePlaytime),
+}));
+
+export const steamAppInfoRelations = relations(steamAppInfo, ({ one }) => ({
+  steamGame: one(steamGame, {
+    fields: [steamAppInfo.appId],
+    references: [steamGame.appId],
+  }),
+}));
+
+export const steamGamePlaytimeRelations = relations(
+  steamGamePlaytime,
+  ({ one }) => ({
+    steamGame: one(steamGame, {
+      fields: [steamGamePlaytime.steamAppId],
+      references: [steamGame.appId],
+    }),
+  }),
+);
+
+export const gogGameRelations = relations(gogGame, ({ one, many }) => ({
+  game: one(game, { fields: [gogGame.gameId], references: [game.id] }),
+  playtimeRecords: many(gogGamePlaytime),
+}));
+
+export const gogGamePlaytimeRelations = relations(
+  gogGamePlaytime,
+  ({ one }) => ({
+    gogGame: one(gogGame, {
+      fields: [gogGamePlaytime.gogId],
+      references: [gogGame.gogId],
+    }),
+  }),
+);
+
+export type User = typeof user.$inferSelect;
+export type NewUser = typeof user.$inferInsert;
+export type SteamUser = typeof steamUser.$inferSelect;
+export type NewSteamUser = typeof steamUser.$inferInsert;
+export type GogUser = typeof gogUser.$inferSelect;
+export type NewGogUser = typeof gogUser.$inferInsert;
+export type Game = typeof game.$inferSelect;
+export type NewGame = typeof game.$inferInsert;
+export type GameStateChange = typeof gameStateChange.$inferSelect;
+export type NewGameStateChange = typeof gameStateChange.$inferInsert;
+export type SteamGame = typeof steamGame.$inferSelect;
+export type NewSteamGame = typeof steamGame.$inferInsert;
+export type SteamAppInfo = typeof steamAppInfo.$inferSelect;
+export type NewSteamAppInfo = typeof steamAppInfo.$inferInsert;
+export type SteamGamePlaytime = typeof steamGamePlaytime.$inferSelect;
+export type NewSteamGamePlaytime = typeof steamGamePlaytime.$inferInsert;
+export type GogGame = typeof gogGame.$inferSelect;
+export type NewGogGame = typeof gogGame.$inferInsert;
+export type GogGamePlaytime = typeof gogGamePlaytime.$inferSelect;
+export type NewGogGamePlaytime = typeof gogGamePlaytime.$inferInsert;
+export type GogIgnoredProduct = typeof gogIgnoredProduct.$inferSelect;
+export type NewGogIgnoredProduct = typeof gogIgnoredProduct.$inferInsert;

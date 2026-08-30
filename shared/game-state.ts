@@ -1,4 +1,15 @@
-import type { GameState } from "@prisma/client";
+export const GAME_STATES = [
+  "BACKLOG",
+  "PLAYING",
+  "PERIODIC",
+  "SHELVED",
+  "PLAYED",
+  "COMPLETED",
+  "RETIRED",
+  "ABANDONED",
+] as const;
+
+export type GameState = (typeof GAME_STATES)[number];
 
 export const GameStateNames: Record<GameState, string> = {
   BACKLOG: "Backlog",

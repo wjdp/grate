@@ -22,6 +22,8 @@
   "dependencies": {
     "@prisma/client": "6.5.0",
     "@prisma/nuxt": "0.3.0",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.45.2",
     "prisma": "6.5.0"
   },
   "packageManager": "pnpm@11.24.0+sha512.bd27e345e976dcb0be0b7a1228217b049a817e21b1f355c90dbe7dc46671895a8bc1e6d06c24554505ea93ea0b45f489a27ec1bfbc8de6a9659fca0f16fa0000",
@@ -35,8 +37,10 @@
     "@tailwindcss/vite": "^4.3.3",
     "@trpc/client": "^10.45.4",
     "@trpc/server": "^10.45.4",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/luxon": "^3.7.5",
     "@vue/test-utils": "^2.5.0",
+    "drizzle-kit": "^0.31.10",
     "histoire": "1.0.0-alpha.2",
     "hookable": "^5.5.3",
     "husky": "^9.1.7",

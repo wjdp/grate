@@ -137,7 +137,7 @@ Real account, all calls via curl with the launcher client (`token_type=eg1`). Fi
 
 - Connect flow end-to-end worked (page → paste JSON → `epicAuth`). Token response `refresh_expires_at` ≈ 363 days out — answers open question 1 (refresh lifetime ~1 year for `launcherAppClient2`). Refresh grant itself still not exercised.
 - Full sync of 304 library records took ~1m40s (one catalog call per namespace, one GraphQL slug + one store-content call per game). No rate limiting observed — narrows open question 3 to "none observed at ~250 items".
-- Result: 206 games; ignored DLC 22, UE 36. Bug found and fixed (09ce69b): `releaseInfo[].compatibleApps: []` is present on ordinary games — only a non-empty array marks an editor resource; 34 real games (Control, Borderlands 3, Death Stranding, Hogwarts Legacy, Tomb Raider trilogy…) had been wrongly ignored.
+- Result: 240 games after the fix (34 recovered); ignored DLC 22, UE 36. Bug found and fixed (09ce69b): `releaseInfo[].compatibleApps: []` is present on ordinary games — only a non-empty array marks an editor resource; 34 real games (Control, Borderlands 3, Death Stranding, Hogwarts Legacy, Tomb Raider trilogy…) had been wrongly ignored. Re-sync confirmed idempotent.
 - Art: box art tall on 206/206, wide 204/206, logo 2/206 → logo effectively unavailable; answers open question 4.
 - Store slug via GraphQL: 204/206 (GTA V among the missing). Store-content endpoint: only 92/206 return (release date), 80 publishers — 404 for newer slugs with a hex suffix (`darkwood-fa73bd`); `egs-platform-service /api/v2/products/{slug}` also 404s. 404 now silent. Release date/publisher therefore best-effort only. Narrows open question 5 to "GraphQL slug missing for ~1% of titles; store-content covers <50%".
 - Playtime: minutes correct (Subnautica 3624 = 60.4h, Manifold Garden 191 = 3.2h, both matching the launcher). `lastPlayedAt` null after first sync as designed.
@@ -148,6 +148,7 @@ Real account, all calls via curl with the launcher client (`token_type=eg1`). Fi
 - Name-based cross-provider merge suggestion — natural next step given the manual merging above.
 - Apply the same derived-`lastPlayedAt` logic to GOG, whose `lastPlayedAt` is also always null.
 - `pages/providers/steam/index.vue` has the same `useAsyncData` null-return warning.
+- The re-sync surfaced account-specific non-game items that reach `EpicGame` (e.g. "Death Stranding Content", "Chivalry 2 - Public Testing", "Mortal Shell Tech Beta", "Galactic Civilizations III (Test branch)"). Decision: no hard-coded ignore list unless an item is universal (an SDK everyone owns) — none identified yet. Needs a future user-controlled "ignore" action writing `EpicIgnoredItem` with reason `MANUAL`.
 
 ## Data mapping
 

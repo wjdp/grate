@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { GameState } from "@prisma/client";
+import type { GameState } from "#shared/game-state";
 import { getGameArtUrls } from "#shared/art";
 import { coerce } from "zod";
 import { getPageTitle } from "#shared/title";

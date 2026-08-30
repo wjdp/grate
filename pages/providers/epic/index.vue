@@ -58,9 +58,7 @@ const connectEpic = async () => {
     <h1>Epic Status</h1>
     <div class="my-4">
       <template v-if="epicUser">
-        Connected as {{ epicUser.displayName }} ({{
-          epicUser.accountId
-        }}).
+        Connected as {{ epicUser.displayName }} ({{ epicUser.accountId }}).
       </template>
       <template v-else> No Epic account connected. </template>
     </div>

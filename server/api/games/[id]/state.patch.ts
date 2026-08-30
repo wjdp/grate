@@ -9,7 +9,10 @@ export default defineEventHandler(async (event) => {
     event,
     gameRouterParamsSchema.parse,
   );
-  const { state } = await readValidatedBody(event, setGameStateBodySchema.parse);
+  const { state } = await readValidatedBody(
+    event,
+    setGameStateBodySchema.parse,
+  );
   const game = await setGameState(id, state);
   return { game };
 });

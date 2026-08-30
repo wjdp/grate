@@ -324,14 +324,42 @@ describe("createOrUpdateSteamUser", () => {
   });
 
   it("rejects a different steam account", async () => {
-    createSteamUser();
+    const existing = createSteamUser({ apiKey: "LINKED-KEY" });
     const otherSteamId = faker.string.numeric(17);
     vi.mocked(getUserInfo).mockResolvedValue(
       generateFakeUserInfo({ steamid: otherSteamId }),
     );
     await expect(
       createOrUpdateSteamUser({ apiKey: "KEY", profile: otherSteamId }),
-    ).rejects.toThrow("grate only supports a single Steam account");
+    ).rejects.toThrow(
+      `grate only supports a single Steam account (linked: ${existing.steamId}, entered: ${otherSteamId})`,
+    );
+    const rows = db.select().from(steamUser).all();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].steamId).toBe(existing.steamId);
+    expect(rows[0].apiKey).toBe("LINKED-KEY");
+  });
+
+  it("corrects the steam id of a legacy row with no api key", async () => {
+    const legacy = createSteamUser({
+      steamId: "76561198032111170",
+      apiKey: null,
+    });
+    vi.mocked(getUserInfo).mockResolvedValue(
+      generateFakeUserInfo({
+        steamid: "76561198032111175",
+        personaname: "Relinked Persona",
+      }),
+    );
+    const relinked = await createOrUpdateSteamUser({
+      apiKey: "NEW-KEY",
+      profile: "76561198032111175",
+    });
+    expect(relinked.steamId).toBe("76561198032111175");
+    expect(relinked.apiKey).toBe("NEW-KEY");
+    expect(relinked.personaName).toBe("Relinked Persona");
+    expect(relinked.userId).toBe(legacy.userId);
+    expect(db.select().from(user).all()).toHaveLength(1);
     expect(db.select().from(steamUser).all()).toHaveLength(1);
   });
 

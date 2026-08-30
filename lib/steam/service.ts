@@ -76,6 +76,26 @@ export interface SteamProfileCredentials {
   profile: string;
 }
 
+type SteamUserProfileFields = ReturnType<typeof steamUserProfileFields>;
+
+// Databases created before the steam id was stored as text hold an id that
+// lost precision passing through a JS number, and have no api key because the
+// column was added at the same time. Re-linking such a row corrects its id.
+function relinkLegacySteamUser(
+  legacyUser: SteamUser,
+  steamId: string,
+  apiKey: string,
+  profileFields: SteamUserProfileFields,
+): SteamUser {
+  console.log(`Corrected Steam id ${legacyUser.steamId} → ${steamId}`);
+  return db
+    .update(steamUser)
+    .set({ steamId, apiKey, ...profileFields })
+    .where(eq(steamUser.steamId, legacyUser.steamId))
+    .returning()
+    .get();
+}
+
 export async function createOrUpdateSteamUser({
   apiKey,
   profile,
@@ -83,10 +103,20 @@ export async function createOrUpdateSteamUser({
   const steamId = await resolveSteamId(apiKey, profile);
   const steamUserInfo = await getUserInfo({ apiKey, steamId });
   const currentUser = await getSteamUser();
-  if (currentUser && currentUser.steamId !== steamUserInfo.steamid) {
-    throw new SteamServiceError("grate only supports a single Steam account");
-  }
   const profileFields = steamUserProfileFields(steamUserInfo);
+  if (currentUser && currentUser.steamId !== steamUserInfo.steamid) {
+    if (currentUser.apiKey) {
+      throw new SteamServiceError(
+        `grate only supports a single Steam account (linked: ${currentUser.steamId}, entered: ${steamUserInfo.steamid})`,
+      );
+    }
+    return relinkLegacySteamUser(
+      currentUser,
+      steamUserInfo.steamid,
+      apiKey,
+      profileFields,
+    );
+  }
   return db.transaction((tx) => {
     const owner =
       tx.select().from(user).limit(1).get() ??

@@ -1,0 +1,24 @@
+meta {
+  name: Get store content for a slug, release date and description
+  type: http
+  seq: 11
+}
+
+get {
+  url: https://store-content.ak.epicgames.com/api/en-GB/content/products/{{epic_store_slug}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  epic_store_slug: manifold-garden
+}
+
+docs {
+  Unauthenticated. Verified live 2026-08-30 as the best source for releaseDate,
+  publisher and a real description — the catalog item has none of these.
+
+  pages[type=productHome].data.meta.releaseDate, developer[], publisher[] and
+  data.about.shortDescription. Get the slug first from "Get store slug for a
+  namespace".
+}

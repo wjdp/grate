@@ -19,7 +19,12 @@ headers {
 }
 
 docs {
-  Returns [{accountId, artifactId, totalTime}]. totalTime is believed to be seconds —
-  confirm against the launcher's own "You've played" figure. No last-played timestamp
-  and no session history are returned.
+  Returns [{accountId, artifactId, totalTime}]. Only artifacts with playtime > 0 appear.
+
+  Verified live 2026-08-30: totalTime is seconds, confirmed by magnitude (a 60.4h game
+  read 217450). Still want a cross-check against the launcher's own "You've played"
+  figure. Entries include DLC and UE marketplace artifacts (e.g. UE/UT Marketplace),
+  not just base games — filter through the ignore list before summing, and don't add
+  DLC playtime into its parent game. No last-played timestamp and no session history
+  are returned.
 }

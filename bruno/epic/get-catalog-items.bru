@@ -42,4 +42,10 @@ docs {
   
   mainGameItem present means the item is DLC. namespace "ue" or a categories path of
   assets/asset-format/plugins/projects means Unreal Marketplace content.
+
+  Verified live 2026-08-30: multiple id params work in one call (tested 2 and 3) — batch
+  per namespace. categories[].path is not a reliable DLC signal: Civ VI's Aztec DLC has
+  path "addons", but Control's two DLC share "games, applications" with the base game.
+  mainGameItem is the only signal to trust. keyImages on a typical title were just
+  DieselGameBoxTall + DieselGameBox, no logo — treat art columns as nullable.
 }

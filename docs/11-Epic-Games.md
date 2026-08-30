@@ -14,7 +14,7 @@ No implementation yet. This doc records the API surface, what is verified agains
 - **Verified** — read directly in `derrod/legendary` (`legendary/api/egs.py`, `legendary/core.py`, `legendary/cli.py`, `legendary/models/game.py`, master), `lutris/lutris` (`lutris/services/egs.py`), `Heroic-Games-Launcher` (`src/backend/storeManagers/legendary/{library,games}.ts`), or `MixV2/EpicResearch` / `LeleDerGrasshalmi/FortniteEndpointsDocumentation` (community reverse-engineering docs with captured request/response examples).
 - **Inferred** — consistent with the above but not stated anywhere; must be checked against a real account.
 
-Nothing below has been run against a live Epic account.
+Live testing against a real account started 2026-08-30; findings are marked "Verified live 2026-08-30" inline and summarised in that section below.
 
 ## Auth flow
 
@@ -38,7 +38,7 @@ Flow, mapping one-for-one onto the existing GOG path:
 
 Token response fields (verified from a captured `exchange_code` response in the Lele docs; the `authorization_code` grant returns the same shape): `access_token`, `expires_in`, `expires_at` (ISO), `token_type` (`bearer`), `refresh_token`, `refresh_expires`, `refresh_expires_at`, `account_id`, `client_id`, `displayName`, `in_app_id`, `app`. **`account_id` comes back in the token response**, so unlike GOG we do not need a separate call to learn who we are.
 
-Lifetimes: the captured example (Fortnite client) shows 2h access / 8h refresh. The launcher client is commonly reported as 8h access / ~24h refresh — _inferred_, verify on first connect and store `expires_at` verbatim rather than assuming. `expires_at` is returned, so `handleRefreshToken` can key on it exactly as the GOG one does.
+Lifetimes: **verified live 2026-08-30** — a fresh `authorization_code` exchange gave `expires_in: 129483` (~36h) for `launcherAppClient2`/`eg1`; `expires_at` was returned alongside it. Refresh was not exercised, so `refresh_expires` is still unmeasured — do not assume GOG's ~30 day figure. Store `expires_at` verbatim; `handleRefreshToken` can key on it exactly as the GOG one does.
 
 Gotchas (verified in source unless noted):
 
@@ -55,7 +55,7 @@ Gotchas (verified in source unless noted):
 | Login page       | `GET https://www.epicgames.com/id/login?redirectUrl=<encoded redirect>`                                                                                                                                 | Redirect target is `https://www.epicgames.com/id/api/redirect?clientId=…&responseType=code` |
 | Token / refresh  | `POST https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/token`                                                                                                                   | Basic auth, form-encoded                                                                    |
 | Verify session   | `GET https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/verify?includePerms=true`                                                                                                 | Returns `account_id`, `display_name`, `expires_at`                                          |
-| Account info     | `GET https://account-public-service-prod03.ol.epicgames.com/account/api/public/account/{accountId}`                                                                                                     | `id`, `displayName`, `country`, `preferredLanguage`, `email`, `lastLogin`                   |
+| Account info     | `GET https://account-public-service-prod03.ol.epicgames.com/account/api/public/account/{accountId}`                                                                                                     | Verified live: also returns `email`, `lastName`, `name`, `lastLogin`, `tfaEnabled` — PII, store only `displayName`/`country` |
 | Kill session     | `DELETE .../account/api/oauth/sessions/kill/{accessToken}`                                                                                                                                              | Unused by legendary; for a "disconnect" button                                              |
 | Library items    | `GET https://library-service.live.use1a.on.epicgames.com/library/api/public/items?includeMetadata=true[&cursor=…]`                                                                                      | Everything owned, incl. non-installable/third-party titles                                  |
 | Launcher assets  | `GET https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/public/assets/Windows?label=Live`                                                                                             | Legacy; installable Windows builds only                                                     |
@@ -63,12 +63,15 @@ Gotchas (verified in source unless noted):
 | Playtime, all    | `GET https://library-service.live.use1a.on.epicgames.com/library/api/public/playtime/account/{accountId}/all`                                                                                           | `[{accountId, artifactId, totalTime}]`                                                      |
 | Playtime, one    | `GET https://library-service.live.use1a.on.epicgames.com/library/api/public/playtime/account/{accountId}/artifact/{artifactId}`                                                                         | Same shape, single object                                                                   |
 | Store slug       | `POST https://launcher.store.epicgames.com/graphql` — `Catalog.catalogNs(namespace).mappings(pageType:"productHome"){pageSlug}`                                                                         | Heroic's method for deriving a store URL                                                    |
+| Store metadata   | `GET https://store-content.ak.epicgames.com/api/en-GB/content/products/{slug}`                                                                                                                          | Unauthenticated; best source for `releaseDate`, `developer[]`, `publisher[]`, `shortDescription` |
 
 All authenticated calls use `Authorization: bearer <access_token>`.
 
 ### Library listing
 
 `records[]` entries (verified example): `namespace`, `catalogItemId`, `appName`, `productId`, `sandboxName`, `sandboxType`, `recordType`, `acquisitionDate`, `dependencies`. Pagination: `responseMetadata.nextCursor`, looped until absent (verified, `EPCAPI.get_library_items`); the cursor is base64 `{"offset":N}`, and `limit`, `platform`, `includeNs`/`excludeNs` are also accepted (community docs).
+
+**Verified live 2026-08-30**: also carries `country`, `platform[]` (e.g. `["Windows","Mac"]`) and `sandboxName`. `sandboxName` is often the title but sometimes a codename (`Radicchio`, `Lemon`, `Kinglet`), so it cannot replace the catalog call for a display title. `appName` is unique once `ue`/Fab items are filtered out — duplicates only occur among namespace `ue` and `fab-listing-live` (Fab marketplace) records, all sharing the Fab namespace `89efe5924d3d467c839449ab6ab52e7f`.
 
 Library items alone are not enough — they carry no title. Titles, art and developer come from the catalog call, one request per `(namespace, catalogItemId)`.
 
@@ -77,7 +80,7 @@ Filtering, all verified in launcher source:
 - `namespace === "ue"` → Unreal Marketplace asset, skip (legendary `skip_ue`).
 - `sandboxType === "PRIVATE"` → skip (legendary).
 - missing `appName` → skip (legendary).
-- catalog `mainGameItem` present → it is DLC; legendary buckets it under `mainGameItem.id`, Heroic sets `is_dlc` from the same field.
+- catalog `mainGameItem` present → it is DLC; legendary buckets it under `mainGameItem.id`, Heroic sets `is_dlc` from the same field. **Verified live 2026-08-30**: this is the only reliable DLC signal — `categories[].path` is not: Civ VI's Aztec DLC has path `addons`, but Control's two DLC share `games, applications` with the base game. DLC arrives as its own library record with its own `appName` (e.g. Civ VI `Kinglet` + `KingletAztec`), so it also has its own playtime entry that must not be added to the parent game's total.
 - catalog `categories[].path` containing `mods` → skip (both).
 - catalog `categories[].path` in `assets`, `asset-format`, `plugins`, `projects` → UE content, skip (Heroic).
 - `releaseInfo` where every `platform` is `Android`/`iOS` → mobile-store-only, skip (Heroic).
@@ -97,24 +100,37 @@ Fields we care about (all seen consumed in launcher source): `title`, `descripti
 - `DieselStoreFrontTall` — store-front portrait, Heroic's fallback for square art.
 - `DieselGameBoxSmall`, `DieselGameBannerSmall` — smaller variants (Lutris).
 
-There is no `releaseDate` on the catalog item. `creationDate` and `releaseInfo[].dateAdded` are the closest things; Heroic instead fetches `https://store-content.ak.epicgames.com/api/{lang}/content/products/{slug}` and reads `pages[type=productHome].data.meta.releaseDate`. Treat release date as best-effort and nullable, as GOG already is.
+**Verified live 2026-08-30**: a typical title carried only `DieselGameBoxTall` (860×1148) and `DieselGameBox` (2560×1440) — no logo. URLs are absolute `cdn1.epicgames.com` links. `boxArtTallUrl`/`boxArtWideUrl`/`logoUrl` must all be nullable.
+
+There is no `releaseDate` on the catalog item; `description` can be just the title (verified live, Manifold Garden). `creationDate` and `releaseInfo[].dateAdded` are the closest catalog fields; Heroic instead fetches `https://store-content.ak.epicgames.com/api/{lang}/content/products/{slug}` and reads `pages[type=productHome].data.meta.releaseDate`. **Verified live 2026-08-30**: that endpoint also returns `developer[]`, `publisher[]` and `data.about.shortDescription`, and is the best source for all three — recommended flow is slug via the GraphQL query, then `store-content` for `releaseDate`/`publisher`/description. Treat release date as best-effort and nullable, as GOG already is.
 
 ### Playtime
 
 `GET .../playtime/account/{accountId}/all` returns a flat array of `{accountId, artifactId, totalTime}` (verified from a captured response in the Lele docs; the matching permission `library:public:{accountId}:playtime:all READ` is on our client).
 
-- `totalTime` is **seconds** — _inferred_ from the write endpoint, which posts `startTime`/`endTime` ISO pairs, and from the magnitudes in the example (Fortnite 68363 ≈ 19h). Must be confirmed against a real account before we store it. `GogGame.playtimeMinutes` is minutes, so an Epic column should either be `playtimeSeconds` or convert on read.
-- `artifactId` is the **`appName`** of the release, i.e. `releaseInfo[].appId` on the catalog item — _not_ the catalogItemId (verified, Lele "obtaining the artifact id"). So playtime joins to the library on `appName`.
-- **There is no `lastPlayedTime` in either playtime response.** Both documented shapes are `{accountId, artifactId, totalTime}` only, and no other endpoint in the community docs exposes a last-played timestamp. This contradicts the common assumption that Epic hands us last played; treat it as _not available_ until a live account proves otherwise. Consequence: Epic behaves like GOG, not Steam — `lastPlayedAt` has to be derived from observed playtime changes, exactly as `recordGogPlaytime` already does.
+- `totalTime` is **seconds** — beyond reasonable doubt from live magnitudes (Subnautica 217450 → 60.4h; read as minutes it would be an implausible 3624h), but still pending user confirmation against the launcher's own displayed figure. `GogGame.playtimeMinutes` is minutes, so an Epic column should either be `playtimeSeconds` or convert on read.
+- `artifactId` is the **`appName`** of the release, i.e. `releaseInfo[].appId` on the catalog item — _not_ the catalogItemId (verified, Lele "obtaining the artifact id"; confirmed live, every artifactId matched a library appName). So playtime joins to the library on `appName`.
+- **There is no `lastPlayedTime` in either playtime response.** Confirmed live: `/all` returns exactly `{accountId, artifactId, totalTime}`, nothing else. Consequence: Epic behaves like GOG, not Steam — `lastPlayedAt` has to be derived from observed playtime changes, exactly as `recordGogPlaytime` already does.
 - No session history and no per-date breakdown. Only a running total. Same shape of problem as GOG, so the same `…GamePlaytime` snapshot table works.
-- Only games with playtime appear — _inferred_; the GOG bulk endpoint behaves this way and the example lists only played artifacts. Missing artifact = zero, as in `recordGogPlaytimes`.
+- Only games with playtime appear — confirmed live: 18 of ~250 non-UE library records had a playtime entry. Missing artifact = zero, as in `recordGogPlaytimes`.
+- **Confirmed live: DLC and UE artifacts appear in `/all` too** (Control's two DLC entries, `UE Marketplace`, `UT Marketplace`). Playtime must be filtered through the same ignore list as the library sync before summing, and DLC playtime must not be added into the parent game's total.
 - The launcher _writes_ playtime via `PUT .../playtime/account/{accountId}` and `/bulk`. We must never call these.
 
 ### Launch and store links
 
 Launch URI: `com.epicgames.launcher://apps/{namespace}%3A{catalogItemId}%3A{appName}?action=launch&silent=true` (verified, Lutris `get_launch_arguments` builds `com.epicgames.launcher://apps/{ns}%3A{id}%3A{app}?action=launch`; `silent=true` is what EGL itself appends — _inferred_). Falls back to `com.epicgames.launcher://apps/{appName}?action=launch` when namespace/catalogItemId are unknown. Equivalent to the existing `goggalaxy://openGameView/{id}` link.
 
-Store URL: `https://www.epicgames.com/store/p/{slug}` (`/store/product/{slug}` also resolves). The slug is not in the catalog item; Heroic queries `launcher.store.epicgames.com/graphql` for `Catalog.catalogNs(namespace: $ns).mappings(pageType: "productHome").pageSlug` and falls back to a slugified title. There is also `GET https://egs-platform-service.store.epicgames.com/api/v1/egs/mappings/{slug}?country=GB&locale=en` for the reverse direction (slug → sandbox/product), unauthenticated.
+Store URL: `https://www.epicgames.com/store/p/{slug}` (`/store/product/{slug}` also resolves). The slug is not in the catalog item; Heroic queries `launcher.store.epicgames.com/graphql` for `Catalog.catalogNs(namespace: $ns).mappings(pageType: "productHome").pageSlug` and falls back to a slugified title. **Verified live 2026-08-30**: this query works with the `EpicGamesLauncher/…` user agent. The reverse-direction `egs-platform-service.../api/v1/egs/mappings/{slug}` endpoint returned non-JSON live and is dropped from this doc.
+
+## Verified live 2026-08-30
+
+Real account, all calls via curl with the launcher client (`token_type=eg1`). Findings folded into the sections above; summarised here.
+
+- **Auth.** Verify on a fresh `authorization_code` token returned `expires_in: 129483` (~36h), `expires_at`, `display_name`, `client_id`, `app`, `in_app_id`. Refresh not exercised — refresh token lifetime still unknown. Account info (`account/api/public/account/{id}`) returns far more than needed — `email`, `lastName`, `name`, `lastLogin`, `tfaEnabled`, `country`, `preferredLanguage`, `displayName` — only `displayName`/`country` should be stored; the rest is PII.
+- **Library.** 304 records over 3 pages (100/111/57); `nextCursor` is base64 `{"offset":N}`; a `stateToken` is also returned but unused. All records were `recordType: APPLICATION`, `sandboxType: PUBLIC`, empty `dependencies`. 36/304 were namespace `ue`. `appName` is unique once `ue`/Fab items are filtered — duplicates occur only among `ue`/`fab-listing-live` records sharing the Fab namespace. DLC show up as separate library records with their own `appName` (Civ VI `Kinglet` + `KingletAztec`; Control `Calluna` + two DLC appNames).
+- **Catalog.** Multiple `id` params in one `bulk/items` call work (tested 2 and 3) — batch per namespace. `mainGameItem` is the only reliable DLC signal; `categories[].path` is not (Civ VI's Aztec DLC has `addons`, but Control's DLC share `games, applications` with the base game). Base games and UE engine items both carry `entitlementType: EXECUTABLE`; UE items are distinguished by `categories` paths `engines`/`engines/ue4`. `releaseInfo[].appId` == library `appName` == playtime `artifactId`, confirmed. `keyImages` on a typical title: just `DieselGameBoxTall` and `DieselGameBox`, no logo — art columns must be nullable. No release date; `description` can be just the title.
+- **Store metadata.** GraphQL slug lookup works with the `EpicGamesLauncher/…` user agent. Unauthenticated `store-content.ak.epicgames.com/api/en-GB/content/products/{slug}` returns `releaseDate`, `developer[]`, `publisher[]` and a real `shortDescription` — best source for all three. `egs-platform-service` mapping endpoint returned non-JSON and is dropped.
+- **Playtime.** `/all` returned 18 entries, exactly `{accountId, artifactId, totalTime}`, no last-played. Every artifactId matched a library `appName`, including DLC (Control's two DLC at 50637 each vs base 115755) and UE items (`UE Marketplace` 300, `UT Marketplace` 900) — must go through the ignore list before summing, and DLC must not roll up into its parent. `totalTime` is seconds beyond reasonable doubt from magnitude (Subnautica 217450 → 60.4h), still pending confirmation against the launcher's own displayed hours. Only artifacts with playtime > 0 appear (18 of ~250 non-UE records).
 
 ## Data mapping
 
@@ -167,24 +183,23 @@ Art helpers (`shared/art.ts`) gain an Epic branch; Epic image URLs are absolute 
 
 - **Two-step library.** Steam and GOG return titles with the owned list. Epic returns identifiers only; every game costs a catalog request. Batch by namespace where possible (`bulk/items` takes repeated `id` params for one namespace) and cache aggressively.
 - **No last played.** Same as GOG, unlike Steam's `rtime_last_played`. Reuse the GOG grounding logic; do not design UI that assumes Epic gives a real last-played date.
-- **Playtime in seconds, not minutes** (pending confirmation). Everything else in the schema is minutes.
-- **Heavy non-game noise.** UE marketplace assets, Fab items, mods, DLC, mobile-only titles, and third-party-managed entries (Ubisoft/EA) all arrive in the same list. Filtering is a first-class concern, not an afterthought as it was for GOG's three product types.
+- **Playtime in seconds, not minutes.** Confirmed by magnitude live (60.4h game reads as 217450), still pending confirmation against the launcher's own displayed hours. Everything else in the schema is minutes.
+- **Heavy non-game noise.** UE marketplace assets, Fab items, mods, DLC, mobile-only titles, and third-party-managed entries (Ubisoft/EA) all arrive in the same list. Filtering is a first-class concern, not an afterthought as it was for GOG's three product types. Confirmed live: the same noise reaches the playtime endpoint too (DLC and UE artifacts both had entries), so playtime sync needs the same ignore list as the library sync, applied before any per-game total is computed.
 - **Third-party-managed games** (`ThirdPartyManagedApp`) are owned via Epic but launch through another launcher. They are real games and should sync, but the launch URI is unreliable for them.
-- **Short-lived codes and tokens.** The authorization code is single-use and expires quickly (same as GOG). The refresh token is short-lived by comparison to GOG's, so a daily scheduled sync may find the session dead — connect will need re-doing more often than GOG. Confirm the actual refresh lifetime before relying on a schedule.
+- **Short-lived codes and tokens.** The authorization code is single-use and expires quickly (same as GOG). Access token lifetime is confirmed at ~36h (`expires_in: 129483`) for the launcher client; refresh token lifetime is still unmeasured — confirm it before relying on a daily schedule.
 - **No public documentation and no stable contract.** Everything here is reverse-engineered; Epic can and does change it. Errors must be non-fatal per game, as `07-Sync-Robustness.md` established.
 
 ## Open questions (verify against a real account)
 
-1. Is `totalTime` seconds? Compare one known game against the launcher's own "You've played" figure.
-2. Does the `/all` playtime response really omit last-played, or does a live account return extra fields? Also: does it include zero-playtime artifacts?
-3. Actual `expires_in` / `refresh_expires` for `launcherAppClient2` with `token_type=eg1`.
-4. Does the `authorization_code` grant (as opposed to `exchange_code`) return `account_id` and `displayName`? Assumed yes.
-5. Do we need `X-Epic-Device-ID` on the token request? Community docs list it as a header EGL sends; legendary omits it.
-6. How large is a real library's `records` array, and how many catalog calls does a full sync cost? Does the catalog endpoint rate-limit, and at what point?
-7. Does `bulk/items` accept multiple `id` params in one call in practice (all launchers send one at a time)?
-8. Are `keyImages` present for every owned title, or do older/free titles come back without art?
-9. Is the `pageSlug` GraphQL query stable enough to depend on, or should we slugify the title?
-10. Does the launcher's `assets/Windows` endpoint add anything the library endpoint misses?
+Answered by the 2026-08-30 live test and removed: is `totalTime` seconds (yes, by magnitude — still want the launcher's own figure as a final check, see below); does `/all` omit last-played and include only nonzero artifacts (yes to both); does `authorization_code` return `display_name`/account identity (yes); does `bulk/items` accept multiple `id` params (yes); is `categories[].path` a usable DLC signal (no — `mainGameItem` only).
+
+1. Refresh token lifetime for `launcherAppClient2`/`eg1` — not yet exercised, `expires_in` for the access token is confirmed (~36h) but `refresh_expires` is not.
+2. Do we need `X-Epic-Device-ID` on the token request? Community docs list it as a header EGL sends; legendary omits it.
+3. Does the catalog endpoint rate-limit under a full-library sync (hundreds of `bulk/items` calls), and at what point?
+4. Are `keyImages` present for every owned title, or do older/free titles come back without any art? Only one title checked live (two image types, no logo).
+5. Is the `pageSlug` GraphQL mapping present/stable for all titles, or does it 404 for some? Only one namespace checked live.
+6. Does the launcher's `assets/Windows` endpoint add anything the library endpoint misses?
+7. Confirm `totalTime` magnitude against the launcher's own displayed "hours played" for at least one game — seconds is near-certain from magnitude alone but not yet cross-checked against the UI.
 
 ## Proposed implementation steps
 

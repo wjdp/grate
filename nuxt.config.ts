@@ -1,12 +1,23 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from "@tailwindcss/vite";
 
+const relaxedIndexAccess = () => ({
+  compilerOptions: { noUncheckedIndexedAccess: false },
+});
+
 export default defineNuxtConfig({
-  compatibilityDate: "2024-11-01",
+  compatibilityDate: "2026-08-30",
+  buildDir: ".nuxt",
+  typescript: {
+    tsConfig: relaxedIndexAccess(),
+    nodeTsConfig: relaxedIndexAccess(),
+    sharedTsConfig: relaxedIndexAccess(),
+  },
   devtools: { enabled: true },
   modules: ["@nuxt/test-utils/module", "@nuxt/fonts", "@nuxt/icon"],
   css: ["~/assets/css/main.css"],
   nitro: {
+    typescript: { tsConfig: relaxedIndexAccess() },
     experimental: { tasks: true },
     scheduledTasks: {
       "0 * * * *": "scheduled:record-playtimes",

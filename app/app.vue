@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <UApp>
     <NuxtRouteAnnouncer />
     <NuxtLoadingIndicator
       color="#fed250"
@@ -10,5 +10,5 @@
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-  </div>
+  </UApp>
 </template>

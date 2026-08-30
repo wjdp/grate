@@ -1,6 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from "@tailwindcss/vite";
 
+import { version } from "./package.json";
+
 const relaxedIndexAccess = () => ({
   compilerOptions: { noUncheckedIndexedAccess: false },
 });
@@ -25,8 +27,18 @@ export default defineNuxtConfig({
     sharedTsConfig: relaxedIndexAccess(),
   },
   devtools: { enabled: true },
-  modules: ["@nuxt/test-utils/module", "@nuxt/fonts", "@nuxt/icon"],
+  modules: ["@nuxt/test-utils/module", "@nuxt/ui"],
   css: ["~/assets/css/main.css"],
+  runtimeConfig: {
+    public: { version },
+  },
+  fonts: {
+    families: [
+      { name: "Inter", provider: "google" },
+      { name: "Archivo", provider: "google" },
+      { name: "JetBrains Mono", provider: "google" },
+    ],
+  },
   nitro: {
     typescript: { tsConfig: relaxedIndexAccess() },
     experimental: { tasks: true },

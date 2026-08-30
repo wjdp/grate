@@ -133,6 +133,22 @@ Real account, all calls via curl with the launcher client (`token_type=eg1`). Fi
 - **Store metadata.** GraphQL slug lookup works with the `EpicGamesLauncher/…` user agent. Unauthenticated `store-content.ak.epicgames.com/api/en-GB/content/products/{slug}` returns `releaseDate`, `developer[]`, `publisher[]` and a real `shortDescription` — best source for all three. `egs-platform-service` mapping endpoint returned non-JSON and is dropped.
 - **Playtime.** `/all` returned 18 entries, exactly `{accountId, artifactId, totalTime}`, no last-played. Every artifactId matched a library `appName`, including DLC (Control's two DLC at 50637 each vs base 115755) and UE items (`UE Marketplace` 300, `UT Marketplace` 900) — must go through the ignore list before summing, and DLC must not roll up into its parent. `totalTime` is seconds beyond reasonable doubt from magnitude (Subnautica 217450 → 60.4h), still pending confirmation against the launcher's own displayed hours. Only artifacts with playtime > 0 appear (18 of ~250 non-UE records).
 
+### Live sync 2026-08-30
+
+- Connect flow end-to-end worked (page → paste JSON → `epicAuth`). Token response `refresh_expires_at` ≈ 363 days out — answers open question 1 (refresh lifetime ~1 year for `launcherAppClient2`). Refresh grant itself still not exercised.
+- Full sync of 304 library records took ~1m40s (one catalog call per namespace, one GraphQL slug + one store-content call per game). No rate limiting observed — narrows open question 3 to "none observed at ~250 items".
+- Result: 206 games; ignored DLC 22, UE 36. Bug found and fixed (09ce69b): `releaseInfo[].compatibleApps: []` is present on ordinary games — only a non-empty array marks an editor resource; 34 real games (Control, Borderlands 3, Death Stranding, Hogwarts Legacy, Tomb Raider trilogy…) had been wrongly ignored.
+- Art: box art tall on 206/206, wide 204/206, logo 2/206 → logo effectively unavailable; answers open question 4.
+- Store slug via GraphQL: 204/206 (GTA V among the missing). Store-content endpoint: only 92/206 return (release date), 80 publishers — 404 for newer slugs with a hex suffix (`darkwood-fa73bd`); `egs-platform-service /api/v2/products/{slug}` also 404s. 404 now silent. Release date/publisher therefore best-effort only. Narrows open question 5 to "GraphQL slug missing for ~1% of titles; store-content covers <50%".
+- Playtime: minutes correct (Subnautica 3624 = 60.4h, Manifold Garden 191 = 3.2h, both matching the launcher). `lastPlayedAt` null after first sync as designed.
+- Cross-provider duplicates: 15+ titles also exist on Steam/GOG (BioShock Remastered, Subnautica, Alien: Isolation…). Manual merge for now.
+
+**Follow-ups**
+
+- Name-based cross-provider merge suggestion — natural next step given the manual merging above.
+- Apply the same derived-`lastPlayedAt` logic to GOG, whose `lastPlayedAt` is also always null.
+- `pages/providers/steam/index.vue` has the same `useAsyncData` null-return warning.
+
 ## Data mapping
 
 Mirrors the GOG tables. Provider rows stay the source of truth; `Game` is the agnostic layer (see `08-Cross-Provider-Game-Linking.md` — Epic rows must be 1:N on `Game` from the start).
@@ -192,16 +208,14 @@ Art helpers (`shared/art.ts`) gain an Epic branch; Epic image URLs are absolute 
 
 ## Open questions (verify against a real account)
 
-Answered by the 2026-08-30 live test and removed: is `totalTime` seconds (yes, by magnitude — still want the launcher's own figure as a final check, see below); does `/all` omit last-played and include only nonzero artifacts (yes to both); does `authorization_code` return `display_name`/account identity (yes); does `bulk/items` accept multiple `id` params (yes); is `categories[].path` a usable DLC signal (no — `mainGameItem` only).
+Answered by the 2026-08-30 live test and removed: is `totalTime` seconds (yes, by magnitude — still want the launcher's own figure as a final check, see below); does `/all` omit last-played and include only nonzero artifacts (yes to both); does `authorization_code` return `display_name`/account identity (yes); does `bulk/items` accept multiple `id` params (yes); is `categories[].path` a usable DLC signal (no — `mainGameItem` only). Answered by the 2026-08-30 live sync and removed: refresh token lifetime (~363 days); art coverage (tall 206/206, wide 204/206, logo 2/206).
 
-1. Refresh token lifetime for `launcherAppClient2`/`eg1` — not yet exercised, `expires_in` for the access token is confirmed (~36h) but `refresh_expires` is not.
-2. Do we need `X-Epic-Device-ID` on the token request? Community docs list it as a header EGL sends; legendary omits it.
-3. Does the catalog endpoint rate-limit under a full-library sync (hundreds of `bulk/items` calls), and at what point?
-4. Are `keyImages` present for every owned title, or do older/free titles come back without any art? Only one title checked live (two image types, no logo).
-5. Is the `pageSlug` GraphQL mapping present/stable for all titles, or does it 404 for some? Only one namespace checked live.
-6. Does the launcher's `assets/Windows` endpoint add anything the library endpoint misses?
-7. Confirm `totalTime` magnitude against the launcher's own displayed "hours played" for at least one game — seconds is near-certain from magnitude alone but not yet cross-checked against the UI.
-8. Not yet exercised against a live account: connect flow end-to-end, full library sync (~250 catalog items), refresh grant.
+1. Do we need `X-Epic-Device-ID` on the token request? Community docs list it as a header EGL sends; legendary omits it.
+2. Does the catalog endpoint rate-limit under a full-library sync (hundreds of `bulk/items` calls), and at what point? None observed at ~250 items.
+3. Is the `pageSlug` GraphQL mapping present/stable for all titles, or does it 404 for some? GraphQL slug missing for ~1% of titles; store-content covers <50%.
+4. Does the launcher's `assets/Windows` endpoint add anything the library endpoint misses?
+5. Confirm `totalTime` magnitude against the launcher's own displayed "hours played" for at least one game — seconds is near-certain from magnitude alone but not yet cross-checked against the UI.
+6. Connect flow end-to-end and full library sync (304 catalog items) done live 2026-08-30; refresh grant still unexercised.
 
 ## Implementation
 

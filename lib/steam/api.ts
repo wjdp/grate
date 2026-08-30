@@ -63,15 +63,34 @@ const userInfoSchema = z.object({
 
 export type UserInfo = z.infer<typeof userInfoSchema>;
 
-export async function getUserInfo(): Promise<UserInfo> {
+export interface SteamCredentials {
+  apiKey: string;
+  steamId: string;
+}
+
+export async function getUserInfo({
+  apiKey,
+  steamId,
+}: SteamCredentials): Promise<UserInfo> {
+  const parameters = new URLSearchParams({
+    key: apiKey,
+    steamids: steamId,
+  });
   const response = await fetch(
-    `${BASE_URL}/ISteamUser/GetPlayerSummaries/v2/?key=${process.env.STEAM_API_KEY}&steamids=${process.env.STEAM_USER_ID}`,
+    `${BASE_URL}/ISteamUser/GetPlayerSummaries/v2/?` + parameters.toString(),
   );
   if (!response.ok) {
     throw createSteamApiError(response);
   }
   const data = await response.json();
-  return userInfoSchema.parse(data.response.players[0]);
+  const player = data.response?.players?.[0];
+  if (!player) {
+    throw new SteamApiError({
+      message: `Steam returned no player for SteamID ${steamId}`,
+      statusCode: 404,
+    });
+  }
+  return userInfoSchema.parse(player);
 }
 
 const userGameSchema = z.object({
@@ -112,10 +131,13 @@ const userGameSchema = z.object({
 
 export type UserGame = z.infer<typeof userGameSchema>;
 
-export async function getUserGames(): Promise<UserGame[]> {
+export async function getUserGames({
+  apiKey,
+  steamId,
+}: SteamCredentials): Promise<UserGame[]> {
   const parameters = new URLSearchParams({
-    key: process.env.STEAM_API_KEY,
-    steamid: process.env.STEAM_USER_ID,
+    key: apiKey,
+    steamid: steamId,
     include_appinfo: "1",
     include_played_free_games: "1",
     include_extended_appinfo: "1",

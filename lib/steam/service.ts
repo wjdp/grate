@@ -6,12 +6,20 @@ import {
   steamGame,
   steamGamePlaytime,
   steamUser,
+  user,
   type NewSteamAppInfo,
   type SteamGame,
   type SteamGamePlaytime,
+  type SteamUser,
 } from "~~/db/schema";
 import { refreshGameAggregates } from "~/lib/gameAggregates";
-import { getUserGames, getUserInfo, type UserGame } from "./api";
+import {
+  getUserGames,
+  getUserInfo,
+  type SteamCredentials,
+  type UserGame,
+  type UserInfo,
+} from "./api";
 import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
 
 export class SteamServiceError extends Error {
@@ -21,24 +29,70 @@ export class SteamServiceError extends Error {
   }
 }
 
+export async function getSteamUser(): Promise<SteamUser | null> {
+  return (await db.query.steamUser.findFirst()) ?? null;
+}
+
+export function steamCredentialsOf(steamUserRow: SteamUser): SteamCredentials {
+  if (!steamUserRow.apiKey) {
+    throw new SteamServiceError("Steam API key not configured");
+  }
+  return { apiKey: steamUserRow.apiKey, steamId: steamUserRow.steamId };
+}
+
+function steamUserProfileFields(steamUserInfo: UserInfo) {
+  return {
+    personaName: steamUserInfo.personaname,
+    realName: steamUserInfo.realname,
+    profileUrl: steamUserInfo.profileurl,
+    avatar: steamUserInfo.avatar,
+    avatarMedium: steamUserInfo.avatarmedium,
+    avatarFull: steamUserInfo.avatarfull,
+    avatarHash: steamUserInfo.avatarhash,
+    lastLogoff: steamUserInfo.lastlogoff,
+  };
+}
+
+export async function createOrUpdateSteamUser({
+  apiKey,
+  steamId,
+}: SteamCredentials): Promise<SteamUser> {
+  const steamUserInfo = await getUserInfo({ apiKey, steamId });
+  const currentUser = await getSteamUser();
+  if (currentUser && currentUser.steamId !== steamUserInfo.steamid) {
+    throw new SteamServiceError("grate only supports a single Steam account");
+  }
+  const profileFields = steamUserProfileFields(steamUserInfo);
+  return db.transaction((tx) => {
+    const owner =
+      tx.select().from(user).limit(1).get() ??
+      tx.insert(user).values({}).returning().get();
+    return tx
+      .insert(steamUser)
+      .values({
+        steamId: steamUserInfo.steamid,
+        userId: owner.id,
+        apiKey,
+        ...profileFields,
+      })
+      .onConflictDoUpdate({
+        target: steamUser.steamId,
+        set: { apiKey, ...profileFields },
+      })
+      .returning()
+      .get();
+  });
+}
+
 export async function updateUser() {
-  const currentUser = db.select().from(steamUser).limit(1).get();
+  const currentUser = await getSteamUser();
   if (!currentUser) {
     throw new Error("User not found");
   }
-  const steamUserInfo = await getUserInfo();
+  const steamUserInfo = await getUserInfo(steamCredentialsOf(currentUser));
   const updateUser = db
     .update(steamUser)
-    .set({
-      personaName: steamUserInfo.personaname,
-      realName: steamUserInfo.realname,
-      profileUrl: steamUserInfo.profileurl,
-      avatar: steamUserInfo.avatar,
-      avatarMedium: steamUserInfo.avatarmedium,
-      avatarFull: steamUserInfo.avatarfull,
-      avatarHash: steamUserInfo.avatarhash,
-      lastLogoff: steamUserInfo.lastlogoff,
-    })
+    .set(steamUserProfileFields(steamUserInfo))
     .where(eq(steamUser.steamId, currentUser.steamId))
     .returning()
     .get();
@@ -132,11 +186,11 @@ async function updateOrCreateGame(userGame: UserGame) {
 }
 
 export async function updateGames() {
-  const currentUser = db.select().from(steamUser).limit(1).get();
+  const currentUser = await getSteamUser();
   if (!currentUser) {
     throw new Error("User not found");
   }
-  const games = await getUserGames();
+  const games = await getUserGames(steamCredentialsOf(currentUser));
   for (const userGame of games) {
     await updateOrCreateGame(userGame);
   }
@@ -292,8 +346,12 @@ export async function recordPlaytime(userGame: UserGame, now: Date) {
 }
 
 export async function recordPlaytimes() {
+  const currentUser = await getSteamUser();
+  if (!currentUser) {
+    throw new Error("User not found");
+  }
   const steamGamesInDb = db.select().from(steamGame).all();
-  const userOwnedGames = await getUserGames();
+  const userOwnedGames = await getUserGames(steamCredentialsOf(currentUser));
   const timestampEnd = new Date();
   for (const userGame of userOwnedGames) {
     const dbGame = steamGamesInDb.find((g) => g.appId === userGame.appid);

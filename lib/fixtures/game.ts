@@ -93,6 +93,11 @@ export function createSteamUser(
       avatarFull: faker.internet.url(),
       avatarHash: faker.string.alphanumeric(40),
       lastLogoff: faker.number.int({ min: 0, max: 2_000_000_000 }),
+      apiKey: faker.string.hexadecimal({
+        length: 32,
+        casing: "upper",
+        prefix: "",
+      }),
       ...overrides,
     })
     .returning()

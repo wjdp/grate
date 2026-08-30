@@ -12,6 +12,7 @@ import {
   generateUnownedFakeUserGame,
 } from "~/lib/steam/fixtures/fake";
 import {
+  createOrUpdateSteamUser,
   findGamesNeedingStoreData,
   getPlaytimeRecords,
   populateStoreData,
@@ -24,6 +25,7 @@ import {
 import { getUserGames, getUserInfo } from "~/lib/steam/api";
 import { getAppDetails, SteamStoreError } from "~/lib/steam/store";
 import { db } from "~~/lib/db";
+import { steamUser, user } from "~~/db/schema";
 
 import { DateTime } from "luxon";
 import { flushDb } from "~/test/db";
@@ -176,6 +178,22 @@ describe("updateUser", () => {
     expect(updatedUser.avatarHash).toBe(userInfo.avatarhash);
   });
 
+  it("calls the steam api with the stored credentials", async () => {
+    const storedUser = createSteamUser({ apiKey: "STORED-KEY" });
+    vi.mocked(getUserInfo).mockResolvedValue(generateFakeUserInfo());
+    await updateUser();
+    expect(getUserInfo).toHaveBeenCalledWith({
+      apiKey: "STORED-KEY",
+      steamId: storedUser.steamId,
+    });
+  });
+
+  it("throws when the stored user has no api key", async () => {
+    createSteamUser({ apiKey: null });
+    await expect(updateUser()).rejects.toThrow("Steam API key not configured");
+    expect(getUserInfo).not.toHaveBeenCalled();
+  });
+
   it("does not adopt the steam id returned by the api", async () => {
     const steamUser = createSteamUser();
     vi.mocked(getUserInfo).mockResolvedValue(
@@ -249,6 +267,84 @@ describe("updateGames", () => {
     vi.mocked(getUserGames).mockResolvedValue(userGames);
     expect(await updateGames()).toStrictEqual(userGames);
   });
+
+  it("calls the steam api with the stored credentials", async () => {
+    const storedUser = createSteamUser({ apiKey: "STORED-KEY" });
+    vi.mocked(getUserGames).mockResolvedValue([]);
+    await updateGames();
+    expect(getUserGames).toHaveBeenCalledWith({
+      apiKey: "STORED-KEY",
+      steamId: storedUser.steamId,
+    });
+  });
+});
+
+describe("createOrUpdateSteamUser", () => {
+  beforeEach(async () => {
+    await flushDb();
+    vi.resetAllMocks();
+  });
+
+  it("creates a user and steam user", async () => {
+    const userInfo = generateFakeUserInfo({ personaname: "Fresh Persona" });
+    vi.mocked(getUserInfo).mockResolvedValue(userInfo);
+    const created = await createOrUpdateSteamUser({
+      apiKey: "NEW-KEY",
+      steamId: userInfo.steamid,
+    });
+    expect(getUserInfo).toHaveBeenCalledWith({
+      apiKey: "NEW-KEY",
+      steamId: userInfo.steamid,
+    });
+    expect(created.steamId).toBe(userInfo.steamid);
+    expect(created.personaName).toBe("Fresh Persona");
+    expect(created.apiKey).toBe("NEW-KEY");
+    expect(db.select().from(user).all()).toHaveLength(1);
+    expect(db.select().from(steamUser).all()).toHaveLength(1);
+  });
+
+  it("updates the existing user and its api key", async () => {
+    const existing = createSteamUser({ apiKey: "OLD-KEY" });
+    vi.mocked(getUserInfo).mockResolvedValue(
+      generateFakeUserInfo({
+        steamid: existing.steamId,
+        personaname: "Renamed Persona",
+      }),
+    );
+    const updated = await createOrUpdateSteamUser({
+      apiKey: "REPLACEMENT-KEY",
+      steamId: existing.steamId,
+    });
+    expect(updated.apiKey).toBe("REPLACEMENT-KEY");
+    expect(updated.personaName).toBe("Renamed Persona");
+    expect(updated.userId).toBe(existing.userId);
+    expect(db.select().from(user).all()).toHaveLength(1);
+    expect(db.select().from(steamUser).all()).toHaveLength(1);
+  });
+
+  it("rejects a different steam account", async () => {
+    createSteamUser();
+    const otherSteamId = faker.string.numeric(17);
+    vi.mocked(getUserInfo).mockResolvedValue(
+      generateFakeUserInfo({ steamid: otherSteamId }),
+    );
+    await expect(
+      createOrUpdateSteamUser({ apiKey: "KEY", steamId: otherSteamId }),
+    ).rejects.toThrow("grate only supports a single Steam account");
+    expect(db.select().from(steamUser).all()).toHaveLength(1);
+  });
+
+  it("propagates an api failure without writing", async () => {
+    vi.mocked(getUserInfo).mockRejectedValue(new Error("Forbidden"));
+    await expect(
+      createOrUpdateSteamUser({
+        apiKey: "BAD-KEY",
+        steamId: faker.string.numeric(17),
+      }),
+    ).rejects.toThrow("Forbidden");
+    expect(db.select().from(user).all()).toHaveLength(0);
+    expect(db.select().from(steamUser).all()).toHaveLength(0);
+  });
 });
 
 describe("recordPlaytimes", () => {
@@ -258,6 +354,7 @@ describe("recordPlaytimes", () => {
   });
 
   it("throws when an owned game is not in the database", async () => {
+    createSteamUser();
     const userGame = generateUnownedFakeUserGame({ name: "Missing Game" });
     vi.mocked(getUserGames).mockResolvedValue([userGame]);
     await expect(recordPlaytimes()).rejects.toThrow(
@@ -266,6 +363,7 @@ describe("recordPlaytimes", () => {
   });
 
   it("records a playtime for every owned game", async () => {
+    createSteamUser();
     const firstSteamGame = createSteamGame();
     const secondSteamGame = createSteamGame();
     vi.mocked(getUserGames).mockResolvedValue([

@@ -17,22 +17,6 @@ function check_data_directory {
   fi
 }
 
-function check_variables {
-    fail=0
-    if [ -z "$STEAM_USER_ID" ]; then
-        echo "❓❌ STEAM_API_KEY not set"
-        fail=1
-    fi
-    if [ -z "$STEAM_USER_ID" ]; then
-        echo "❓❌ STEAM_USER_ID not set"
-        fail=1
-    fi
-    # check fail state
-    if [ $fail -ne 0 ]; then
-        exit 1
-    fi
-}
-
 function start_server {
   echo "🚀 Starting grate server"
   node .output/server/index.mjs
@@ -41,6 +25,5 @@ function start_server {
 motd
 
 check_data_directory
-check_variables
 
 start_server

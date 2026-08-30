@@ -170,7 +170,7 @@ function isEditorResource(item: EpicCatalogItem): boolean {
     item.entitlementType === "AUDIENCE" ||
     categoryPaths(item).includes("type/format-item") ||
     !!item.customAttributes?.ListingIdentifier ||
-    item.releaseInfo.some((release) => !!release.compatibleApps)
+    item.releaseInfo.some((release) => release.compatibleApps?.length)
   );
 }
 

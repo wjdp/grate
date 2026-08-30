@@ -3,9 +3,9 @@ import { getEpicLoginUri } from "~/lib/epic/api";
 
 const { $client } = useNuxtApp();
 
-const { data: status, refresh: refreshStatus } = await useAsyncData(
+const { data: epicStatus, refresh: refreshStatus } = await useAsyncData(
   "epic-status",
-  () => $client.epicStatus.query(),
+  async () => ({ user: await $client.epicStatus.query() }),
 );
 
 const authUri = getEpicLoginUri();
@@ -58,8 +58,10 @@ const connectEpic = async () => {
   <div class="p-4">
     <h1>Epic Status</h1>
     <div class="my-4">
-      <template v-if="status">
-        Connected as {{ status.displayName }} ({{ status.accountId }}).
+      <template v-if="epicStatus?.user">
+        Connected as {{ epicStatus.user.displayName }} ({{
+          epicStatus.user.accountId
+        }}).
       </template>
       <template v-else> No Epic account connected. </template>
     </div>

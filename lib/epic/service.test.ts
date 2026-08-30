@@ -475,6 +475,33 @@ describe("updateEpicGames", () => {
     },
   );
 
+  it("syncs an ordinary game whose releaseInfo has an empty compatibleApps array", async () => {
+    await createEpicUser();
+    vi.mocked(getEpicLibraryItems).mockResolvedValue([
+      generateFakeEpicLibraryRecord({
+        catalogItemId: "item-y",
+        appName: "OrdinaryGame",
+      }),
+    ]);
+    vi.mocked(getEpicCatalogItems).mockResolvedValue(
+      catalogResponse(
+        generateFakeEpicCatalogItem({
+          id: "item-y",
+          title: "Control",
+          releaseInfo: [
+            { appId: "control", platform: ["Windows"], compatibleApps: [] },
+          ],
+        }),
+      ),
+    );
+
+    await updateEpicGames();
+
+    expect(await db.$count(epicIgnoredItem)).toBe(0);
+    const stored = firstOrThrow(db.select().from(epicGame).all());
+    expect(stored.name).toBe("Control");
+  });
+
   it("ignores an item missing from the catalog response and skips it next run", async () => {
     await createEpicUser();
     vi.mocked(getEpicLibraryItems).mockResolvedValue([

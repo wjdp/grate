@@ -404,6 +404,9 @@ export async function getEpicStoreContent(
     const response = await epicFetch(
       `${EPIC_STORE_CONTENT_HOST}/api/en-GB/content/products/${slug}`,
     );
+    if (response.status === 404) {
+      return null;
+    }
     if (!response.ok) {
       throw createEpicApiError(response);
     }

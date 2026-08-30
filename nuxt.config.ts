@@ -20,6 +20,8 @@ export default defineNuxtConfig({
     scheduledTasks: {
       "0 * * * *": "scheduled:record-playtimes",
       "0/15 * * * *": "scheduled:update-steam-user",
+      "30 * * * *": "scheduled:record-gog-playtimes",
+      "5/15 * * * *": "scheduled:update-gog-user",
     },
   },
   vite: {

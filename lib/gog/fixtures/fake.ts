@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import type { GogGame, GogUser as PrismaGogUser } from "@prisma/client";
+import type { GogGame, GogUser as PrismaGogUser, Prisma } from "@prisma/client";
 import type {
   getGogToken,
   getGogUserData,
@@ -10,7 +10,7 @@ import prisma from "~/lib/prisma";
 import { createGame } from "~/lib/steam/fixtures/fake";
 
 export async function createGogGame(
-  overrides: Partial<GogGame> = {},
+  overrides: Partial<Prisma.GogGameUncheckedCreateInput> = {},
 ): Promise<GogGame> {
   const game = await createGame({ name: overrides.name });
   return prisma.gogGame.create({

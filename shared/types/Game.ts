@@ -1,5 +1,5 @@
-import type { Game, SteamGame } from "@prisma/client";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "~~/server/trpc/routers";
 
-export interface GameWithSteam extends Game {
-  steamGame: SteamGame | null;
-}
+export type GameWithSteam =
+  inferRouterOutputs<AppRouter>["games"]["games"][number];

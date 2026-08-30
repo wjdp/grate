@@ -52,7 +52,7 @@ export default router({
   splitGame: publicProcedure
     .input(
       z.object({
-        provider: z.enum(["steam", "gog"]),
+        provider: z.enum(["steam", "gog", "epic"]),
         providerId: z.number().positive(),
       }),
     )

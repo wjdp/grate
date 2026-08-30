@@ -1,5 +1,7 @@
 import { asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import {
+  epicGame,
+  epicGamePlaytime,
   game,
   gameStateChange,
   gogGame,
@@ -13,7 +15,7 @@ import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
 import type { GameState } from "~~/shared/game-state";
 
-export type PlaytimeProvider = "steam" | "gog";
+export type PlaytimeProvider = "steam" | "gog" | "epic";
 
 export interface GamePlaytimeRecord {
   timestampStart: Date | null;
@@ -27,11 +29,13 @@ export interface GamePlaytimeRecord {
 const providerRows = {
   steamGames: { orderBy: asc(steamGame.appId) },
   gogGames: { orderBy: asc(gogGame.gogId) },
+  epicGames: { orderBy: asc(epicGame.epicId) },
 } as const;
 
 const providerRowsWithAppInfo = {
   steamGames: { orderBy: asc(steamGame.appId), with: { appInfo: true } },
   gogGames: { orderBy: asc(gogGame.gogId) },
+  epicGames: { orderBy: asc(epicGame.epicId) },
 } as const;
 
 export async function getGames() {
@@ -102,6 +106,23 @@ export async function getGamePlaytimes(
         provider: "gog" as const,
         providerId: gogRow.gogId,
         providerName: gogRow.name,
+      })),
+    );
+  }
+  for (const epicRow of gameRecord.epicGames) {
+    const epicRecords = await db
+      .select()
+      .from(epicGamePlaytime)
+      .where(eq(epicGamePlaytime.epicId, epicRow.epicId))
+      .all();
+    records.push(
+      ...epicRecords.map((record) => ({
+        timestampStart: record.timestampStart,
+        timestampEnd: record.timestampEnd,
+        playtimeMinutes: record.playtimeMinutes,
+        provider: "epic" as const,
+        providerId: epicRow.epicId,
+        providerName: epicRow.name,
       })),
     );
   }
@@ -208,6 +229,10 @@ export async function mergeGames(
       .set({ gameId: targetId })
       .where(inArray(gogGame.gameId, sourceIds))
       .run();
+    tx.update(epicGame)
+      .set({ gameId: targetId })
+      .where(inArray(epicGame.gameId, sourceIds))
+      .run();
     tx.update(gameStateChange)
       .set({ gameId: targetId })
       .where(inArray(gameStateChange.gameId, sourceIds))
@@ -233,7 +258,13 @@ export async function splitGame(
   const providerRow =
     provider === "steam"
       ? db.select().from(steamGame).where(eq(steamGame.appId, providerId)).get()
-      : db.select().from(gogGame).where(eq(gogGame.gogId, providerId)).get();
+      : provider === "gog"
+        ? db.select().from(gogGame).where(eq(gogGame.gogId, providerId)).get()
+        : db
+            .select()
+            .from(epicGame)
+            .where(eq(epicGame.epicId, providerId))
+            .get();
   if (!providerRow) {
     throw new Error(`No ${provider} game ${providerId}`);
   }
@@ -260,10 +291,15 @@ export async function splitGame(
         .set({ gameId: createdGame.id })
         .where(eq(steamGame.appId, providerId))
         .run();
-    } else {
+    } else if (provider === "gog") {
       tx.update(gogGame)
         .set({ gameId: createdGame.id })
         .where(eq(gogGame.gogId, providerId))
+        .run();
+    } else {
+      tx.update(epicGame)
+        .set({ gameId: createdGame.id })
+        .where(eq(epicGame.epicId, providerId))
         .run();
     }
     return createdGame;

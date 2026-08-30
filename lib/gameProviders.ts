@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { gogGame, steamGame } from "~~/db/schema";
+import { epicGame, gogGame, steamGame } from "~~/db/schema";
 import { db, type Db } from "~~/lib/db";
 
 type Transaction = Parameters<Parameters<Db["transaction"]>[0]>[0];
@@ -20,5 +20,10 @@ export function countProviderRows(
     .from(gogGame)
     .where(eq(gogGame.gameId, gameId))
     .all();
-  return steamRows.length + gogRows.length;
+  const epicRows = client
+    .select({ epicId: epicGame.epicId })
+    .from(epicGame)
+    .where(eq(epicGame.gameId, gameId))
+    .all();
+  return steamRows.length + gogRows.length + epicRows.length;
 }

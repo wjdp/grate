@@ -1,13 +1,16 @@
 import { faker } from "@faker-js/faker";
 import { db } from "~~/lib/db";
 import {
+  epicGame,
   game,
   gogGame,
   steamGame,
   steamUser,
   user,
+  type EpicGame,
   type Game,
   type GogGame,
+  type NewEpicGame,
   type NewGame,
   type NewGogGame,
   type NewSteamGame,
@@ -72,6 +75,24 @@ export function createGogGame(overrides: Partial<NewGogGame> = {}): GogGame {
       gogId: faker.number.int({ min: 1, max: 2_000_000_000 }),
       tags: [],
       properties: [],
+      ...overrides,
+    })
+    .returning()
+    .get();
+}
+
+export function createEpicGame(overrides: Partial<NewEpicGame> = {}): EpicGame {
+  const gameId = overrides.gameId ?? createGame({ name: overrides.name }).id;
+  const name = overrides.name ?? faker.commerce.productName();
+  return db
+    .insert(epicGame)
+    .values({
+      gameId,
+      name,
+      appName: faker.string.alphanumeric(32),
+      namespace: faker.string.alphanumeric(32),
+      catalogItemId: faker.string.alphanumeric(32),
+      categories: [],
       ...overrides,
     })
     .returning()

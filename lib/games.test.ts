@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { describe, it, expect, beforeEach } from "vitest";
 import {
+  epicGamePlaytime as epicGamePlaytimeTable,
   game as gameTable,
   gameStateChange as gameStateChangeTable,
   gogGame as gogGameTable,
@@ -10,6 +11,7 @@ import {
 } from "~~/db/schema";
 import { db } from "~~/lib/db";
 import {
+  createEpicGame,
   createGame,
   createGogGame,
   createSteamGame,
@@ -228,6 +230,29 @@ describe("getGamePlaytimes", () => {
         provider: "gog",
         providerId: gogGame.gogId,
         providerName: gogGame.name,
+      },
+    ]);
+  });
+
+  it("returns the epic records for an epic-only game", async () => {
+    const epicGame = createEpicGame();
+    db.insert(epicGamePlaytimeTable)
+      .values({
+        epicId: epicGame.epicId,
+        timestampStart: new Date("2024-03-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-03-02T00:00:00.000Z"),
+        playtimeMinutes: 77,
+      })
+      .run();
+    const playtimes = await getGamePlaytimes(epicGame.gameId);
+    expect(playtimes).toStrictEqual([
+      {
+        timestampStart: new Date("2024-03-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-03-02T00:00:00.000Z"),
+        playtimeMinutes: 77,
+        provider: "epic",
+        providerId: epicGame.epicId,
+        providerName: epicGame.name,
       },
     ]);
   });
@@ -596,6 +621,30 @@ describe("mergeGames", () => {
     );
   });
 
+  it("moves epic rows onto the target and deletes the source", async () => {
+    const steamGame = createSteamGame({
+      name: "Alan Wake 2",
+      playtimeForever: 30,
+    });
+    const epicGame = createEpicGame({
+      name: "Alan Wake 2 Epic",
+      playtimeMinutes: 90,
+      lastPlayedAt: new Date("2024-05-01T00:00:00.000Z"),
+    });
+
+    const merged = await mergeGames(steamGame.gameId, [epicGame.gameId]);
+
+    expect(merged.playtimeMinutes).toBe(120);
+    expect(merged.lastPlayedAt).toStrictEqual(
+      new Date("2024-05-01T00:00:00.000Z"),
+    );
+    expect(gameById(epicGame.gameId)).toBeNull();
+    const game = await getGame(steamGame.gameId);
+    expect(game?.epicGames.map((row) => row.epicId)).toStrictEqual([
+      epicGame.epicId,
+    ]);
+  });
+
   it("rejects an unknown target", async () => {
     const source = createGame({ name: "Source" });
     await expect(mergeGames(123456, [source.id])).rejects.toThrow(
@@ -632,6 +681,9 @@ describe("splitGame", () => {
     );
     await expect(splitGame("gog", 123456)).rejects.toThrow(
       "No gog game 123456",
+    );
+    await expect(splitGame("epic", 123456)).rejects.toThrow(
+      "No epic game 123456",
     );
   });
 
@@ -692,5 +744,32 @@ describe("splitGame", () => {
     expect(splitOff.playtimeMinutes).toBe(60);
     const remaining = await getGame(gogGame.gameId);
     expect(remaining?.steamGames).toStrictEqual([]);
+  });
+
+  it("splits an epic row off a mixed-provider game", async () => {
+    const steamGame = createSteamGame({
+      name: "Control",
+      playtimeForever: 40,
+    });
+    const epicGame = createEpicGame({
+      gameId: steamGame.gameId,
+      name: "Control Epic",
+      playtimeMinutes: 85,
+      lastPlayedAt: new Date("2024-04-01T00:00:00.000Z"),
+    });
+
+    const splitOff = await splitGame("epic", epicGame.epicId);
+
+    expect(splitOff.id).not.toBe(steamGame.gameId);
+    expect(splitOff.name).toBe("Control Epic");
+    expect(splitOff.playtimeMinutes).toBe(85);
+    expect(splitOff.lastPlayedAt).toStrictEqual(
+      new Date("2024-04-01T00:00:00.000Z"),
+    );
+
+    const previousGame = gameById(steamGame.gameId);
+    expect(previousGame?.playtimeMinutes).toBe(40);
+    const remaining = await getGame(steamGame.gameId);
+    expect(remaining?.epicGames).toStrictEqual([]);
   });
 });

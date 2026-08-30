@@ -1,9 +1,13 @@
 import { faker } from "@faker-js/faker";
-import type {
-  getGogToken,
-  getGogUserData,
-  GogGameDetail,
-  GogPlaytimeSessions,
+import {
+  GogGameDetailSchema,
+  GogPlaytimeSessionsSchema,
+  GogTokenSchema,
+  GogUserSchema,
+  type getGogToken,
+  type getGogUserData,
+  type GogGameDetail,
+  type GogPlaytimeSessions,
 } from "~~/lib/gog/api";
 import { db } from "~~/lib/db";
 import { gogUser, type GogUser, type NewGogUser } from "~~/db/schema";
@@ -14,7 +18,7 @@ type GogApiUser = Awaited<ReturnType<typeof getGogUserData>>;
 export function generateFakeGogToken(
   overrides: Partial<GogToken> = {},
 ): GogToken {
-  return {
+  return GogTokenSchema.parse({
     access_token: faker.string.alphanumeric(32),
     token_type: "bearer",
     expires_in: 3600,
@@ -23,13 +27,13 @@ export function generateFakeGogToken(
     user_id: faker.string.numeric(18),
     session_id: faker.string.alphanumeric(16),
     ...overrides,
-  };
+  });
 }
 
 export function generateFakeGogUser(
   overrides: Partial<GogApiUser> = {},
 ): GogApiUser {
-  return {
+  return GogUserSchema.parse({
     userId: faker.string.numeric(18),
     username: faker.internet.username(),
     galaxyUserId: faker.string.numeric(18),
@@ -37,7 +41,7 @@ export function generateFakeGogUser(
     avatar: faker.internet.url(),
     checksum: { games: faker.string.alphanumeric(32) },
     ...overrides,
-  };
+  });
 }
 
 export interface FakeGogGameDetailOverrides {
@@ -55,7 +59,7 @@ export interface FakeGogGameDetailOverrides {
 export function generateFakeGogGameDetail(
   overrides: FakeGogGameDetailOverrides = {},
 ): GogGameDetail {
-  return {
+  return GogGameDetailSchema.parse({
     description: overrides.description ?? faker.lorem.paragraph(),
     overview: faker.lorem.sentence(),
     _links: {
@@ -83,7 +87,7 @@ export function generateFakeGogGameDetail(
       tags: [{ id: 1, name: "RPG", level: 1, slug: "rpg" }],
       properties: [{ name: "Windows", slug: "windows" }],
     },
-  };
+  });
 }
 
 export async function createGogUser(
@@ -110,11 +114,11 @@ export async function createGogUser(
 export function generateFakeGogPlaytimeSessions(
   overrides: Partial<GogPlaytimeSessions> = {},
 ): GogPlaytimeSessions {
-  return {
+  return GogPlaytimeSessionsSchema.parse({
     game_id: faker.number.int({ min: 1, max: 2_000_000_000 }),
     user_id: faker.string.numeric(18),
     time_sum: faker.number.int({ min: 0, max: 10_000 }),
     last_session_date: Math.floor(faker.date.recent().getTime() / 1000),
     ...overrides,
-  };
+  });
 }

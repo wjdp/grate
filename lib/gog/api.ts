@@ -54,7 +54,7 @@ const GOG_GRANT_TYPE = "authorization_code";
 
 export { getGogLoginUri } from "#shared/providers/gog";
 
-const GogTokenSchema = z.object({
+export const GogTokenSchema = z.object({
   access_token: z.string(),
   token_type: z.string(),
   expires_in: z.number(),
@@ -89,7 +89,7 @@ export async function refreshGogToken(refreshToken: string): Promise<GogToken> {
   return GogTokenSchema.parse(data);
 }
 
-const GogUserSchema = z.object({
+export const GogUserSchema = z.object({
   userId: z.string(),
   username: z.string(),
   galaxyUserId: z.string(),
@@ -130,7 +130,7 @@ export async function getGogUserGames(accessToken: string): Promise<number[]> {
 
 const GogProductLink = z.object({ href: z.string().nullable() });
 
-const GogGameDetailSchema = z.object({
+export const GogGameDetailSchema = z.object({
   description: z.string(),
   overview: z.string(),
   _links: z.object({
@@ -188,7 +188,7 @@ export async function getGogGameDetail(id: number): Promise<GogGameDetail> {
 
 // time_sum is in minutes, last_session_date is a unix timestamp in seconds.
 // Only sessions reported by Galaxy or Heroic are counted by GOG.
-const GogPlaytimeSessionsSchema = z.object({
+export const GogPlaytimeSessionsSchema = z.object({
   game_id: z.coerce.number().optional(),
   user_id: z.string().optional(),
   time_sum: z.number(),

@@ -1,0 +1,1 @@
+ALTER TABLE `SteamUser` ADD `apiKey` text;

@@ -15,6 +15,13 @@
       "when": 1788062214032,
       "tag": "0001_native_types",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788097926972,
+      "tag": "0002_steam_api_key",
+      "breakpoints": true
     }
   ]
 }

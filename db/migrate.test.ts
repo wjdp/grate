@@ -246,7 +246,7 @@ describe("runMigrations", () => {
     for (const table of TABLES) expect(tables).toContain(table);
     expect(
       sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([2]);
+    ).toEqual([3]);
     expect(tables).not.toContain("_prisma_migrations");
   });
 
@@ -270,7 +270,7 @@ describe("runMigrations", () => {
       FINAL_PRISMA_MIGRATION,
       createHash("sha256").update(FINAL_PRISMA_MIGRATION_SQL).digest("hex"),
     ]);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 2 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 3 });
 
     const backfilled = sqlite
       .prepare(
@@ -302,7 +302,7 @@ describe("runMigrations", () => {
     const { db, sqlite } = open(path);
     runMigrations(sqlite, db);
 
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 2 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 3 });
     expect(rowCounts(path)).toEqual(before);
     expect(lastPlayedAt(path)).toEqual(
       isoBefore.map(([id, , value]) => [
@@ -365,7 +365,7 @@ describe("runMigrations", () => {
 
     expect(schemaOf(path)).toEqual(schema);
     expect(rowCounts(path)).toEqual(counts);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 2 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 3 });
     expectNativeStorage(path);
   });
 });

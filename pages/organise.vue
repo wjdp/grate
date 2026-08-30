@@ -81,7 +81,7 @@ const skipGame = async () => {
     >
       <div class="my-4 text-center">
         <img
-          v-if="theArt"
+          v-if="theArt?.header"
           :src="theArt.header"
           :alt="`${theGame.name}`"
           class="inline-block w-full"

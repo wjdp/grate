@@ -19,22 +19,15 @@ export default defineNuxtConfig({
     experimental: { tasks: true },
     scheduledTasks: {
       "0 * * * *": "scheduled:record-playtimes",
-      "0/15 * * * *": "scheduled:update-steam-user",
+      "*/15 * * * *": "scheduled:update-steam-user",
       "30 * * * *": "scheduled:record-gog-playtimes",
-      "5/15 * * * *": "scheduled:update-gog-user",
+      "5-59/15 * * * *": "scheduled:update-gog-user",
     },
   },
   vite: {
-    plugins: [
-      // @ts-ignore, not sure why this is throwing all the errors
-      tailwindcss(),
-    ],
+    plugins: [tailwindcss()],
     resolve: {
-      alias: {
-        // https://github.com/nuxt/nuxt/issues/24690#issuecomment-2254528534
-        ".prisma/client/index-browser":
-          "./node_modules/.prisma/client/index-browser.js",
-      },
+      alias: {},
     },
     server: {
       watch: {

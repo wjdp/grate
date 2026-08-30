@@ -34,7 +34,7 @@ const recentGames = computed(() => recentGamesData.value?.games || []);
             >
               <img
                 v-if="getGameArtUrls(game)?.poster"
-                :src="getGameArtUrls(game)!.poster"
+                :src="getGameArtUrls(game)?.poster ?? undefined"
                 :alt="game.name"
                 class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"

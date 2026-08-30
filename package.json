@@ -49,10 +49,12 @@
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4.3.3",
     "trpc-nuxt": "^0.10.22",
+    "typescript": "^5.9.3",
     "vitest": "^3.2.7",
     "vitest-fetch-mock": "^0.4.5",
     "vue": "latest",
     "vue-router": "latest",
+    "vue-tsc": "^3.3.11",
     "zod": "^3.25.76"
   }
 }

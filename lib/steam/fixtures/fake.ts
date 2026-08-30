@@ -1,4 +1,9 @@
-import type { UserGame, UserInfo } from "~~/lib/steam/api";
+import {
+  userGameSchema,
+  userInfoSchema,
+  type UserGame,
+  type UserInfo,
+} from "~~/lib/steam/api";
 import { faker } from "@faker-js/faker";
 import type { SteamGame } from "~~/db/schema";
 
@@ -34,7 +39,7 @@ export function generateFakeUserGame(
   const playtime_2weeks =
     overrides?.playtime_2weeks ??
     Math.min(playtime_forever, faker.number.int({ min: 0, max: 1000 }));
-  return {
+  return userGameSchema.parse({
     appid: steamGame.appId,
     name: steamGame.name,
     playtime_forever,
@@ -52,7 +57,7 @@ export function generateFakeUserGame(
     has_market: faker.datatype.boolean(),
     has_dlc: faker.datatype.boolean(),
     has_leaderboards: faker.datatype.boolean(),
-  };
+  });
 }
 
 export function mergeFake<T extends object>(
@@ -74,7 +79,7 @@ export function generateUnownedFakeUserGame(
 export function generateFakeUserInfo(
   overrides: Partial<UserInfo> = {},
 ): UserInfo {
-  return {
+  return userInfoSchema.parse({
     ...{
       steamid: faker.string.numeric(17),
       personaname: faker.internet.username(),
@@ -95,5 +100,5 @@ export function generateFakeUserInfo(
       locstatecode: null,
     },
     ...filterUndefinedKeys(overrides),
-  };
+  });
 }

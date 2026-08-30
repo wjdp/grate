@@ -64,7 +64,7 @@ export async function resolveVanityUrl(
   return z.string().parse(data.response.steamid);
 }
 
-const userInfoSchema = z.object({
+export const userInfoSchema = z.object({
   // 64-bit SteamID: keep it a string, it is never used arithmetically
   steamid: z.string(),
   personaname: z.string(),
@@ -117,7 +117,7 @@ export async function getUserInfo({
   return userInfoSchema.parse(player);
 }
 
-const userGameSchema = z.object({
+export const userGameSchema = z.object({
   appid: z.number(),
   name: z.string(),
 

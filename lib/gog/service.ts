@@ -416,8 +416,18 @@ export async function recordGogPlaytimes(
     message: `fetched playtime for ${playtimeByGogId.size} games`,
   });
   const knownGogIds = new Set(gogGames.map((row) => row.gogId));
+  const ignoredGogIds = new Set(
+    db
+      .select({ gogId: gogIgnoredProduct.gogId })
+      .from(gogIgnoredProduct)
+      .all()
+      .map((row) => row.gogId),
+  );
   const unknownGames = [...playtimeByGogId.values()].filter(
-    (entry) => entry.time_sum > 0 && !knownGogIds.has(entry.game_id),
+    (entry) =>
+      entry.time_sum > 0 &&
+      !knownGogIds.has(entry.game_id) &&
+      !ignoredGogIds.has(entry.game_id),
   ).length;
   const now = new Date();
   for (const playedGame of gogGames) {

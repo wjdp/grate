@@ -489,8 +489,18 @@ export async function recordEpicPlaytimes(
     message: `fetched playtime for ${totalTimeByArtifactId.size} games`,
   });
   const knownAppNames = new Set(epicGames.map((row) => row.appName));
+  const ignoredAppNames = new Set(
+    db
+      .select({ appName: epicIgnoredItem.appName })
+      .from(epicIgnoredItem)
+      .all()
+      .map((row) => row.appName),
+  );
   const unknownGames = [...totalTimeByArtifactId].filter(
-    ([artifactId, totalTime]) => totalTime > 0 && !knownAppNames.has(artifactId),
+    ([artifactId, totalTime]) =>
+      totalTime > 0 &&
+      !knownAppNames.has(artifactId) &&
+      !ignoredAppNames.has(artifactId),
   ).length;
   const now = new Date();
   for (const playedGame of epicGames) {

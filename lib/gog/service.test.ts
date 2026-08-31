@@ -793,6 +793,24 @@ describe("recordGogPlaytimes", () => {
     });
   });
 
+  it("does not count persistently ignored products as unknown", async () => {
+    await createGogUser();
+    await createGogGame({ gogId: 930 });
+    db.insert(gogIgnoredProduct).values({ gogId: 931, reason: "DLC" }).run();
+    vi.mocked(getGogUserPlaytimes).mockResolvedValue({
+      total_sum: 42,
+      game_time: [
+        { game_id: 930, time_sum: 21 },
+        { game_id: 931, time_sum: 21 },
+      ],
+    });
+
+    expect(await recordGogPlaytimes()).toStrictEqual({
+      gamesCreated: 0,
+      unknownGames: 0,
+    });
+  });
+
   it("reports progress", async () => {
     await createGogUser();
     await createGogGame({ gogId: 920 });

@@ -836,6 +836,23 @@ describe("recordEpicPlaytimes", () => {
     });
   });
 
+  it("does not count persistently ignored items as unknown", async () => {
+    await createEpicUser();
+    createEpicGame({ appName: "AppTracked" });
+    db.insert(epicIgnoredItem)
+      .values({ appName: "AppIgnored", reason: "DLC" })
+      .run();
+    vi.mocked(getEpicPlaytimes).mockResolvedValue([
+      generateFakeEpicPlaytime({ artifactId: "AppTracked", totalTime: 120 }),
+      generateFakeEpicPlaytime({ artifactId: "AppIgnored", totalTime: 120 }),
+    ]);
+
+    expect(await recordEpicPlaytimes()).toStrictEqual({
+      gamesCreated: 0,
+      unknownGames: 0,
+    });
+  });
+
   it("reports progress", async () => {
     await createEpicUser();
     createEpicGame({ appName: "AppProgress" });

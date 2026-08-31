@@ -13,7 +13,7 @@ defineProps<{
       :src="background"
       alt=""
       aria-hidden="true"
-      class="absolute inset-0 size-full scale-110 object-cover blur-xl brightness-50"
+      class="absolute inset-0 size-full scale-110 object-cover brightness-50"
     />
     <div
       class="absolute inset-0 bg-gradient-to-t from-(--ui-bg) via-(--ui-bg)/40 to-transparent"

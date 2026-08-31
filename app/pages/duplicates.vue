@@ -9,6 +9,11 @@ const { data, status, refresh } = await useFetch("/api/games/duplicates");
 const pairs = computed(() => data.value?.pairs ?? []);
 const distinctPairs = computed(() => data.value?.distinct ?? []);
 
+const duplicateCount = useDuplicateCount();
+watchEffect(() => {
+  if (data.value) duplicateCount.value = data.value.pairs.length;
+});
+
 const pairKey = (pair: DuplicatePair) => `${pair.a.id}:${pair.b.id}`;
 
 const pendingKey = ref<string | null>(null);
@@ -84,7 +89,7 @@ const formatCreated = (createdAt: string) =>
       </p>
     </div>
 
-    <div v-if="status === 'pending'" class="space-y-4">
+    <div v-if="status === 'pending' && !data" class="space-y-4">
       <USkeleton v-for="index in 3" :key="index" class="h-48 rounded-lg" />
     </div>
 

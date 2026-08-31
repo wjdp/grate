@@ -3,8 +3,14 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 
 const { version } = useRuntimeConfig().public;
 
-const { data: duplicateCount } = useFetch("/api/games/duplicates", {
+const duplicateCount = useDuplicateCount();
+const { data: fetchedDuplicateCount } = useFetch("/api/games/duplicates", {
   transform: (data) => data.pairs.length,
+});
+watchEffect(() => {
+  if (duplicateCount.value === null && fetchedDuplicateCount.value != null) {
+    duplicateCount.value = fetchedDuplicateCount.value;
+  }
 });
 
 const mainLinks = computed<NavigationMenuItem[]>(() => [

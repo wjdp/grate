@@ -28,7 +28,7 @@ export interface ProviderRunOutcome<T> {
   failures: ProviderFailure[];
 }
 
-async function selectActiveProviders<T>(
+async function selectActiveProviders(
   task: Task,
   registry: ProviderJobs[],
 ): Promise<ProviderJobs[]> {

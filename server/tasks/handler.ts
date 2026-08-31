@@ -14,7 +14,7 @@ export default defineTask({
     name: "handler",
     description: "Handle tasks on the task queue",
   },
-  async run({ payload, context }) {
+  async run() {
     const { push } = useSseEvent();
     const currentTask = await getCurrentTask();
     if (!currentTask) {
@@ -22,7 +22,7 @@ export default defineTask({
       return { result: "No tasks to run" };
     }
     const taskNameLog = `${currentTask.id}:${currentTask.name}`;
-    if (currentTask.state != "pending") {
+    if (currentTask.state !== "pending") {
       console.log("task already running");
       return { result: "Task already running" };
     }

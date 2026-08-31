@@ -5,10 +5,10 @@ import type { SseMessageMap, SseMessageType } from "~~/lib/hooks";
 const defaultBusName = "default";
 
 export interface ServerSentEvent {
-  [key: string]: <T extends SseMessageType, R>(
+  [key: string]: <T extends SseMessageType>(
     type: T,
     data: SseMessageMap[T],
-  ) => R | void;
+  ) => void;
 }
 
 export const sseHooks = createHooks<ServerSentEvent>();

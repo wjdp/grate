@@ -26,8 +26,9 @@ const CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
 };
 
 export function extensionForContentType(contentType: string): string {
-  const type = contentType.split(";")[0]!.trim().toLowerCase();
-  return EXTENSION_BY_CONTENT_TYPE[type] ?? FALLBACK_EXTENSION;
+  const [type] = contentType.split(";");
+  const normalised = type?.trim().toLowerCase() ?? "";
+  return EXTENSION_BY_CONTENT_TYPE[normalised] ?? FALLBACK_EXTENSION;
 }
 
 export function contentTypeForPath(path: string): string | null {

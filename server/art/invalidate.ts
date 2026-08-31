@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "node:fs";
 import { artDirectory } from "./paths";
 import type { ArtKey } from "./types";
 

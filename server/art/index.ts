@@ -3,6 +3,7 @@ import {
   ArtFetchError,
   ArtNegativelyCachedError,
   ArtSourceNotFoundError,
+  type FetchedImage,
   fetchImage,
   writeArtFile,
 } from "./fetch";
@@ -37,7 +38,7 @@ async function fetchAndWrite(
     if (rateLimit) {
       await waitForArtFetchSlot(source.url);
     }
-    let image;
+    let image: FetchedImage;
     try {
       image = await fetchImage(source.url);
     } catch (error) {

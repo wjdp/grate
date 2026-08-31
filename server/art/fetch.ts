@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "node:fs";
 import { clearMissingMarker } from "./missing";
 import {
   artDirectory,

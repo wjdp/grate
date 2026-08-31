@@ -1,11 +1,11 @@
-import { constants } from "fs";
-import { access } from "fs/promises";
+import { constants } from "node:fs";
+import { access } from "node:fs/promises";
 
 export async function checkFileExists(path: string) {
   try {
     await access(path, constants.F_OK);
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

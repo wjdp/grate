@@ -5,7 +5,7 @@ export default defineTask({
     name: "scheduled:record-playtimes",
     description: "Record game playtimes for every connected provider",
   },
-  async run({ payload, context }) {
+  async run() {
     await createTask("recordPlaytimes");
     return { result: "Success" };
   },

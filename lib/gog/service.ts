@@ -11,6 +11,7 @@ import {
   refreshGogToken,
 } from "~~/lib/gog/api";
 import tryCatch from "#shared/utils/tryCatch";
+import htmlToBareDescription from "#shared/utils/htmlToBareDescription";
 import { db } from "~~/lib/db";
 import {
   game,
@@ -253,7 +254,7 @@ function gogGameFields(gogGameDetail: GogGameDetail) {
     name: gogGameDetail._embedded.product.title,
     productType: gogGameDetail._embedded.productType,
     releaseDate: releaseDateOf(gogGameDetail),
-    description: gogGameDetail.description,
+    description: htmlToBareDescription(gogGameDetail.description),
     publisher: gogGameDetail._embedded.publisher.name,
     developer: gogGameDetail._embedded.developers
       .map((dev) => dev.name)

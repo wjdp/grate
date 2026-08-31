@@ -181,3 +181,26 @@ export async function getUserGames({
   }
   return games;
 }
+
+const tagListSchema = z.object({
+  response: z.object({
+    tags: z.array(z.object({ tagid: z.number(), name: z.string() })),
+  }),
+});
+
+export type SteamStoreTag = z.infer<
+  typeof tagListSchema
+>["response"]["tags"][number];
+
+// Keyless: GetTagList takes no API key, only a language.
+export async function getTagList(): Promise<SteamStoreTag[]> {
+  const parameters = new URLSearchParams({ language: "english" });
+  const response = await fetch(
+    `${BASE_URL}/IStoreService/GetTagList/v1/?` + parameters.toString(),
+  );
+  if (!response.ok) {
+    throw createSteamApiError(response);
+  }
+  const data = await response.json();
+  return tagListSchema.parse(data).response.tags;
+}

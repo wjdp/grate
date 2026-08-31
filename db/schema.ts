@@ -77,6 +77,25 @@ export const gameStateChange = sqliteTable("GameStateChange", {
   timestamp: datetime().notNull(),
 });
 
+export const gameDistinctPair = sqliteTable(
+  "GameDistinctPair",
+  {
+    id: autoIncrementId(),
+    gameAId: integer()
+      .notNull()
+      .references(() => game.id, { onDelete: "restrict", onUpdate: "cascade" }),
+    gameBId: integer()
+      .notNull()
+      .references(() => game.id, { onDelete: "restrict", onUpdate: "cascade" }),
+    createdAt: datetime()
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("GameDistinctPair_pair_key").on(table.gameAId, table.gameBId),
+  ],
+);
+
 export const steamGame = sqliteTable(
   "SteamGame",
   {
@@ -363,6 +382,8 @@ export type Game = typeof game.$inferSelect;
 export type NewGame = typeof game.$inferInsert;
 export type GameStateChange = typeof gameStateChange.$inferSelect;
 export type NewGameStateChange = typeof gameStateChange.$inferInsert;
+export type GameDistinctPair = typeof gameDistinctPair.$inferSelect;
+export type NewGameDistinctPair = typeof gameDistinctPair.$inferInsert;
 export type SteamGame = typeof steamGame.$inferSelect;
 export type NewSteamGame = typeof steamGame.$inferInsert;
 export type SteamAppInfo = typeof steamAppInfo.$inferSelect;

@@ -22,6 +22,7 @@ const TABLES = [
   "GogUser",
   "Game",
   "GameStateChange",
+  "GameDistinctPair",
   "SteamGame",
   "SteamAppInfo",
   "SteamGamePlaytime",
@@ -39,6 +40,7 @@ const DATETIME_COLUMNS: [table: string, column: string][] = [
   ["GogUser", "accessTokenExpiresAt"],
   ["Game", "lastPlayedAt"],
   ["GameStateChange", "timestamp"],
+  ["GameDistinctPair", "createdAt"],
   ["SteamAppInfo", "fetchedAt"],
   ["SteamAppInfo", "releaseDate"],
   ["SteamGamePlaytime", "timestampStart"],
@@ -277,7 +279,7 @@ describe("runMigrations", () => {
     for (const table of TABLES) expect(tables).toContain(table);
     expect(
       sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([6]);
+    ).toEqual([7]);
     expect(tables).not.toContain("_prisma_migrations");
   });
 
@@ -301,7 +303,7 @@ describe("runMigrations", () => {
       FINAL_PRISMA_MIGRATION,
       createHash("sha256").update(FINAL_PRISMA_MIGRATION_SQL).digest("hex"),
     ]);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 6 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 7 });
 
     const backfilled = sqlite
       .prepare(
@@ -333,6 +335,7 @@ describe("runMigrations", () => {
       EpicGame: 0,
       EpicGamePlaytime: 0,
       EpicIgnoredItem: 0,
+      GameDistinctPair: 0,
     });
   });
 
@@ -345,7 +348,7 @@ describe("runMigrations", () => {
     const { db, sqlite } = open(path);
     runMigrations(sqlite, db);
 
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 6 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 7 });
     expect(rowCounts(path)).toEqual({
       ...before,
       SteamGamePlaytime: 4,
@@ -353,6 +356,7 @@ describe("runMigrations", () => {
       EpicGame: 0,
       EpicGamePlaytime: 0,
       EpicIgnoredItem: 0,
+      GameDistinctPair: 0,
     });
     expect(lastPlayedAt(path)).toEqual(
       isoBefore.map(([id, , value]) => [
@@ -415,7 +419,7 @@ describe("runMigrations", () => {
 
     expect(schemaOf(path)).toEqual(schema);
     expect(rowCounts(path)).toEqual(counts);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 6 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 7 });
     expectNativeStorage(path);
   });
 });

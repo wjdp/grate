@@ -1,8 +1,9 @@
-import { asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import {
   epicGame,
   epicGamePlaytime,
   game,
+  gameDistinctPair,
   gameStateChange,
   gogGame,
   gogGamePlaytime,
@@ -195,6 +196,52 @@ function inheritedState(
   return candidates[0]?.state ?? null;
 }
 
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+function repointDistinctPairs(
+  tx: Transaction,
+  targetId: number,
+  sourceIds: number[],
+) {
+  const pairs = tx
+    .select()
+    .from(gameDistinctPair)
+    .where(
+      or(
+        inArray(gameDistinctPair.gameAId, sourceIds),
+        inArray(gameDistinctPair.gameBId, sourceIds),
+      ),
+    )
+    .all();
+  if (pairs.length === 0) {
+    return;
+  }
+  const isSource = (id: number) => sourceIds.includes(id);
+  tx.delete(gameDistinctPair)
+    .where(
+      inArray(
+        gameDistinctPair.id,
+        pairs.map((pair) => pair.id),
+      ),
+    )
+    .run();
+  for (const pair of pairs) {
+    const a = isSource(pair.gameAId) ? targetId : pair.gameAId;
+    const b = isSource(pair.gameBId) ? targetId : pair.gameBId;
+    if (a === b) {
+      continue;
+    }
+    tx.insert(gameDistinctPair)
+      .values({
+        gameAId: Math.min(a, b),
+        gameBId: Math.max(a, b),
+        createdAt: pair.createdAt,
+      })
+      .onConflictDoNothing()
+      .run();
+  }
+}
+
 export async function mergeGames(
   targetId: number,
   sourceIds: number[],
@@ -237,6 +284,7 @@ export async function mergeGames(
       .set({ gameId: targetId })
       .where(inArray(gameStateChange.gameId, sourceIds))
       .run();
+    repointDistinctPairs(tx, targetId, sourceIds);
     if (target.state === null) {
       const state = inheritedState(sources, sourceStateChanges);
       if (state !== null) {

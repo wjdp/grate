@@ -3,12 +3,14 @@ import { db } from "~~/lib/db";
 import {
   epicGame,
   game,
+  gameDistinctPair,
   gogGame,
   steamGame,
   steamUser,
   user,
   type EpicGame,
   type Game,
+  type GameDistinctPair,
   type GogGame,
   type NewEpicGame,
   type NewGame,
@@ -25,6 +27,20 @@ export function createGame(overrides: Partial<NewGame> = {}): Game {
     .values({
       ...overrides,
       name: overrides.name ?? faker.commerce.productName(),
+    })
+    .returning()
+    .get();
+}
+
+export function createGameDistinctPair(
+  gameAId: number,
+  gameBId: number,
+): GameDistinctPair {
+  return db
+    .insert(gameDistinctPair)
+    .values({
+      gameAId: Math.min(gameAId, gameBId),
+      gameBId: Math.max(gameAId, gameBId),
     })
     .returning()
     .get();

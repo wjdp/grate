@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   epicGamePlaytime as epicGamePlaytimeTable,
   game as gameTable,
+  gameDistinctPair as gameDistinctPairTable,
   gameStateChange as gameStateChangeTable,
   gogGame as gogGameTable,
   gogGamePlaytime as gogGamePlaytimeTable,
@@ -13,6 +14,7 @@ import { db } from "~~/lib/db";
 import {
   createEpicGame,
   createGame,
+  createGameDistinctPair,
   createGogGame,
   createSteamGame,
 } from "~~/lib/fixtures/game";
@@ -440,6 +442,14 @@ function allGames() {
   return db.select().from(gameTable).all();
 }
 
+function distinctPairs() {
+  return db
+    .select()
+    .from(gameDistinctPairTable)
+    .orderBy(asc(gameDistinctPairTable.id))
+    .all();
+}
+
 describe("mergeGames", () => {
   beforeEach(async () => {
     await flushDb();
@@ -667,6 +677,59 @@ describe("mergeGames", () => {
     expect(stateChangesFor(source.gameId)).toHaveLength(1);
     const targetGame = await getGame(target.gameId);
     expect(targetGame?.gogGames).toStrictEqual([]);
+  });
+
+  it("re-points a distinct pair from the source onto the target", async () => {
+    const target = createGame({ name: "Target" });
+    const other = createGame({ name: "Other" });
+    const source = createGame({ name: "Source" });
+    createGameDistinctPair(source.id, other.id);
+
+    await mergeGames(target.id, [source.id]);
+
+    expect(
+      distinctPairs().map((pair) => [pair.gameAId, pair.gameBId]),
+    ).toStrictEqual([[target.id, other.id]]);
+  });
+
+  it("drops a distinct pair between the target and a source", async () => {
+    const target = createGame({ name: "Target" });
+    const source = createGame({ name: "Source" });
+    createGameDistinctPair(target.id, source.id);
+
+    await mergeGames(target.id, [source.id]);
+
+    expect(distinctPairs()).toStrictEqual([]);
+  });
+
+  it("collapses distinct pairs that become duplicates", async () => {
+    const target = createGame({ name: "Target" });
+    const other = createGame({ name: "Other" });
+    const source = createGame({ name: "Source" });
+    createGameDistinctPair(target.id, other.id);
+    createGameDistinctPair(source.id, other.id);
+
+    await mergeGames(target.id, [source.id]);
+
+    expect(
+      distinctPairs().map((pair) => [pair.gameAId, pair.gameBId]),
+    ).toStrictEqual([
+      [Math.min(target.id, other.id), Math.max(target.id, other.id)],
+    ]);
+  });
+
+  it("keeps the pair ordering when re-mapping reverses the ids", async () => {
+    const other = createGame({ name: "Other" });
+    const source = createGame({ name: "Source" });
+    const target = createGame({ name: "Target" });
+    createGameDistinctPair(other.id, source.id);
+
+    await mergeGames(target.id, [source.id]);
+
+    expect(
+      distinctPairs().map((pair) => [pair.gameAId, pair.gameBId]),
+    ).toStrictEqual([[other.id, target.id]]);
+    expect(other.id).toBeLessThan(target.id);
   });
 });
 

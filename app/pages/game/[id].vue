@@ -158,9 +158,11 @@ const playtimeMeta = {
       </div>
 
       <div class="min-w-0 space-y-6">
-        <p v-if="description" class="text-muted max-w-prose">
-          {{ description }}
-        </p>
+        <CollapsibleText
+          v-if="description"
+          :text="description"
+          class="text-muted max-w-prose"
+        />
 
         <GameProviderRows :game="game" />
 

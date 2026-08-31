@@ -1,6 +1,6 @@
 ---
 type: task
-status: open
+status: done
 ---
 
 # Art caching for all providers
@@ -113,3 +113,14 @@ Out of scope here; a stale cache **must not** slow app usage — only first load
 ## Unanswered questions
 
 None outstanding.
+
+## Outcome
+
+Implemented 2026-08-31, commits `c088dcb`…`a3730ee`. Delivered as specced with these deviations:
+
+- GOG icon preset corrected live: `glx_square_icon_v2` (the doc's original `glx_icon_square` does not exist on the CDN).
+- Upstream 403 treated as not-found (Steam's CDN 403s on missing assets), not 502.
+- Serving now sets `Content-Type` from the file extension; extension probing (`<type>.{jpg,png,webp,gif,avif}`) keeps the legacy all-`.jpg` Steam cache working with no migration; a refetch landing on a new extension deletes stale siblings.
+- Misses are not negative-cached — a game genuinely lacking a type re-hits the CDN per request (accepted v1 trade-off; revisit with the invalidation follow-up).
+- `server/art/` module: types, paths, validated fetch (temp-write + rename), per-provider source resolvers, epic icon derivation (sharp, 128px webp), per-host rate limit (bulk task only), `ensureArtCached` with in-flight map.
+- Browser `Cache-Control` left at `max-age=3600`; raising it belongs with the invalidation follow-up ([plan](#plan) step 7, still open).

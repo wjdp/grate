@@ -90,6 +90,12 @@ describe("GET /art/:provider/:id/:type", () => {
     expect(response.status).toBe(404);
   });
 
+  it("lets browsers cache a 404 so misses are not re-requested per render", async () => {
+    const response = await fetch(`/art/gog/${artlessGogGame.gogId}/hero`);
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("public, max-age=3600");
+  });
+
   it("200s with the file bytes when a file is cached", async () => {
     const appId = 42;
     const artDir = join(dataDir, "art", "steam", String(appId));

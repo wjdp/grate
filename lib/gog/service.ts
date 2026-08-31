@@ -4,6 +4,7 @@ import tryCatch from "#shared/utils/tryCatch";
 import {
   type Game,
   type GogGame,
+  type GogGamePlaytime,
   type GogUser,
   game,
   gogGame,
@@ -336,7 +337,7 @@ export async function recordGogPlaytime(
     .limit(2)
     .all();
   const lastPlayedAt = gogLastPlayedAt(sessions);
-  let record;
+  let record: GogGamePlaytime;
   if (!lastRecord && lastPlayedAt && lastPlayedAt < now) {
     const values = {
       gogId: playedGame.gogId,

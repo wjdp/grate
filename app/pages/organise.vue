@@ -85,7 +85,9 @@ onMounted(() => {
 });
 
 const moveOn = async (pauseMs: number) => {
-  organisedGameIds.value.push(theGame.value!.id);
+  if (theGame.value) {
+    organisedGameIds.value.push(theGame.value.id);
+  }
   theGame.value = undefined;
   theArt.value = null;
   organiseState.value = "loading";

@@ -71,6 +71,8 @@ const SteamAppInfo = z.object({
   background_raw: z.string(),
 });
 
+export type SteamStoreAppInfo = z.infer<typeof SteamAppInfo>;
+
 export async function getAppDetails(appId: number) {
   const response = await fetch(
     `http://store.steampowered.com/api/appdetails/?appids=${appId}`,
@@ -94,14 +96,14 @@ export function parseReleaseDate(s: string) {
     return null;
   }
   // date from steam is like: 25 Mar, 2013
-  let date;
+  let date: Date;
   try {
     date = new Date(s);
   } catch (error) {
     console.error(`Error parsing date: ${s}`);
     throw error;
   }
-  if (isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     throw new Error(`Invalid date: ${s}`);
   }
   return date;

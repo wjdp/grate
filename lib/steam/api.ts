@@ -49,7 +49,7 @@ export async function resolveVanityUrl(
     vanityurl: vanityName,
   });
   const response = await fetch(
-    `${BASE_URL}/ISteamUser/ResolveVanityURL/v1/?` + parameters.toString(),
+    `${BASE_URL}/ISteamUser/ResolveVanityURL/v1/?${parameters}`,
   );
   if (!response.ok) {
     throw createSteamApiError(response);
@@ -101,7 +101,7 @@ export async function getUserInfo({
     steamids: steamId,
   });
   const response = await fetch(
-    `${BASE_URL}/ISteamUser/GetPlayerSummaries/v2/?` + parameters.toString(),
+    `${BASE_URL}/ISteamUser/GetPlayerSummaries/v2/?${parameters}`,
   );
   if (!response.ok) {
     throw createSteamApiError(response);
@@ -167,15 +167,14 @@ export async function getUserGames({
     include_extended_appinfo: "1",
   });
   const response = await fetch(
-    `${BASE_URL}/IPlayerService/GetOwnedGames/v1/?` + parameters.toString(),
+    `${BASE_URL}/IPlayerService/GetOwnedGames/v1/?${parameters}`,
   );
   if (!response.ok) {
     throw createSteamApiError(response);
   }
   const data = await response.json();
   const gameCount = data.response.game_count;
-  const rawGames = data.response.games;
-  const games = rawGames.map((game: any) => userGameSchema.parse(game));
+  const games = z.array(userGameSchema).parse(data.response.games);
   if (games.length !== gameCount) {
     console.error("Game count mismatch");
   }
@@ -196,7 +195,7 @@ export type SteamStoreTag = z.infer<
 export async function getTagList(): Promise<SteamStoreTag[]> {
   const parameters = new URLSearchParams({ language: "english" });
   const response = await fetch(
-    `${BASE_URL}/IStoreService/GetTagList/v1/?` + parameters.toString(),
+    `${BASE_URL}/IStoreService/GetTagList/v1/?${parameters}`,
   );
   if (!response.ok) {
     throw createSteamApiError(response);

@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import tryCatch from "#shared/utils/tryCatch";
 import {
   type EpicGame,
+  type EpicGamePlaytime,
   type EpicUser,
   epicGame,
   epicGamePlaytime,
@@ -426,7 +427,7 @@ export async function recordEpicPlaytime(
   const increased =
     !!lastRecord && playtimeMinutes > lastRecord.playtimeMinutes;
   const lastPlayedAt = increased ? now : null;
-  let record;
+  let record: EpicGamePlaytime;
   if (
     lastRecord?.playtimeMinutes === playtimeMinutes &&
     penultimateRecord?.playtimeMinutes === playtimeMinutes

@@ -68,7 +68,7 @@ watch(
         :class="row.index > 0 ? 'border-t' : ''"
         :style="{ transform: `translateY(${row.start - scrollMargin}px)` }"
       >
-        <GameRow :game="games[row.index]!" />
+        <GameRow :game="games[row.index]" />
       </div>
     </div>
   </div>

@@ -10,7 +10,7 @@ export default async function mapWithConcurrency<T>(
     if (index >= items.length) {
       return;
     }
-    await worker(items[index]!);
+    await worker(items[index]);
     await runNext();
   }
 

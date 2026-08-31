@@ -656,7 +656,7 @@ describe("populateStoreData", () => {
   });
 
   it("stores the app info and marks the game fetched", async () => {
-    const steamGame = createSteamGame({ appId: BIOSHOCK_APP_ID });
+    createSteamGame({ appId: BIOSHOCK_APP_ID });
     vi.mocked(getAppDetails).mockResolvedValue(
       bioshockStoreAppInfo({
         release_date: { coming_soon: false, date: "21 Aug, 2007" },

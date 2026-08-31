@@ -48,6 +48,16 @@ export const useRecentlyViewedGames = () => {
     readEntries,
   );
 
+  // useState's initialiser only runs once per key, and the SSR run's `[]`
+  // (readEntries returns [] on the server) travels to the client via the
+  // Nuxt payload, so the client-side initialiser never fires. Lazily read
+  // localStorage the first time this composable runs in the browser instead.
+  const loaded = useState<boolean>("recentlyViewedGamesLoaded", () => false);
+  if (import.meta.client && !loaded.value) {
+    entries.value = readEntries();
+    loaded.value = true;
+  }
+
   const recordView = (id: number) => {
     const withoutId = entries.value.filter((entry) => entry.id !== id);
     entries.value = [{ id, viewedAt: Date.now() }, ...withoutId].slice(

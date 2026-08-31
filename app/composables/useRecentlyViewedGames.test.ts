@@ -12,7 +12,9 @@ const STORAGE_KEY = "grate:recently-viewed-games";
 // at that point in the test.
 beforeEach(() => {
   localStorage.clear();
-  clearNuxtState(["recentlyViewedGames"], { reset: false });
+  clearNuxtState(["recentlyViewedGames", "recentlyViewedGamesLoaded"], {
+    reset: false,
+  });
 });
 
 describe("useRecentlyViewedGames", () => {
@@ -91,5 +93,25 @@ describe("useRecentlyViewedGames", () => {
     const { recentGameIds } = useRecentlyViewedGames();
 
     expect(recentGameIds.value).toEqual([]);
+  });
+
+  it("loads from storage on the client even when state was pre-populated to [] by SSR hydration", () => {
+    // Simulates a payload-hydrated useState: already [] before the composable
+    // runs, as it would be after an SSR render, rather than uninitialised.
+    useState<{ id: number; viewedAt: number }[]>(
+      "recentlyViewedGames",
+      () => [],
+    );
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([
+        { id: 5, viewedAt: 2 },
+        { id: 4, viewedAt: 1 },
+      ]),
+    );
+
+    const { recentGameIds } = useRecentlyViewedGames();
+
+    expect(recentGameIds.value).toEqual([5, 4]);
   });
 });

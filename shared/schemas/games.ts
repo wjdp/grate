@@ -18,6 +18,17 @@ export const mergeGamesBodySchema = z.object({
   sourceIds: z.array(gameIdSchema).min(1),
 });
 
+export const distinctPairRouterParamsSchema = z.object({ id: gameIdSchema });
+
+export const distinctPairBodySchema = z
+  .object({
+    gameAId: gameIdSchema,
+    gameBId: gameIdSchema,
+  })
+  .refine((body) => body.gameAId !== body.gameBId, {
+    message: "Games must be different",
+  });
+
 export const splitGameBodySchema = z.object({
   provider: z.enum(["steam", "gog", "epic"]),
   providerId: gameIdSchema,

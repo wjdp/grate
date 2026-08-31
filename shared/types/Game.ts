@@ -1,3 +1,4 @@
+import type { findDuplicatePairs, getDistinctPairs } from "~~/lib/duplicates";
 import type { getGame, getGames } from "~~/lib/games";
 
 // Routes hand games to the client as JSON, so every Date arrives as an ISO string.
@@ -15,4 +16,12 @@ export type GameWithProviders = Serialised<
 
 export type GameDetail = Serialised<
   NonNullable<Awaited<ReturnType<typeof getGame>>>
+>;
+
+export type DuplicatePair = Serialised<
+  Awaited<ReturnType<typeof findDuplicatePairs>>[number]
+>;
+
+export type DistinctPair = Serialised<
+  Awaited<ReturnType<typeof getDistinctPairs>>[number]
 >;

@@ -1,23 +1,31 @@
-import { cacheSteamArtForApp, isSteamArtCached } from "~~/server/steam/art";
 import { db } from "~~/lib/db";
-import { cacheSteamIconForApp, isSteamIconCached } from "~~/server/steam/icon";
+import { steamGame } from "~~/db/schema";
 import { updateInProgressTask } from "~~/server/tasks/queue";
 import type { Task } from "~~/server/tasks/queue";
-import { steamGame, type SteamGame } from "~~/db/schema";
+import {
+  ArtFetchError,
+  ArtSourceNotFoundError,
+  ensureArtCached,
+  STEAM_ART_TYPES,
+} from "~~/server/art";
 
-async function cacheArtForSingleGame(task: Task, appId: number) {
-  const isCached = await isSteamArtCached(appId);
-  if (!isCached) {
-    console.log(`Caching steam art for app ${appId}`);
-    await cacheSteamArtForApp(appId);
-  }
-}
-
-async function cacheIconForSingleGame(task: Task, steamGame: SteamGame) {
-  const isCached = await isSteamIconCached(steamGame.appId);
-  if (!isCached) {
-    console.log(`Caching steam icon for app ${steamGame.appId}`);
-    await cacheSteamIconForApp(steamGame);
+async function cacheArtForApp(appId: number) {
+  for (const type of STEAM_ART_TYPES) {
+    try {
+      await ensureArtCached(
+        { provider: "steam", id: appId, type },
+        { rateLimit: true },
+      );
+    } catch (error) {
+      if (
+        error instanceof ArtSourceNotFoundError ||
+        error instanceof ArtFetchError
+      ) {
+        console.log(`No steam ${type} art for app ${appId}: ${error.message}`);
+        continue;
+      }
+      throw error;
+    }
   }
 }
 
@@ -26,8 +34,7 @@ export default async (task: Task) => {
   const numGames = steamGames.length;
   let i = 0;
   for (const game of steamGames) {
-    await cacheArtForSingleGame(task, game.appId);
-    await cacheIconForSingleGame(task, game);
+    await cacheArtForApp(game.appId);
     await updateInProgressTask(task, {
       progress: i / numGames,
       message: `Cached art for ${game.name}`,

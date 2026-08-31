@@ -197,7 +197,11 @@ describe("resolveArtSources for steam", () => {
     it("dedupes icon candidates when imgIconUrl and iconHash match", async () => {
       const steam = createSteamGame({ appId: 201870, imgIconUrl: "samehash" });
       db.insert(steamPicsMetadata)
-        .values({ appId: steam.appId, fetchedAt: new Date(), iconHash: "samehash" })
+        .values({
+          appId: steam.appId,
+          fetchedAt: new Date(),
+          iconHash: "samehash",
+        })
         .run();
       const candidates = await resolveArtSources({
         provider: "steam",
@@ -214,7 +218,11 @@ describe("resolveArtSources for steam", () => {
     it("falls back to iconHash when imgIconUrl is empty", async () => {
       const steam = createSteamGame({ appId: 201870, imgIconUrl: "" });
       db.insert(steamPicsMetadata)
-        .values({ appId: steam.appId, fetchedAt: new Date(), iconHash: "fallbackhash" })
+        .values({
+          appId: steam.appId,
+          fetchedAt: new Date(),
+          iconHash: "fallbackhash",
+        })
         .run();
       const candidates = await resolveArtSources({
         provider: "steam",
@@ -229,7 +237,11 @@ describe("resolveArtSources for steam", () => {
     it("keeps imgIconUrl primary ahead of a differing iconHash", async () => {
       const steam = createSteamGame({ appId: 201870, imgIconUrl: "primary" });
       db.insert(steamPicsMetadata)
-        .values({ appId: steam.appId, fetchedAt: new Date(), iconHash: "secondary" })
+        .values({
+          appId: steam.appId,
+          fetchedAt: new Date(),
+          iconHash: "secondary",
+        })
         .run();
       const candidates = await resolveArtSources({
         provider: "steam",

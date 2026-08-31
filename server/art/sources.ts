@@ -39,7 +39,9 @@ function sourceCandidates(
 
 // Ordered candidate list from several possibly-null URLs, deduplicated and
 // with nulls dropped.
-function orderedCandidates(urls: Array<string | null | undefined>): ArtSource[] {
+function orderedCandidates(
+  urls: Array<string | null | undefined>,
+): ArtSource[] {
   const seen = new Set<string>();
   const candidates: ArtSource[] = [];
   for (const url of urls) {
@@ -72,13 +74,11 @@ async function resolveSteamArtSources(
       .from(steamPicsMetadata)
       .where(eq(steamPicsMetadata.appId, appId))
       .get();
-    const primary =
-      row?.imgIconUrl ?
-        `http://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${row.imgIconUrl}.jpg`
+    const primary = row?.imgIconUrl
+      ? `http://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${row.imgIconUrl}.jpg`
       : null;
-    const fallback =
-      picsRow?.iconHash ?
-        `http://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${picsRow.iconHash}.jpg`
+    const fallback = picsRow?.iconHash
+      ? `http://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${picsRow.iconHash}.jpg`
       : null;
     return orderedCandidates([primary, fallback]);
   }

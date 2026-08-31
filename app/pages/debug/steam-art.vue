@@ -4,9 +4,9 @@ import type { SteamArtUrls } from "~~/lib/steam/art";
 import type { SteamPicsMetadata } from "~~/db/schema";
 
 type SerialisedPicsMetadata = {
-  [K in keyof SteamPicsMetadata]: SteamPicsMetadata[K] extends Date | null ?
-    string | null
-  : SteamPicsMetadata[K];
+  [K in keyof SteamPicsMetadata]: SteamPicsMetadata[K] extends Date | null
+    ? string | null
+    : SteamPicsMetadata[K];
 };
 
 const appId = ref("");
@@ -82,7 +82,10 @@ const fetchArt = async () => {
         PICS metadata
       </h2>
       <p v-if="!picsMetadata" class="text-muted text-sm">no PICS row</p>
-      <div v-else class="border-default bg-elevated space-y-1 rounded-lg border p-4">
+      <div
+        v-else
+        class="border-default bg-elevated space-y-1 rounded-lg border p-4"
+      >
         <p class="text-muted font-mono text-xs">
           fetchedAt: {{ picsMetadata.fetchedAt }}
         </p>

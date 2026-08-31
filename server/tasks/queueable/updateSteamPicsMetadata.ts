@@ -8,13 +8,15 @@ export default async (task: Task) => {
     (message) => updateInProgressTask(task, { message }),
   );
 
-  updateInProgressTask(task, { message: `Stored ${tagCount} store tags` });
+  await updateInProgressTask(task, {
+    message: `Stored ${tagCount} store tags`,
+  });
 
   for (const appId of appIdsWithChangedArt) {
     await deleteCachedArt({ provider: "steam", id: appId });
   }
 
-  updateInProgressTask(task, {
+  await updateInProgressTask(task, {
     progress: 1,
     message: `Invalidated art for ${appIdsWithChangedArt.length} games`,
   });

@@ -100,7 +100,7 @@ const split = async (row: ProviderRow) => {
       :description="error"
     />
 
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       <UCard v-for="row in rows" :key="row.key">
         <template #header>
           <div class="flex items-center gap-2">

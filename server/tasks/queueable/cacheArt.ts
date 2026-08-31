@@ -69,10 +69,12 @@ export default async (task: Task) => {
   let i = 0;
   for (const row of rows) {
     await cacheArtForGame(row.provider, row.id);
+    i++;
     await updateInProgressTask(task, {
       progress: i / numRows,
+      done: i,
+      total: numRows,
       message: `Cached art for ${row.name}`,
     });
-    i++;
   }
 };

@@ -15,6 +15,8 @@ export interface SseTask {
   state: TaskState;
   progress?: number;
   message?: string;
+  done?: number;
+  total?: number;
 }
 
 // Map of event names to their types

@@ -63,6 +63,69 @@ onMessage("message", async (event) => {
 
 const taskLogs = ref<SseTask[]>([]);
 
+interface ProgressSample {
+  at: number;
+  progress: number;
+}
+
+interface ProgressTrack {
+  first: ProgressSample;
+  latest: ProgressSample;
+  count: number;
+}
+
+const progressTracks = reactive(new Map<number, ProgressTrack>());
+
+const trackProgress = (task: SseTask) => {
+  if (task.state !== "in_progress" || task.progress === undefined) {
+    progressTracks.delete(task.id);
+    return;
+  }
+  const sample: ProgressSample = { at: Date.now(), progress: task.progress };
+  const track = progressTracks.get(task.id);
+  if (!track || task.progress < track.latest.progress) {
+    progressTracks.set(task.id, { first: sample, latest: sample, count: 1 });
+    return;
+  }
+  track.latest = sample;
+  track.count++;
+};
+
+const MIN_PROGRESS_FOR_ESTIMATE = 0.02;
+
+const formatDuration = (ms: number) => {
+  const totalSeconds = Math.round(ms / 1000);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (totalMinutes < 60) return `${totalMinutes}m ${seconds}s`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}m`;
+};
+
+const timeRemaining = (task: SseTask) => {
+  const track = progressTracks.get(task.id);
+  if (!track || track.count < 2) return null;
+  const progressDelta = track.latest.progress - track.first.progress;
+  const elapsed = track.latest.at - track.first.at;
+  if (progressDelta < MIN_PROGRESS_FOR_ESTIMATE || elapsed <= 0) return null;
+  const remaining = ((1 - track.latest.progress) * elapsed) / progressDelta;
+  if (remaining <= 0) return null;
+  return `~${formatDuration(remaining)} left`;
+};
+
+const progressDetail = (task: SseTask) => {
+  if (task.state !== "in_progress") return null;
+  const parts: string[] = [];
+  if (task.done !== undefined && task.total !== undefined) {
+    parts.push(`${task.done}/${task.total}`);
+  }
+  const remaining = timeRemaining(task);
+  if (remaining) parts.push(remaining);
+  return parts.length > 0 ? parts.join(" · ") : null;
+};
+
 // Fetch existing tasks, without this we'll only see new tasks via server events
 const { data: currentTasks } = await useFetch("/api/tasks");
 if (currentTasks.value) {
@@ -70,6 +133,7 @@ if (currentTasks.value) {
 }
 
 onMessage("task", (event) => {
+  trackProgress(event);
   const existingTask = taskLogs.value.find((task) => task.id === event.id);
   if (existingTask) {
     Object.assign(existingTask, event);
@@ -143,6 +207,12 @@ const isLongMessage = (message: string) =>
             :max="1"
             class="w-40"
           />
+          <span
+            v-if="progressDetail(task)"
+            class="text-muted text-xs tabular-nums"
+          >
+            {{ progressDetail(task) }}
+          </span>
         </div>
 
         <UCollapsible v-if="task.message && isLongMessage(task.message)">

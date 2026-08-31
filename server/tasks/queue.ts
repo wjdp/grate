@@ -102,8 +102,20 @@ export async function getAllTasks(): Promise<Task[]> {
 
 export function updateInProgressTask(
   task: Task,
-  { progress, message }: { progress?: number; message?: string },
+  {
+    progress,
+    message,
+    done,
+    total,
+  }: { progress?: number; message?: string; done?: number; total?: number },
 ) {
   const { push } = useSseEvent();
-  push("task", { ...task, state: "in_progress", progress, message });
+  push("task", {
+    ...task,
+    state: "in_progress",
+    progress,
+    message,
+    done,
+    total,
+  });
 }

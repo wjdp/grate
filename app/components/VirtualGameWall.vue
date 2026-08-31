@@ -27,6 +27,7 @@ const containerWidth = ref(0);
 const mounted = ref(false);
 
 const { scrollElement, scrollMargin, measure } = useScrollParent(containerRef);
+const { restore } = useScrollMemory(scrollElement);
 
 const estimatedRowHeight = computed(() => {
   const width = containerWidth.value;
@@ -64,7 +65,7 @@ const readColumns = () => {
   columns.value = match?.columns ?? 2;
 };
 
-onMounted(() => {
+onMounted(async () => {
   readColumns();
   mediaQueries = COLUMN_BREAKPOINTS.map(({ query }) =>
     window.matchMedia(query),
@@ -82,6 +83,11 @@ onMounted(() => {
   }
 
   mounted.value = true;
+  // The SSR fallback is far shorter than the real wall, so the saved offset only
+  // survives once the virtualiser has rendered at its full height.
+  await nextTick();
+  await nextTick();
+  restore();
 });
 
 onBeforeUnmount(() => {

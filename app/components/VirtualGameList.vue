@@ -12,6 +12,7 @@ const containerRef = ref<HTMLElement | null>(null);
 const mounted = ref(false);
 
 const { scrollElement, scrollMargin, measure } = useScrollParent(containerRef);
+const { restore } = useScrollMemory(scrollElement);
 
 const virtualizer = useVirtualizer(
   computed(() => ({
@@ -27,8 +28,13 @@ const virtualRows = computed(() => virtualizer.value.getVirtualItems());
 
 const ssrGames = computed(() => props.games.slice(0, SSR_ROWS));
 
-onMounted(() => {
+onMounted(async () => {
   mounted.value = true;
+  // The SSR fallback is far shorter than the real list, so the saved offset only
+  // survives once the virtualiser has rendered at its full height.
+  await nextTick();
+  await nextTick();
+  restore();
 });
 
 watch(

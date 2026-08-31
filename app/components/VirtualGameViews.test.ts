@@ -3,6 +3,10 @@ import { mountSuspended } from "@nuxt/test-utils/runtime";
 import { beforeEach, describe, expect, it } from "vitest";
 import { nextTick } from "vue";
 import type { GameWithProviders } from "#shared/types/Game";
+import {
+  forgetScrollOffsets,
+  rememberScrollOffset,
+} from "../composables/useScrollMemory";
 import VirtualGameList from "./VirtualGameList.vue";
 import VirtualGameWall from "./VirtualGameWall.vue";
 
@@ -83,5 +87,102 @@ describe("virtualised game views", () => {
     const posters = component.findAllComponents({ name: "GamePoster" });
     expect(posters.length).toBeGreaterThan(0);
     expect(posters.length).toBeLessThan(200);
+  });
+});
+
+describe("scroll memory", () => {
+  beforeEach(() => {
+    stubLayout();
+    forgetScrollOffsets();
+  });
+
+  const scrollParent = () => document.scrollingElement as HTMLElement;
+
+  it("restores the offset saved for the current route on mount", async () => {
+    rememberScrollOffset(useRoute().fullPath, 1234);
+
+    await mountSuspended(VirtualGameList, { props: { games: makeGames(800) } });
+    await nextTick();
+    await nextTick();
+
+    expect(scrollParent().scrollTop).toBe(1234);
+  });
+
+  it("restores the offset in the wall view too", async () => {
+    rememberScrollOffset(useRoute().fullPath, 987);
+
+    await mountSuspended(VirtualGameWall, { props: { games: makeGames(800) } });
+    await nextTick();
+    await nextTick();
+
+    expect(scrollParent().scrollTop).toBe(987);
+  });
+
+  it("records the scroll element's offset so a later mount lands there", async () => {
+    const first = await mountSuspended(VirtualGameList, {
+      props: { games: makeGames(800) },
+    });
+    await nextTick();
+
+    scrollParent().scrollTop = 555;
+    scrollParent().dispatchEvent(new Event("scroll"));
+    first.unmount();
+    scrollParent().scrollTop = 0;
+
+    await mountSuspended(VirtualGameList, { props: { games: makeGames(800) } });
+    await nextTick();
+    await nextTick();
+
+    expect(scrollParent().scrollTop).toBe(555);
+  });
+
+  it("leaves the offset alone when nothing is saved for the route", async () => {
+    scrollParent().scrollTop = 0;
+
+    await mountSuspended(VirtualGameList, { props: { games: makeGames(800) } });
+    await nextTick();
+    await nextTick();
+
+    expect(scrollParent().scrollTop).toBe(0);
+  });
+
+  it("does not re-restore when the games prop changes", async () => {
+    rememberScrollOffset(useRoute().fullPath, 400);
+
+    const component = await mountSuspended(VirtualGameList, {
+      props: { games: makeGames(800) },
+    });
+    await nextTick();
+    await nextTick();
+
+    scrollParent().scrollTop = 0;
+    await component.setProps({ games: makeGames(600) });
+    await nextTick();
+    await nextTick();
+
+    expect(scrollParent().scrollTop).toBe(0);
+  });
+});
+
+describe("scroll memory eviction", () => {
+  beforeEach(() => {
+    stubLayout();
+    forgetScrollOffsets();
+  });
+
+  it("drops the least recently saved routes beyond the cap", async () => {
+    const route = useRoute().fullPath;
+    rememberScrollOffset(route, 1234);
+    for (let index = 0; index < 60; index++) {
+      rememberScrollOffset(`/games?page=${index}`, index);
+    }
+
+    const scrollParent = document.scrollingElement as HTMLElement;
+    scrollParent.scrollTop = 0;
+    await mountSuspended(VirtualGameList, { props: { games: makeGames(800) } });
+    await nextTick();
+    await nextTick();
+
+    expect(scrollParent.scrollTop).toBe(0);
   });
 });

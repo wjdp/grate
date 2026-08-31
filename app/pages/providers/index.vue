@@ -30,13 +30,16 @@ const providers = computed(() => [
 
 <template>
   <div class="flex flex-col gap-6">
-    <div>
-      <h1
-        class="font-display text-highlighted text-2xl font-semibold tracking-tight"
-      >
-        Providers
-      </h1>
-      <p class="text-muted mt-1 text-sm">Where your games come from</p>
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1
+          class="font-display text-highlighted text-2xl font-semibold tracking-tight"
+        >
+          Providers
+        </h1>
+        <p class="text-muted mt-1 text-sm">Where your games come from</p>
+      </div>
+      <ProviderSyncButton class="min-w-48" />
     </div>
 
     <div class="grid gap-4 sm:grid-cols-3">
@@ -61,6 +64,12 @@ const providers = computed(() => [
           <UBadge v-else color="neutral" variant="soft" class="self-start">
             Not connected
           </UBadge>
+
+          <ProviderSyncButton
+            v-if="entry.connectedAs"
+            :provider="entry.provider"
+            block
+          />
 
           <UButton
             :to="`/providers/${entry.provider}`"

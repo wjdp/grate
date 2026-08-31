@@ -92,6 +92,7 @@ const connectEpic = async () => {
           Account <span class="font-mono">{{ epicUser.accountId }}</span
           >.
         </p>
+        <ProviderSyncButton provider="epic" class="self-start" />
       </div>
       <UBadge v-else color="neutral" variant="soft" class="self-start">
         Not connected

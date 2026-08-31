@@ -69,15 +69,17 @@ const connectGog = async () => {
     </h1>
 
     <UCard>
-      <UBadge
-        v-if="status"
-        color="success"
-        variant="soft"
-        icon="i-lucide-check"
-        class="self-start"
-      >
-        Connected as {{ status.username }}
-      </UBadge>
+      <div v-if="status" class="flex flex-col gap-2">
+        <UBadge
+          color="success"
+          variant="soft"
+          icon="i-lucide-check"
+          class="self-start"
+        >
+          Connected as {{ status.username }}
+        </UBadge>
+        <ProviderSyncButton provider="gog" class="self-start" />
+      </div>
       <UBadge v-else color="neutral" variant="soft" class="self-start">
         Not connected
       </UBadge>

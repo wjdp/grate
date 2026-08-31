@@ -74,6 +74,7 @@ const saveSteamCredentials = async () => {
           SteamID <span class="font-mono">{{ status.steamId }}</span
           >, {{ status.hasApiKey ? "API key stored" : "no API key stored" }}.
         </p>
+        <ProviderSyncButton provider="steam" class="self-start" />
       </div>
       <UBadge v-else color="neutral" variant="soft" class="self-start">
         Not connected

@@ -241,6 +241,25 @@ describe("updateGogGames", () => {
     expect(getGogUserGames).not.toHaveBeenCalled();
   });
 
+  it("reports progress per game", async () => {
+    await createGogUser();
+    vi.mocked(getGogUserGames).mockResolvedValue([300, 301]);
+    vi.mocked(getGogGameDetail).mockImplementation(async (gogId) =>
+      generateFakeGogGameDetail({ id: gogId, title: `Game ${gogId}` }),
+    );
+    const messages: string[] = [];
+
+    await updateGogGames(({ message }) => {
+      messages.push(message);
+    });
+
+    expect(messages).toStrictEqual([
+      "updated 0/2 games",
+      "updated 1/2 games",
+      "updated 2/2 games",
+    ]);
+  });
+
   it("creates a Game and GogGame for a GAME product", async () => {
     await createGogUser();
     const detail = generateFakeGogGameDetail({
@@ -749,8 +768,48 @@ describe("recordGogPlaytime", () => {
 
 describe("recordGogPlaytimes", () => {
   it("does nothing when there is no user", async () => {
-    expect(await recordGogPlaytimes()).toBeUndefined();
+    expect(await recordGogPlaytimes()).toStrictEqual({
+      gamesCreated: 0,
+      unknownGames: 0,
+    });
     expect(getGogUserPlaytimes).not.toHaveBeenCalled();
+  });
+
+  it("counts played games missing from the database as unknown", async () => {
+    await createGogUser();
+    await createGogGame({ gogId: 910 });
+    vi.mocked(getGogUserPlaytimes).mockResolvedValue({
+      total_sum: 42,
+      game_time: [
+        { game_id: 910, time_sum: 21 },
+        { game_id: 911, time_sum: 21 },
+        { game_id: 912, time_sum: 0 },
+      ],
+    });
+
+    expect(await recordGogPlaytimes()).toStrictEqual({
+      gamesCreated: 0,
+      unknownGames: 1,
+    });
+  });
+
+  it("reports progress", async () => {
+    await createGogUser();
+    await createGogGame({ gogId: 920 });
+    vi.mocked(getGogUserPlaytimes).mockResolvedValue({
+      total_sum: 7,
+      game_time: [{ game_id: 920, time_sum: 7 }],
+    });
+    const messages: string[] = [];
+
+    await recordGogPlaytimes(({ message }) => {
+      messages.push(message);
+    });
+
+    expect(messages).toStrictEqual([
+      "fetched playtime for 1 games",
+      "recorded playtime for 1 games, 0 unknown",
+    ]);
   });
 
   it("records playtime for each game from the bulk response", async () => {

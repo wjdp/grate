@@ -271,6 +271,29 @@ describe("updateEpicGames", () => {
     expect(getEpicLibraryItems).not.toHaveBeenCalled();
   });
 
+  it("reports progress per record", async () => {
+    await createEpicUser();
+    const record = generateFakeEpicLibraryRecord({
+      namespace: "ns-progress",
+      catalogItemId: "item-progress",
+      appName: "AppProgress",
+    });
+    const item = generateFakeEpicCatalogItem({
+      id: "item-progress",
+      namespace: "ns-progress",
+      title: "Progress Game",
+    });
+    vi.mocked(getEpicLibraryItems).mockResolvedValue([record]);
+    vi.mocked(getEpicCatalogItems).mockResolvedValue(catalogResponse(item));
+    const messages: string[] = [];
+
+    await updateEpicGames(({ message }) => {
+      messages.push(message);
+    });
+
+    expect(messages).toStrictEqual(["updated 1/1 games"]);
+  });
+
   it("creates a Game and EpicGame from the library and catalog", async () => {
     await createEpicUser();
     const record = generateFakeEpicLibraryRecord({
@@ -791,8 +814,44 @@ describe("recordEpicPlaytime", () => {
 
 describe("recordEpicPlaytimes", () => {
   it("does nothing when there is no user", async () => {
-    expect(await recordEpicPlaytimes()).toBeUndefined();
+    expect(await recordEpicPlaytimes()).toStrictEqual({
+      gamesCreated: 0,
+      unknownGames: 0,
+    });
     expect(getEpicPlaytimes).not.toHaveBeenCalled();
+  });
+
+  it("counts played games missing from the database as unknown", async () => {
+    await createEpicUser();
+    createEpicGame({ appName: "AppKnown" });
+    vi.mocked(getEpicPlaytimes).mockResolvedValue([
+      generateFakeEpicPlaytime({ artifactId: "AppKnown", totalTime: 120 }),
+      generateFakeEpicPlaytime({ artifactId: "AppUnknown", totalTime: 120 }),
+      generateFakeEpicPlaytime({ artifactId: "AppUnplayed", totalTime: 0 }),
+    ]);
+
+    expect(await recordEpicPlaytimes()).toStrictEqual({
+      gamesCreated: 0,
+      unknownGames: 1,
+    });
+  });
+
+  it("reports progress", async () => {
+    await createEpicUser();
+    createEpicGame({ appName: "AppProgress" });
+    vi.mocked(getEpicPlaytimes).mockResolvedValue([
+      generateFakeEpicPlaytime({ artifactId: "AppProgress", totalTime: 60 }),
+    ]);
+    const messages: string[] = [];
+
+    await recordEpicPlaytimes(({ message }) => {
+      messages.push(message);
+    });
+
+    expect(messages).toStrictEqual([
+      "fetched playtime for 1 games",
+      "recorded playtime for 1 games, 0 unknown",
+    ]);
   });
 
   it("records playtime for each game from the bulk response", async () => {

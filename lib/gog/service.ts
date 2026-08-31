@@ -25,6 +25,7 @@ import {
 } from "~~/db/schema";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
+import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
 
 function getTokenExpiresAt(expiresIn: number) {
   return new Date(Date.now() + expiresIn * 1000);
@@ -154,7 +155,7 @@ async function ignoreProduct(gogId: number, reason: string) {
     .run();
 }
 
-export async function updateGogGames() {
+export async function updateGogGames(onProgress?: OnProgress) {
   const currentUser = await getGogUser();
   if (!currentUser) {
     return;
@@ -173,7 +174,11 @@ export async function updateGogGames() {
     .all();
   const ignoredGogIds = new Set(ignoredProducts.map((p) => p.gogId));
   let failureCount = 0;
-  for (const gameId of gameIds) {
+  for (const [index, gameId] of gameIds.entries()) {
+    await onProgress?.({
+      fraction: index / gameIds.length,
+      message: `updated ${index}/${gameIds.length} games`,
+    });
     if (ignoredGogIds.has(gameId)) continue;
 
     const { data: gameDetail, error: gameError } = await tryCatch(
@@ -213,6 +218,10 @@ export async function updateGogGames() {
       failureCount++;
     }
   }
+  await onProgress?.({
+    fraction: 1,
+    message: `updated ${gameIds.length}/${gameIds.length} games`,
+  });
   if (failureCount > 0) {
     console.error(`Failed to sync ${failureCount} GOG products`);
   }
@@ -378,10 +387,17 @@ export async function recordGogPlaytime(
   return record;
 }
 
-export async function recordGogPlaytimes() {
+const NOTHING_RECORDED: RecordPlaytimesResult = {
+  gamesCreated: 0,
+  unknownGames: 0,
+};
+
+export async function recordGogPlaytimes(
+  onProgress?: OnProgress,
+): Promise<RecordPlaytimesResult> {
   const currentUser = await getGogUser();
   if (!currentUser) {
-    return;
+    return NOTHING_RECORDED;
   }
   const user = await handleRefreshToken(currentUser);
   const { data: playtimes, error } = await tryCatch(
@@ -389,17 +405,30 @@ export async function recordGogPlaytimes() {
   );
   if (error || !playtimes) {
     console.error(`Failed to fetch GOG playtimes: ${error}`);
-    return;
+    return NOTHING_RECORDED;
   }
   const playtimeByGogId = new Map(
     playtimes.game_time.map((entry) => [entry.game_id, entry]),
   );
   const gogGames = db.select().from(gogGame).all();
+  await onProgress?.({
+    fraction: 0,
+    message: `fetched playtime for ${playtimeByGogId.size} games`,
+  });
+  const knownGogIds = new Set(gogGames.map((row) => row.gogId));
+  const unknownGames = [...playtimeByGogId.values()].filter(
+    (entry) => entry.time_sum > 0 && !knownGogIds.has(entry.game_id),
+  ).length;
   const now = new Date();
   for (const playedGame of gogGames) {
     const sessions = playtimeByGogId.get(playedGame.gogId) ?? { time_sum: 0 };
     await recordGogPlaytime(playedGame, sessions, now);
   }
+  await onProgress?.({
+    fraction: 1,
+    message: `recorded playtime for ${gogGames.length} games, ${unknownGames} unknown`,
+  });
+  return { gamesCreated: 0, unknownGames };
 }
 
 export async function getGogPlaytimeRecords(gogId: number) {

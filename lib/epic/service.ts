@@ -26,6 +26,7 @@ import {
 } from "~~/db/schema";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
+import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
 
 function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -316,7 +317,7 @@ async function updateOrCreateEpicGame(
   console.log(`Created game ${fields.name}`);
 }
 
-export async function updateEpicGames() {
+export async function updateEpicGames(onProgress?: OnProgress) {
   const currentUser = await getEpicUser();
   if (!currentUser) {
     return;
@@ -348,6 +349,11 @@ export async function updateEpicGames() {
     recordsByNamespace.set(record.namespace, forNamespace);
   }
 
+  const recordCount = [...recordsByNamespace.values()].reduce(
+    (total, namespaceRecords) => total + namespaceRecords.length,
+    0,
+  );
+  let processedCount = 0;
   let failureCount = 0;
   for (const [namespace, namespaceRecords] of recordsByNamespace) {
     const { data: items, error: catalogError } = await tryCatch(
@@ -368,9 +374,15 @@ export async function updateEpicGames() {
         );
       }
       failureCount += namespaceRecords.length;
+      processedCount += namespaceRecords.length;
       continue;
     }
     for (const record of namespaceRecords) {
+      processedCount++;
+      await onProgress?.({
+        fraction: processedCount / recordCount,
+        message: `updated ${processedCount}/${recordCount} games`,
+      });
       const item = items[record.catalogItemId];
       if (!item) {
         await ignoreItem(record.appName, "NOT_FOUND");
@@ -448,10 +460,17 @@ export async function recordEpicPlaytime(
   return record;
 }
 
-export async function recordEpicPlaytimes() {
+const NOTHING_RECORDED: RecordPlaytimesResult = {
+  gamesCreated: 0,
+  unknownGames: 0,
+};
+
+export async function recordEpicPlaytimes(
+  onProgress?: OnProgress,
+): Promise<RecordPlaytimesResult> {
   const currentUser = await getEpicUser();
   if (!currentUser) {
-    return;
+    return NOTHING_RECORDED;
   }
   const user = await handleRefreshToken(currentUser);
   const { data: playtimes, error } = await tryCatch(
@@ -459,12 +478,20 @@ export async function recordEpicPlaytimes() {
   );
   if (error || !playtimes) {
     console.error(`Failed to fetch Epic playtimes: ${error}`);
-    return;
+    return NOTHING_RECORDED;
   }
   const totalTimeByArtifactId = new Map(
     playtimes.map((entry) => [entry.artifactId, entry.totalTime]),
   );
   const epicGames = db.select().from(epicGame).all();
+  await onProgress?.({
+    fraction: 0,
+    message: `fetched playtime for ${totalTimeByArtifactId.size} games`,
+  });
+  const knownAppNames = new Set(epicGames.map((row) => row.appName));
+  const unknownGames = [...totalTimeByArtifactId].filter(
+    ([artifactId, totalTime]) => totalTime > 0 && !knownAppNames.has(artifactId),
+  ).length;
   const now = new Date();
   for (const playedGame of epicGames) {
     await recordEpicPlaytime(
@@ -473,6 +500,11 @@ export async function recordEpicPlaytimes() {
       now,
     );
   }
+  await onProgress?.({
+    fraction: 1,
+    message: `recorded playtime for ${epicGames.length} games, ${unknownGames} unknown`,
+  });
+  return { gamesCreated: 0, unknownGames };
 }
 
 export async function getEpicPlaytimeRecords(epicId: number) {

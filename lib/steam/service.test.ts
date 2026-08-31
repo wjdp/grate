@@ -26,7 +26,8 @@ import {
 import { getUserGames, getUserInfo, resolveVanityUrl } from "~~/lib/steam/api";
 import { getAppDetails, SteamStoreError } from "~~/lib/steam/store";
 import { db } from "~~/lib/db";
-import { steamUser, user } from "~~/db/schema";
+import { steamGame, steamUser, user } from "~~/db/schema";
+import { eq } from "drizzle-orm";
 
 import { DateTime } from "luxon";
 import { flushDb } from "~~/test/db";
@@ -321,6 +322,18 @@ describe("updateGames", () => {
     await expect(updateGames()).rejects.toThrow("User not found");
   });
 
+  it("reports progress", async () => {
+    createSteamUser();
+    vi.mocked(getUserGames).mockResolvedValue([generateUnownedFakeUserGame()]);
+    const messages: string[] = [];
+
+    await updateGames(({ message }) => {
+      messages.push(message);
+    });
+
+    expect(messages).toStrictEqual(["fetched 1 games", "updated 1 games"]);
+  });
+
   it("creates a game and steam game for an unknown appid", async () => {
     createSteamUser();
     const userGame = generateUnownedFakeUserGame({ name: "Brand New Game" });
@@ -546,13 +559,46 @@ describe("recordPlaytimes", () => {
     vi.resetAllMocks();
   });
 
-  it("throws when an owned game is not in the database", async () => {
+  it("creates an owned game that is not in the database and records its playtime", async () => {
     createSteamUser();
-    const userGame = generateUnownedFakeUserGame({ name: "Missing Game" });
+    const userGame = {
+      ...generateUnownedFakeUserGame({ name: "Missing Game" }),
+      playtime_forever: 33,
+      rtime_last_played: undefined,
+    };
     vi.mocked(getUserGames).mockResolvedValue([userGame]);
-    await expect(recordPlaytimes()).rejects.toThrow(
-      "Game Missing Game not found in db",
-    );
+
+    const result = await recordPlaytimes();
+
+    expect(result).toStrictEqual({ gamesCreated: 1, unknownGames: 0 });
+    const created = db
+      .select()
+      .from(steamGame)
+      .where(eq(steamGame.appId, userGame.appid))
+      .all();
+    expect(created.map((row) => row.name)).toStrictEqual(["Missing Game"]);
+    const records = await getPlaytimeRecords(userGame.appid);
+    expect(records).toHaveLength(1);
+    expect(records[0].playtimeForever).toBe(33);
+  });
+
+  it("reports progress", async () => {
+    createSteamUser();
+    const existing = createSteamGame();
+    vi.mocked(getUserGames).mockResolvedValue([
+      {
+        ...generateFakeUserGame(existing, { playtime_forever: 5 }),
+        rtime_last_played: undefined,
+      },
+    ]);
+    const messages: string[] = [];
+
+    await recordPlaytimes(({ message }) => {
+      messages.push(message);
+    });
+
+    expect(messages).toContain("fetched 1 owned games");
+    expect(messages).toContain("recorded playtime for 1 games, created 0");
   });
 
   it("records a playtime for every owned game", async () => {

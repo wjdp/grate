@@ -23,6 +23,7 @@ import {
   type UserInfo,
 } from "./api";
 import { parseSteamProfileInput } from "#shared/steam-profile";
+import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
 import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
 
 export class SteamServiceError extends Error {
@@ -242,15 +243,32 @@ async function updateOrCreateGame(userGame: UserGame) {
   return updatedGame;
 }
 
-export async function updateGames() {
+const UPDATE_GAMES_PROGRESS_INTERVAL = 25;
+
+export async function updateGames(onProgress?: OnProgress) {
   const currentUser = await getSteamUser();
   if (!currentUser) {
     throw new Error("User not found");
   }
   const games = await getUserGames(steamCredentialsOf(currentUser));
-  for (const userGame of games) {
+  await onProgress?.({ fraction: 0, message: `fetched ${games.length} games` });
+  for (const [index, userGame] of games.entries()) {
     await updateOrCreateGame(userGame);
+    const updatedCount = index + 1;
+    if (
+      updatedCount % UPDATE_GAMES_PROGRESS_INTERVAL === 0 &&
+      updatedCount !== games.length
+    ) {
+      await onProgress?.({
+        fraction: updatedCount / games.length,
+        message: `updated ${updatedCount}/${games.length} games`,
+      });
+    }
   }
+  await onProgress?.({
+    fraction: 1,
+    message: `updated ${games.length} games`,
+  });
   return games;
 }
 
@@ -434,21 +452,40 @@ export async function recordPlaytime(userGame: UserGame, now: Date) {
   return record;
 }
 
-export async function recordPlaytimes() {
+export async function recordPlaytimes(
+  onProgress?: OnProgress,
+): Promise<RecordPlaytimesResult> {
   const currentUser = await getSteamUser();
   if (!currentUser) {
     throw new Error("User not found");
   }
-  const steamGamesInDb = db.select().from(steamGame).all();
+  const knownAppIds = new Set(
+    db
+      .select({ appId: steamGame.appId })
+      .from(steamGame)
+      .all()
+      .map((row) => row.appId),
+  );
   const userOwnedGames = await getUserGames(steamCredentialsOf(currentUser));
+  await onProgress?.({
+    fraction: 0,
+    message: `fetched ${userOwnedGames.length} owned games`,
+  });
   const timestampEnd = new Date();
+  let gamesCreated = 0;
   for (const userGame of userOwnedGames) {
-    const dbGame = steamGamesInDb.find((g) => g.appId === userGame.appid);
-    if (!dbGame) {
-      throw new Error(`Game ${userGame.name} not found in db`);
+    if (!knownAppIds.has(userGame.appid)) {
+      await updateOrCreateGame(userGame);
+      knownAppIds.add(userGame.appid);
+      gamesCreated++;
     }
     await recordPlaytime(userGame, timestampEnd);
   }
+  await onProgress?.({
+    fraction: 1,
+    message: `recorded playtime for ${userOwnedGames.length} games, created ${gamesCreated}`,
+  });
+  return { gamesCreated, unknownGames: 0 };
 }
 
 export async function getPlaytimeRecords(appId: number) {

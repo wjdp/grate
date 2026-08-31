@@ -5,7 +5,7 @@ import populateStoreData from "./queueable/populateStoreData";
 import recordPlaytimes from "./queueable/recordPlaytimes";
 import updateSteamGames from "./queueable/updateSteamGames";
 import updateSteamUser from "./queueable/updateSteamUser";
-import cacheSteamArt from "./queueable/cacheSteamArt";
+import cacheArt from "./queueable/cacheArt";
 import updateGogUser from "./queueable/updateGogUser";
 import updateGogGames from "./queueable/updateGogGames";
 import recordGogPlaytimes from "./queueable/recordGogPlaytimes";
@@ -24,7 +24,7 @@ export const TaskMap: { [k in TaskName]: (task: Task) => Promise<void> } = {
   recordPlaytimes,
   updateSteamGames,
   updateSteamUser,
-  cacheSteamArt,
+  cacheArt,
   updateGogUser,
   updateGogGames,
   recordGogPlaytimes,

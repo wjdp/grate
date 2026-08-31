@@ -6,7 +6,7 @@ export const TASK_NAMES = [
   "recordPlaytimes",
   "updateSteamGames",
   "updateSteamUser",
-  "cacheSteamArt",
+  "cacheArt",
   "updateGogUser",
   "updateGogGames",
   "recordGogPlaytimes",

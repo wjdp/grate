@@ -67,6 +67,14 @@
       "tailwindDirectives": true
     }
   },
+  "overrides": [
+    {
+      "includes": ["**/*.test.ts", "db/scripts/**"],
+      "linter": {
+        "rules": { "style": { "noNonNullAssertion": "off" } }
+      }
+    }
+  ],
   "assist": {
     "enabled": true,
     "actions": {

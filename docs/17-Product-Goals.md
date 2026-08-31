@@ -30,17 +30,17 @@ Backlog trackers already exist. Grate's differentiator is that logged playtime l
 
 Defined in `shared/game-state.ts`.
 
-| State     | Meaning                                                                                                                                          |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| _(none)_  | Default for library imports. The bulk of a large library sits stateless; Backlog is curated intent, not a dumping ground.                        |
-| Backlog   | Curated: I intend to play this.                                                                                                                  |
-| Playing   | Actively working through it.                                                                                                                     |
-| Periodic  | Dip-in/dip-out games (roguelikes, live-service, party games). Completion isn't the goal; inactivity gaps are normal, so idle nudges don't apply. |
-| Shelved   | Set down, intend to return. The key automation target.                                                                                           |
-| Played    | Done with it, didn't finish, fine with that.                                                                                                     |
-| Completed | Finished it — credits rolled.                                                                                                                    |
-| Retired   | Done with a Periodic game (which can't be "completed").                                                                                          |
-| Abandoned | Bounced off it / actively dropped.                                                                                                               |
+| State     | Meaning                                                                                                                                                                                                           |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _(none)_  | Default for library imports. The bulk of a large library sits stateless; Backlog is curated intent, not a dumping ground.                                                                                         |
+| Backlog   | Curated: I intend to play this.                                                                                                                                                                                   |
+| Playing   | Actively working through it.                                                                                                                                                                                      |
+| Periodic  | Dip-in/dip-out games (roguelikes, live-service, party games). Completion isn't the goal; inactivity gaps are normal, so idle nudges don't apply.                                                                  |
+| Shelved   | Set down, intend to return. The key automation target.                                                                                                                                                            |
+| Played    | Done with it, didn't finish, fine with that.                                                                                                                                                                      |
+| Completed | Finished it — credits rolled.                                                                                                                                                                                     |
+| Retired   | Done with a Periodic game (which can't be "completed").                                                                                                                                                           |
+| Abandoned | Bounced off it / actively dropped.                                                                                                                                                                                |
 | Ignored   | Never played, don't intend to. The organise tool's alternative to Backlog: answered, stop asking. Excluded from backlog stats and suggestions. Distinct from Abandoned (played, then dropped). Manual-only entry. |
 
 Completed is not strictly terminal — replays return a game to Playing (see Playthroughs and replays).

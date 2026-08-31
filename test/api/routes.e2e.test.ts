@@ -80,6 +80,17 @@ describe("POST /api/tasks", () => {
     expect(task).toMatchObject({ name: "sleep", state: "pending" });
   });
 
+  it("stores the payload on the queued task", async () => {
+    const task = await $fetch("/api/tasks", {
+      method: "POST",
+      body: { taskName: "sleep", payload: { provider: "gog" } },
+    });
+    expect(task).toMatchObject({
+      name: "sleep",
+      payload: { provider: "gog" },
+    });
+  });
+
   it("400s for an unknown task", async () => {
     const response = await fetch("/api/tasks", {
       method: "POST",

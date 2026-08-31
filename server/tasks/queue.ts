@@ -1,4 +1,4 @@
-import type { TaskName, TaskState } from "#shared/tasks";
+import type { TaskName, TaskPayload, TaskState } from "#shared/tasks";
 import { useSseEvent } from "~~/server/sse";
 
 const CURRENT_TASK_ID = "currentTaskId";
@@ -8,6 +8,7 @@ export interface Task {
   id: number;
   name: TaskName;
   state: TaskState;
+  payload?: TaskPayload;
 }
 
 function getTaskKey(taskId: number) {
@@ -73,12 +74,16 @@ export async function completeTask(taskId: number, status: "done" | "failed") {
   return nextTask;
 }
 
-export async function createTask(taskName: TaskName): Promise<Task> {
+export async function createTask(
+  taskName: TaskName,
+  payload?: TaskPayload,
+): Promise<Task> {
   const taskId = await getNewTaskId();
   const task: Task = {
     id: taskId,
     name: taskName,
     state: "pending",
+    ...(payload ? { payload } : {}),
   };
   const storage = await useStorage();
   const { push } = useSseEvent();
@@ -87,7 +92,7 @@ export async function createTask(taskName: TaskName): Promise<Task> {
   if (!currentTaskId) {
     await storage.set(CURRENT_TASK_ID, taskId);
   }
-  push("task", { id: taskId, name: taskName, state: "pending" });
+  push("task", task);
   console.log(`Task ${taskId}:${taskName} created`);
   runTask("handler");
   return task;

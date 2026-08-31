@@ -1,4 +1,4 @@
-import type { TaskName, TaskState } from "#shared/tasks";
+import type { TaskName, TaskPayload, TaskState } from "#shared/tasks";
 
 export interface SseMessage {
   message: string;
@@ -13,6 +13,7 @@ export interface SseTask {
   id: number;
   name: TaskName;
   state: TaskState;
+  payload?: TaskPayload;
   progress?: number;
   message?: string;
   done?: number;

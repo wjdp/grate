@@ -33,6 +33,7 @@ export default defineTask({
       push("task", {
         id: currentTask.id,
         name: currentTask.name,
+        payload: currentTask.payload,
         state: "failed",
       });
       return { result: "Task function not found" };
@@ -41,6 +42,7 @@ export default defineTask({
     push("task", {
       id: currentTask.id,
       name: currentTask.name,
+      payload: currentTask.payload,
       state: "in_progress",
     });
     console.log(`Running task ${taskNameLog}`);
@@ -52,6 +54,7 @@ export default defineTask({
       push("task", {
         id: currentTask.id,
         name: currentTask.name,
+        payload: currentTask.payload,
         state: "failed",
         message: `${error}`,
       });
@@ -63,6 +66,7 @@ export default defineTask({
     push("task", {
       id: currentTask.id,
       name: currentTask.name,
+      payload: currentTask.payload,
       state: "done",
     });
 

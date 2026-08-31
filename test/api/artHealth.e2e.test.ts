@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runMigrations } from "~~/db/migrate";
 import { createDb } from "~~/lib/db";
+import { game, gogGame } from "~~/db/schema";
 import {
   createTestDataDir,
   createTestDatabaseFile,
@@ -13,6 +14,24 @@ import {
 const databaseFile = createTestDatabaseFile();
 const { sqlite, db } = createDb(databaseFile);
 runMigrations(sqlite, db);
+
+const seededGame = db
+  .insert(game)
+  .values({ name: "Seeded Game" })
+  .returning()
+  .get();
+
+// Every art URL column is null, so the route has nothing to fetch.
+const artlessGogGame = db
+  .insert(gogGame)
+  .values({
+    gameId: seededGame.id,
+    name: "Seeded Game",
+    tags: [],
+    properties: {},
+  })
+  .returning()
+  .get();
 
 const dataDir = createTestDataDir();
 
@@ -28,9 +47,16 @@ describe("GET /health", () => {
   });
 });
 
-describe("GET /art/steam/:appId/:type", () => {
-  it("400s for a non-numeric appId", async () => {
+// These tests only exercise paths that either serve a seeded file or 404
+// before any CDN fetch; nothing here touches the network.
+describe("GET /art/:provider/:id/:type", () => {
+  it("400s for a non-numeric id", async () => {
     const response = await fetch("/art/steam/not-a-number/header");
+    expect(response.status).toBe(400);
+  });
+
+  it("400s for an unknown provider", async () => {
+    const response = await fetch("/art/nintendo/123/header");
     expect(response.status).toBe(400);
   });
 
@@ -39,8 +65,28 @@ describe("GET /art/steam/:appId/:type", () => {
     expect(response.status).toBe(400);
   });
 
-  it("404s when there is no cached file", async () => {
-    const response = await fetch("/art/steam/999999/header");
+  it("400s for a type belonging to another provider", async () => {
+    const response = await fetch("/art/gog/123/backgroundV6B");
+    expect(response.status).toBe(400);
+  });
+
+  it("404s for a steam icon with no game row", async () => {
+    const response = await fetch("/art/steam/999999/icon");
+    expect(response.status).toBe(404);
+  });
+
+  it("404s for an unknown gog id", async () => {
+    const response = await fetch("/art/gog/999999/poster");
+    expect(response.status).toBe(404);
+  });
+
+  it("404s for an unknown epic id", async () => {
+    const response = await fetch("/art/epic/999999/poster");
+    expect(response.status).toBe(404);
+  });
+
+  it("404s for a gog game with no art url", async () => {
+    const response = await fetch(`/art/gog/${artlessGogGame.gogId}/poster`);
     expect(response.status).toBe(404);
   });
 

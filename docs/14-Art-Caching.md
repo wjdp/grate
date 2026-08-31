@@ -56,19 +56,19 @@ Self-hosted inverts normal cache wisdom: server↔client link is LAN-fast, so ov
 
 Generalised vocabulary, mapped per provider. A provider lacking a type 404s and `getGameArtUrls` falls back.
 
-| Type         | Shape / use                        | Steam                                   | GOG                                              | Epic                                          |
-| ------------ | ---------------------------------- | --------------------------------------- | ------------------------------------------------ | --------------------------------------------- |
-| `icon`       | small square; list rows            | community icon via `imgIconUrl` (~32px) | `iconSquareUrl ?? iconUrl` + `glx_icon_square`   | derived: tall box, cropped square server-side |
-| `poster`     | tall box (2:3); poster wall        | `library_600x900_2x.jpg` (1200×1800)    | `boxArtImageUrl`                                 | `boxArtTallUrl` (DieselGameBoxTall)           |
-| `hero`       | wide banner; game page top         | `library_hero.jpg` (up to 3840×1240)    | `backgroundImageUrl`                             | `boxArtWideUrl` (2560×1440)                   |
-| `background` | full-page backdrop (shown blurred) | `page_bg_generated_v6b.jpg`             | `galaxyBackgroundImageUrl ?? backgroundImageUrl` | `boxArtWideUrl`                               |
-| `logo`       | transparent wordmark; over hero    | `logo.png`                              | `logoUrl` + `glx_logo_2x`                        | `logoUrl` (DieselGameBoxLogo, often null)     |
+| Type         | Shape / use                        | Steam                                   | GOG                                               | Epic                                          |
+| ------------ | ---------------------------------- | --------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
+| `icon`       | small square; list rows            | community icon via `imgIconUrl` (~32px) | `iconSquareUrl ?? iconUrl` + `glx_square_icon_v2` | derived: tall box, cropped square server-side |
+| `poster`     | tall box (2:3); poster wall        | `library_600x900_2x.jpg` (1200×1800)    | `boxArtImageUrl`                                  | `boxArtTallUrl` (DieselGameBoxTall)           |
+| `hero`       | wide banner; game page top         | `library_hero.jpg` (up to 3840×1240)    | `backgroundImageUrl`                              | `boxArtWideUrl` (2560×1440)                   |
+| `background` | full-page backdrop (shown blurred) | `page_bg_generated_v6b.jpg`             | `galaxyBackgroundImageUrl ?? backgroundImageUrl`  | `boxArtWideUrl`                               |
+| `logo`       | transparent wordmark; over hero    | `logo.png`                              | `logoUrl` + `glx_logo_2x`                         | `logoUrl` (DieselGameBoxLogo, often null)     |
 
 Notes:
 
 - Keep the full Steam type set including `_2x` poster and generated backgrounds — they'll be the majority of libraries and the extra bytes are acceptable per the principle above.
 - Epic `hero`/`background` share one source URL; cache once, alias the type (same file, two route types resolving to one key — or just fetch twice, it's simple and cheap).
-- GOG presets still need fixing (hash-URL reconstruction) even under "cache generously": `glx_icon_square` is a shape/crop, not just a size. Verify presets live before relying on them ([09](09-GOG-Playtime.md) marks them unverified).
+- GOG presets still need fixing (hash-URL reconstruction) even under "cache generously". Verified live: `glx_icon_square` does not exist — the working square-icon preset is `glx_square_icon_v2` (112×112); `glx_logo_2x` works on hash URLs. Native GOG icons are already 128×128, so the icon preset is a mild downsize rather than a crop.
 
 ### 2. Generalise the cache key
 
@@ -87,7 +87,7 @@ Fetch validation (fixes defect 1): require `res.ok` and `content-type: image/*`;
 Add **sharp** as the server image library: it's the engine under `@nuxt/image`/ipx, runs fine in Nitro routes, and prebuilt Linux binaries mean no Dockerfile compile step (unlike better-sqlite3). Chosen over jimp (slow, weak WebP) and ipx (URL-transform layer we don't need when we control both ends). Used now for one job, kept for later resize/WebP-optimised responses.
 
 - Epic `icon`: no native source — fetch tall box once, sharp centre-crop square + resize to ~128px at cache-fill time, store as the `icon` file.
-- GOG presets still applied where they change shape (`glx_icon_square`) or are the intended asset (`glx_logo_2x`).
+- GOG presets still applied where they change shape (`glx_square_icon_v2`) or are the intended asset (`glx_logo_2x`).
 
 Everything else fetches and stores at native size per the cache-generously principle. Transform happens at cache-fill, not per-request — the serving path stays a plain file stream.
 

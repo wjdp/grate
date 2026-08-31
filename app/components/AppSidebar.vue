@@ -3,13 +3,23 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 
 const { version } = useRuntimeConfig().public;
 
-const mainLinks: NavigationMenuItem[] = [
+const { data: duplicateCount } = useFetch("/api/games/duplicates", {
+  transform: (data) => data.pairs.length,
+});
+
+const mainLinks = computed<NavigationMenuItem[]>(() => [
   { label: "Library", icon: "i-lucide-library-big", to: "/games" },
   { label: "Organise", icon: "i-lucide-list-checks", to: "/organise" },
+  {
+    label: "Duplicates",
+    icon: "i-lucide-copy",
+    to: "/duplicates",
+    ...(duplicateCount.value ? { badge: duplicateCount.value } : {}),
+  },
   { label: "Activity", icon: "i-lucide-activity", to: "/activity" },
   { label: "Providers", icon: "i-lucide-plug", to: "/providers" },
   { label: "Tasks", icon: "i-lucide-list-todo", to: "/tasks" },
-];
+]);
 
 const debugLinks: NavigationMenuItem[] = [
   { label: "Debug", type: "label" },

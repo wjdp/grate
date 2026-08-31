@@ -68,10 +68,3 @@ async function removeStaleArtFiles(key: ArtKey, keepPath: string) {
     }
   }
 }
-
-export async function fetchAndCacheArt(
-  key: ArtKey,
-  url: string,
-): Promise<string> {
-  return writeArtFile(key, await fetchImage(url));
-}

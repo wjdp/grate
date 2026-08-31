@@ -2,18 +2,13 @@ export const TASK_NAMES = [
   "sleep",
   "sleepWithProgress",
   "fail",
-  "populateStoreData",
+  "sync",
+  "updateUsers",
+  "updateGames",
   "recordPlaytimes",
-  "updateSteamGames",
-  "updateSteamUser",
+  "populateStoreData",
   "updateSteamPicsMetadata",
   "cacheArt",
-  "updateGogUser",
-  "updateGogGames",
-  "recordGogPlaytimes",
-  "updateEpicUser",
-  "updateEpicGames",
-  "recordEpicPlaytimes",
 ] as const;
 
 export type TaskName = (typeof TASK_NAMES)[number];

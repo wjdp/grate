@@ -1,18 +1,13 @@
 import sleep from "./queueable/sleep";
 import sleepWithProgress from "./queueable/sleepWithProgress";
 import fail from "./queueable/fail";
-import populateStoreData from "./queueable/populateStoreData";
+import sync from "./queueable/sync";
+import updateUsers from "./queueable/updateUsers";
+import updateGames from "./queueable/updateGames";
 import recordPlaytimes from "./queueable/recordPlaytimes";
-import updateSteamGames from "./queueable/updateSteamGames";
-import updateSteamUser from "./queueable/updateSteamUser";
+import populateStoreData from "./queueable/populateStoreData";
 import updateSteamPicsMetadata from "./queueable/updateSteamPicsMetadata";
 import cacheArt from "./queueable/cacheArt";
-import updateGogUser from "./queueable/updateGogUser";
-import updateGogGames from "./queueable/updateGogGames";
-import recordGogPlaytimes from "./queueable/recordGogPlaytimes";
-import updateEpicUser from "./queueable/updateEpicUser";
-import updateEpicGames from "./queueable/updateEpicGames";
-import recordEpicPlaytimes from "./queueable/recordEpicPlaytimes";
 
 import type { TaskName } from "#shared/tasks";
 import type { Task } from "~~/server/tasks/queue";
@@ -21,16 +16,11 @@ export const TaskMap: { [k in TaskName]: (task: Task) => Promise<void> } = {
   sleep,
   sleepWithProgress,
   fail,
-  populateStoreData,
+  sync,
+  updateUsers,
+  updateGames,
   recordPlaytimes,
-  updateSteamGames,
-  updateSteamUser,
+  populateStoreData,
   updateSteamPicsMetadata,
   cacheArt,
-  updateGogUser,
-  updateGogGames,
-  recordGogPlaytimes,
-  updateEpicUser,
-  updateEpicGames,
-  recordEpicPlaytimes,
 };

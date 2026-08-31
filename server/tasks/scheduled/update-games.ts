@@ -2,11 +2,11 @@ import { createTask } from "~~/server/tasks/queue";
 
 export default defineTask({
   meta: {
-    name: "scheduled:update-gog-user",
-    description: "Update GOG user information",
+    name: "scheduled:update-games",
+    description: "Update the game library for every connected provider",
   },
   async run({ payload, context }) {
-    await createTask("updateGogUser");
+    await createTask("updateGames");
     return { result: "Success" };
   },
 });

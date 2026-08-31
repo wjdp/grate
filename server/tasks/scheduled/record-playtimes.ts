@@ -1,15 +1,12 @@
-import { recordPlaytimes, updateGames } from "~~/lib/steam/service";
+import { createTask } from "~~/server/tasks/queue";
 
 export default defineTask({
   meta: {
     name: "scheduled:record-playtimes",
-    description: "Record game playtimes",
+    description: "Record game playtimes for every connected provider",
   },
   async run({ payload, context }) {
-    await updateGames();
-    console.log("Updated steam games");
-    await recordPlaytimes();
-    console.log("Recorded steam playtimes");
+    await createTask("recordPlaytimes");
     return { result: "Success" };
   },
 });

@@ -7,12 +7,10 @@ import {
 
 export default async (task: Task) => {
   const { runs, failures } = await runProviderJobs(task, [
-    (jobs, onProgress) => jobs.recordPlaytimes(onProgress),
+    (jobs, onProgress) => jobs.updateGames(onProgress),
   ]);
   await queueProviderFollowUps({
-    playtimeRuns: runs.flatMap((run) =>
-      run.results.map((result) => ({ provider: run.provider, result })),
-    ),
+    gamesUpdatedProviders: runs.map((run) => run.provider),
   });
   throwOnProviderFailures(failures);
 };

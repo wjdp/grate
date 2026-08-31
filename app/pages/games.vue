@@ -149,6 +149,17 @@ const recentCount = computed(
     games.value.filter((game) => isRecentlyPlayed(game.lastPlayedAt)).length,
 );
 
+const stats = computed(() => [
+  {
+    label: "Total playtime",
+    value: formatPlaytime(totalPlaytime.value) || "0m",
+  },
+  { label: "Games", value: games.value.length },
+  { label: "Played", value: playedCount.value },
+  { label: "Unplayed", value: games.value.length - playedCount.value },
+  { label: "Played recently", value: recentCount.value },
+]);
+
 const hasFilters = computed(
   () =>
     !!search.value ||
@@ -171,12 +182,6 @@ const clearFilters = () => {
         Library
       </h1>
       <div class="flex items-center gap-2">
-        <UInput
-          v-model="search"
-          icon="i-lucide-search"
-          placeholder="Search games"
-          class="w-48 sm:w-64"
-        />
         <UFieldGroup>
           <UButton
             icon="i-lucide-layout-grid"
@@ -196,31 +201,30 @@ const clearFilters = () => {
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      <StatTile
-        label="Total playtime"
-        :value="formatPlaytime(totalPlaytime) || '0m'"
-        icon="i-lucide-clock"
-      />
-      <StatTile
-        label="Games"
-        :value="games.length"
-        icon="i-lucide-library-big"
-      />
-      <StatTile label="Played" :value="playedCount" icon="i-lucide-play" />
-      <StatTile
-        label="Unplayed"
-        :value="games.length - playedCount"
-        icon="i-lucide-circle-dashed"
-      />
-      <StatTile
-        label="Played recently"
-        :value="recentCount"
-        icon="i-lucide-history"
-      />
-    </div>
+    <dl
+      class="border-default divide-default flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-4 py-2.5 sm:gap-x-6 sm:divide-x"
+    >
+      <div
+        v-for="stat in stats"
+        :key="stat.label"
+        class="flex items-baseline gap-1.5 sm:pe-6 sm:last:pe-0"
+      >
+        <dd
+          class="font-display text-highlighted text-sm font-semibold tabular-nums"
+        >
+          {{ stat.value }}
+        </dd>
+        <dt class="text-muted text-xs">{{ stat.label }}</dt>
+      </div>
+    </dl>
 
     <div class="flex flex-wrap items-center gap-2">
+      <UInput
+        v-model="search"
+        icon="i-lucide-search"
+        placeholder="Search games"
+        class="w-full sm:w-64"
+      />
       <USelectMenu
         v-model="stateFilter"
         :items="stateItems"

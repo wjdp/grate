@@ -43,24 +43,36 @@ const providers = computed<Provider[]>(() => {
       <PosterPlaceholder v-else :name="game.name" />
     </div>
     <div class="mt-2 space-y-1">
-      <h3 class="text-highlighted line-clamp-2 text-sm font-medium">
+      <h3
+        class="text-highlighted line-clamp-2 min-h-10 text-sm leading-5 font-medium"
+      >
         {{ game.name }}
       </h3>
-      <p class="text-muted text-xs tabular-nums">
-        {{
-          game.playtimeMinutes
-            ? formatPlaytime(game.playtimeMinutes)
-            : "Unplayed"
-        }}
-      </p>
-      <GameStateBadge v-if="game.state" :state="game.state" size="sm" />
-      <div v-if="providers.length" class="text-dimmed flex items-center gap-1">
-        <ProviderIcon
-          v-for="provider in providers"
-          :key="provider"
-          :provider="provider"
-          class="size-3"
+      <div class="flex h-5 items-center gap-1.5 overflow-hidden">
+        <span class="text-muted shrink-0 text-xs tabular-nums">
+          {{
+            game.playtimeMinutes
+              ? formatPlaytime(game.playtimeMinutes)
+              : "Unplayed"
+          }}
+        </span>
+        <GameStateBadge
+          v-if="game.state"
+          :state="game.state"
+          size="sm"
+          class="min-w-0 shrink [&>span]:truncate"
         />
+        <span
+          v-if="providers.length"
+          class="text-dimmed ms-auto flex shrink-0 items-center gap-1"
+        >
+          <ProviderIcon
+            v-for="provider in providers"
+            :key="provider"
+            :provider="provider"
+            class="size-3"
+          />
+        </span>
       </div>
     </div>
   </NuxtLink>

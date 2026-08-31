@@ -23,14 +23,6 @@ const providers = computed<Provider[]>(() => {
     <span class="text-highlighted min-w-0 flex-1 truncate text-sm font-medium">
       {{ game.name }}
     </span>
-    <span class="text-dimmed hidden items-center gap-1 sm:flex">
-      <ProviderIcon
-        v-for="provider in providers"
-        :key="provider"
-        :provider="provider"
-        class="size-3.5"
-      />
-    </span>
     <span class="text-muted w-20 shrink-0 text-right text-xs tabular-nums">
       {{
         game.playtimeMinutes ? formatPlaytime(game.playtimeMinutes) : "Unplayed"
@@ -43,6 +35,16 @@ const providers = computed<Provider[]>(() => {
     </span>
     <span class="hidden w-28 shrink-0 justify-end sm:flex">
       <GameStateBadge :state="game.state" size="sm" />
+    </span>
+    <span
+      class="text-dimmed hidden w-12 shrink-0 items-center justify-end gap-1 sm:flex"
+    >
+      <ProviderIcon
+        v-for="provider in providers"
+        :key="provider"
+        :provider="provider"
+        class="size-3.5"
+      />
     </span>
   </NuxtLink>
 </template>

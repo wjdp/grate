@@ -35,11 +35,11 @@ const mainLinks = computed<NavigationMenuItem[]>(() => [
   },
   { label: "Activity", icon: "i-lucide-activity", to: "/activity" },
   { label: "Providers", icon: "i-lucide-plug", to: "/providers" },
-  { label: "Tasks", icon: "i-lucide-list-todo", to: "/tasks" },
 ]);
 
 const debugLinks: NavigationMenuItem[] = [
   { label: "Debug", type: "label" },
+  { label: "Tasks", icon: "i-lucide-list-todo", to: "/tasks" },
   { label: "Components", icon: "i-lucide-component", to: "/debug/components" },
   { label: "Events", icon: "i-lucide-radio", to: "/debug/sse" },
   { label: "Steam art", icon: "i-lucide-image", to: "/debug/steam-art" },
@@ -95,6 +95,8 @@ const debugLinks: NavigationMenuItem[] = [
         tooltip
         class="mt-auto"
       />
+
+      <AppTaskIndicator :collapsed="collapsed" />
     </template>
 
     <template #footer="{ collapsed }">

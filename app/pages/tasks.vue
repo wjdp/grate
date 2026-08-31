@@ -6,26 +6,6 @@ import { getPageTitle } from "#shared/title";
 
 useSeoMeta({ title: getPageTitle("Tasks") });
 
-const WORD_OVERRIDES: Record<string, string> = {
-  gog: "GOG",
-  steam: "Steam",
-  epic: "Epic",
-};
-
-const humaniseTaskName = (taskName: string) => {
-  const words = taskName
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .toLowerCase()
-    .split(/[\s-_]+/)
-    .map((word) => WORD_OVERRIDES[word] ?? word);
-  return (
-    words[0][0].toUpperCase() +
-    words[0].slice(1) +
-    " " +
-    words.slice(1).join(" ")
-  );
-};
-
 const toast = useToast();
 const runningTask = ref<TaskName | null>(null);
 
@@ -157,7 +137,8 @@ const isLongMessage = (message: string) =>
         Tasks
       </h1>
       <p class="text-muted text-sm">
-        Background sync jobs. Scheduled hourly; run one now if you need to.
+        Debug view of the task queue. Syncing runs on a schedule; queue a task
+        here to debug it.
       </p>
     </div>
 

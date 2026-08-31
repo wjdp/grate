@@ -8,6 +8,9 @@ const { data: recentGamesData } = await useFetch("/api/games/recent", {
   query: { limit: 6 },
 });
 const { data: gamesData } = await useFetch("/api/games");
+const { data: duplicateCount } = await useFetch("/api/games/duplicates", {
+  transform: (data) => data.pairs.length,
+});
 
 const needsProvider = computed(
   () => !!setupData.value && !setupData.value.user,
@@ -70,6 +73,23 @@ const unsortedPlayedCount = computed(
         </div>
         <UButton to="/organise" color="primary" icon="i-lucide-list-checks">
           Organise them
+        </UButton>
+      </div>
+    </UCard>
+
+    <UCard v-if="duplicateCount && duplicateCount > 0">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-highlighted font-medium">
+            {{ duplicateCount }} possible duplicate
+            {{ duplicateCount === 1 ? "record" : "records" }} in your library
+          </p>
+          <p class="text-muted text-sm">
+            The same game may be listed more than once across providers.
+          </p>
+        </div>
+        <UButton to="/duplicates" color="primary" icon="i-lucide-copy">
+          Review them
         </UButton>
       </div>
     </UCard>

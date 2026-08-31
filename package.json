@@ -12,6 +12,7 @@
     "lint:ci": "prettier --check .",
     "typecheck": "nuxt typecheck",
     "test": "vitest",
+    "db:migrate": "tsx db/migrate-cli.ts",
     "db:studio": "drizzle-kit studio"
   },
   "lint-staged": {
@@ -48,6 +49,7 @@
     "prettier-plugin-sh": "^0.15.0",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11",
     "vitest-fetch-mock": "^0.4.5",

@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     if (error instanceof ArtSourceNotFoundError) {
       setResponseStatus(event, 404);
-      setResponseHeader(event, "Cache-Control", "public, max-age=3600");
+      setResponseHeader(event, "Cache-Control", "public, max-age=60");
       return { error: "Not found" };
     }
     if (error instanceof ArtFetchError) {

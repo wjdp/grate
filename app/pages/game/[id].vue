@@ -119,7 +119,9 @@ const playtimeColumns = [
   {
     accessorKey: "playtimeMinutes",
     header: "Playtime",
-    meta: { class: { th: "text-right", td: "text-right font-mono" } },
+    meta: {
+      class: { th: "text-right", td: "text-right font-mono tabular-nums" },
+    },
   },
 ];
 
@@ -149,80 +151,93 @@ const playtimeMeta = {
       </div>
     </ArtHero>
 
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <StatTile
-        label="Playtime"
-        icon="i-lucide-clock"
-        :value="formatPlaytime(game.playtimeMinutes) || 'None'"
-      />
-      <StatTile
-        label="Last played"
-        icon="i-lucide-calendar"
-        :value="
-          game.lastPlayedAt ? formatLastPlayed(game.lastPlayedAt) : 'Never'
-        "
-      />
-      <StatTile
-        label="Providers"
-        icon="i-lucide-library"
-        :value="providerCount"
-      />
-      <StatTile label="State" icon="i-lucide-tag">
-        <GameStateBadge :state="game.state" />
-      </StatTile>
-    </div>
-
-    <p v-if="description" class="text-muted max-w-prose">{{ description }}</p>
-
-    <GameProviderRows :game="game" />
-
-    <section class="space-y-3">
-      <h2 class="font-display text-highlighted text-lg font-semibold">
-        History
-      </h2>
-      <div v-if="playtimes.length" class="overflow-x-auto">
-        <UTable
-          :data="playtimes"
-          :columns="playtimeColumns"
-          :meta="playtimeMeta"
-        >
-          <template #timestampStart-cell="{ row }">
-            <span class="font-mono text-xs">
-              {{
-                row.original.timestampStart
-                  ? formatTimestamp(row.original.timestampStart)
-                  : "—"
-              }}
-            </span>
-          </template>
-          <template #timestampEnd-cell="{ row }">
-            <span class="font-mono text-xs">
-              {{ formatTimestamp(row.original.timestampEnd) }}
-            </span>
-          </template>
-          <template #provider-cell="{ row }">
-            <span class="flex items-center gap-1.5">
-              <ProviderIcon :provider="row.original.provider" />
-              {{ ProviderLabels[row.original.provider] }}
-            </span>
-          </template>
-          <template #playtimeMinutes-cell="{ row }">
-            {{ formatPlaytime(row.original.playtimeMinutes) || "None" }}
-          </template>
-        </UTable>
+    <div
+      class="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-8 lg:space-y-0"
+    >
+      <div
+        class="grid grid-cols-2 gap-3 lg:order-last lg:grid-cols-1 lg:gap-2.5"
+      >
+        <StatTile
+          class="lg:p-3"
+          label="Playtime"
+          icon="i-lucide-clock"
+          :value="formatPlaytime(game.playtimeMinutes) || 'None'"
+        />
+        <StatTile
+          class="lg:p-3"
+          label="Last played"
+          icon="i-lucide-calendar"
+          :value="
+            game.lastPlayedAt ? formatLastPlayed(game.lastPlayedAt) : 'Never'
+          "
+        />
+        <StatTile
+          class="lg:p-3"
+          label="Providers"
+          icon="i-lucide-library"
+          :value="providerCount"
+        />
+        <StatTile class="lg:p-3" label="State" icon="i-lucide-tag">
+          <GameStateBadge :state="game.state" />
+        </StatTile>
       </div>
-      <p v-else class="text-muted">No playtime recorded yet</p>
-    </section>
 
-    <section class="space-y-3">
-      <h2 class="font-display text-highlighted text-lg font-semibold">
-        Manage
-      </h2>
-      <p class="text-muted max-w-prose text-sm">
-        Merge this game with another entry, or split a provider row into its own
-        game from the provider cards above.
-      </p>
-      <GameMergeDialog :game="game" @merged="onMerged" />
-    </section>
+      <div class="min-w-0 space-y-6">
+        <p v-if="description" class="text-muted max-w-prose">
+          {{ description }}
+        </p>
+
+        <GameProviderRows :game="game" />
+
+        <section class="space-y-3">
+          <h2 class="font-display text-highlighted text-lg font-semibold">
+            History
+          </h2>
+          <div v-if="playtimes.length" class="overflow-x-auto">
+            <UTable
+              :data="playtimes"
+              :columns="playtimeColumns"
+              :meta="playtimeMeta"
+            >
+              <template #timestampStart-cell="{ row }">
+                <span class="font-mono text-xs">
+                  {{
+                    row.original.timestampStart
+                      ? formatTimestamp(row.original.timestampStart)
+                      : "—"
+                  }}
+                </span>
+              </template>
+              <template #timestampEnd-cell="{ row }">
+                <span class="font-mono text-xs">
+                  {{ formatTimestamp(row.original.timestampEnd) }}
+                </span>
+              </template>
+              <template #provider-cell="{ row }">
+                <span class="flex items-center gap-1.5">
+                  <ProviderIcon :provider="row.original.provider" />
+                  {{ ProviderLabels[row.original.provider] }}
+                </span>
+              </template>
+              <template #playtimeMinutes-cell="{ row }">
+                {{ formatPlaytime(row.original.playtimeMinutes) || "None" }}
+              </template>
+            </UTable>
+          </div>
+          <p v-else class="text-muted">No playtime recorded yet</p>
+        </section>
+
+        <section class="space-y-3">
+          <h2 class="font-display text-highlighted text-lg font-semibold">
+            Manage
+          </h2>
+          <p class="text-muted max-w-prose text-sm">
+            Merge this game with another entry, or split a provider row into its
+            own game from the provider cards above.
+          </p>
+          <GameMergeDialog :game="game" @merged="onMerged" />
+        </section>
+      </div>
+    </div>
   </div>
 </template>

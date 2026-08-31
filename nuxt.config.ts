@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { createRequire } from "node:module";
+
 import tailwindcss from "@tailwindcss/vite";
 
 import { version } from "./package.json";
@@ -41,6 +43,11 @@ export default defineNuxtConfig({
   },
   nitro: {
     typescript: { tsConfig: relaxedIndexAccess() },
+    // steam-user loads lzma via a dynamic requireWithFallback that Nitro's
+    // file tracing can't follow, so force it into .output/server/node_modules
+    externals: {
+      traceInclude: [createRequire(import.meta.url).resolve("lzma")],
+    },
     experimental: { tasks: true },
     scheduledTasks: {
       "0 * * * *": "scheduled:record-playtimes",

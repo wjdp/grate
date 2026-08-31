@@ -1,62 +1,84 @@
 import type { SseMessageMap, SseMessageType } from "~~/lib/hooks";
 
-let eventSource: EventSource;
+type SseListener = (data: never) => void;
+
+// Module level: every caller shares one connection and one listener registry,
+// so a second component subscribing cannot drop the first one's listeners.
+let eventSource: EventSource | undefined;
+const listeners = new Map<SseMessageType, Set<SseListener>>();
+const open = ref(false);
+
+const attachEventName = (source: EventSource, name: SseMessageType) => {
+  source.addEventListener(name, (event) => {
+    const message = JSON.parse(event.data);
+    for (const listener of listeners.get(name) ?? []) {
+      (listener as (data: unknown) => void)(message);
+    }
+  });
+};
+
+const connect = () => {
+  const source = new EventSource("/api/sse");
+  eventSource = source;
+  for (const name of listeners.keys()) {
+    attachEventName(source, name);
+  }
+  source.onopen = () => {
+    open.value = true;
+  };
+  source.onerror = (event) => {
+    console.error("EventSource error:", event);
+    open.value = false;
+    source.close();
+    if (eventSource === source) {
+      setTimeout(connect, 1000);
+    }
+  };
+};
 
 export const useSseClient = () => {
   if (import.meta.server) {
     return {
       onMessage: <T extends SseMessageType>(
-        name: T,
-        callback: (data: SseMessageMap[T]) => void,
+        _name: T,
+        _callback: (data: SseMessageMap[T]) => void,
       ) => {},
       open: ref(false),
       close: () => {},
     };
   }
 
-  const listeners = new Map<SseMessageType, (data: any) => void>();
+  if (!eventSource) {
+    connect();
+  }
 
-  const reconnect = () => {
-    if (eventSource) {
-      eventSource.close();
+  const onMessage = <T extends SseMessageType>(
+    name: T,
+    callback: (data: SseMessageMap[T]) => void,
+  ) => {
+    const existing = listeners.get(name);
+    if (existing) {
+      existing.add(callback as SseListener);
+    } else {
+      listeners.set(name, new Set([callback as SseListener]));
+      if (eventSource) {
+        attachEventName(eventSource, name);
+      }
     }
-    eventSource = new EventSource("/api/sse");
-    eventSource.onerror = (event) => {
-      console.error("EventSource error:", event);
-      eventSource.close();
-      setTimeout(reconnect, 1000);
+    const unsubscribe = () => {
+      listeners.get(name)?.delete(callback as SseListener);
     };
-    eventSource.onopen = () => {
-      open.value = true;
-      // Reattach listeners
-      listeners.forEach((callback, name) => {
-        eventSource.addEventListener(name, (event) => {
-          const message = JSON.parse(event.data);
-          callback(message);
-        });
-      });
-    };
+    onScopeDispose(unsubscribe, true);
+    return unsubscribe;
   };
 
-  reconnect();
-  const open = ref(eventSource.readyState === EventSource.OPEN);
-  eventSource.onopen = () => (open.value = true);
-
   return {
-    //
-    onMessage: <T extends SseMessageType>(
-      name: T,
-      callback: (data: SseMessageMap[T]) => void,
-    ) => {
-      listeners.set(name, callback);
-      eventSource.addEventListener(name, (event) => {
-        const message = JSON.parse(event.data);
-        callback(message);
-      });
-    },
+    onMessage,
     open,
     close: () => {
-      eventSource.close();
+      eventSource?.close();
+      eventSource = undefined;
+      open.value = false;
     },
   };
 };

@@ -7,6 +7,11 @@ const props = defineProps<{ game: GameWithProviders }>();
 
 const posterUrl = computed(() => getGameArtUrls(props.game)?.poster ?? null);
 
+const posterFailed = ref(false);
+watch(posterUrl, () => {
+  posterFailed.value = false;
+});
+
 const providers = computed<Provider[]>(() => {
   const found: Provider[] = [];
   if (props.game.steamGames.length) found.push("steam");
@@ -25,17 +30,16 @@ const providers = computed<Provider[]>(() => {
       class="bg-elevated border-default aspect-[3/4] overflow-hidden rounded-lg border transition-shadow group-hover:shadow-lg"
     >
       <img
-        v-if="posterUrl"
+        v-if="posterUrl && !posterFailed"
         :src="posterUrl"
         :alt="game.name"
         width="600"
         height="800"
         loading="lazy"
         class="size-full object-cover"
+        @error="posterFailed = true"
       />
-      <div v-else class="flex size-full items-center justify-center p-4">
-        <GameIcon :game="game" class="size-12 rounded-md" />
-      </div>
+      <PosterPlaceholder v-else :name="game.name" />
     </div>
     <div class="mt-2 space-y-1">
       <h3 class="text-highlighted line-clamp-2 text-sm font-medium">

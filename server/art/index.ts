@@ -13,6 +13,7 @@ import { resolveArtSources } from "./sources";
 import type { ArtKey } from "./types";
 
 export { ArtFetchError, ArtNegativelyCachedError, ArtSourceNotFoundError };
+export { deleteCachedArt } from "./invalidate";
 export { contentTypeForPath, findCachedArtFile } from "./paths";
 export * from "./types";
 

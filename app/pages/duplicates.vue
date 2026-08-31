@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import type { DuplicatePair } from "#shared/types/Game";
 import { getPageTitle } from "#shared/title";
+import type { DuplicatePair } from "#shared/types/Game";
 
 useSeoMeta({ title: getPageTitle("Duplicate Games") });
 

@@ -1,19 +1,21 @@
 import { desc, eq } from "drizzle-orm";
-import { db } from "~~/lib/db";
+import { parseSteamProfileInput } from "#shared/steam-profile";
 import {
   game,
+  type NewSteamAppInfo,
+  type SteamGame,
+  type SteamGamePlaytime,
+  type SteamUser,
   steamAppInfo,
   steamGame,
   steamGamePlaytime,
   steamUser,
   user,
-  type NewSteamAppInfo,
-  type SteamGame,
-  type SteamGamePlaytime,
-  type SteamUser,
 } from "~~/db/schema";
+import { db } from "~~/lib/db";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
+import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
 import {
   getUserGames,
   getUserInfo,
@@ -22,9 +24,12 @@ import {
   type UserGame,
   type UserInfo,
 } from "./api";
-import { parseSteamProfileInput } from "#shared/steam-profile";
-import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
-import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
+import {
+  getAppDetails,
+  parseReleaseDate,
+  type SteamStoreAppInfo,
+  SteamStoreError,
+} from "./store";
 
 export class SteamServiceError extends Error {
   constructor(message: string) {
@@ -291,7 +296,7 @@ export async function populateStoreData(appId: number): Promise<SteamGame> {
   if (!existingGame) {
     throw new SteamServiceError(`Game ${appId} not in database`);
   }
-  let storeAppInfo;
+  let storeAppInfo: SteamStoreAppInfo;
   try {
     storeAppInfo = await getAppDetails(appId);
   } catch (error) {
@@ -319,7 +324,7 @@ export async function populateStoreData(appId: number): Promise<SteamGame> {
     requiredAge:
       typeof storeAppInfo.required_age === "number"
         ? storeAppInfo.required_age
-        : parseInt(storeAppInfo.required_age),
+        : parseInt(storeAppInfo.required_age, 10),
     isFree: storeAppInfo.is_free,
     detailedDescription: storeAppInfo.detailed_description,
     aboutTheGame: storeAppInfo.about_the_game,

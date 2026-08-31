@@ -1,10 +1,10 @@
-import { db } from "~~/lib/db";
 import {
+  type SteamPicsMetadata,
   steamGame,
   steamPicsMetadata,
   steamTag,
-  type SteamPicsMetadata,
 } from "~~/db/schema";
+import { db } from "~~/lib/db";
 import { getTagList } from "./api";
 import { getPicsMetadata, type PicsAppData } from "./pics";
 

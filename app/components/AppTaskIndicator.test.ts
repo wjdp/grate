@@ -1,8 +1,8 @@
 // @vitest-environment nuxt
 import { mountSuspended, registerEndpoint } from "@nuxt/test-utils/runtime";
 import { beforeEach, describe, expect, it } from "vitest";
+import { emitTask, FakeEventSource } from "~~/test/fakeEventSource";
 import AppTaskIndicator from "./AppTaskIndicator.vue";
-import { FakeEventSource, emitTask } from "~~/test/fakeEventSource";
 
 registerEndpoint("/api/tasks", () => []);
 

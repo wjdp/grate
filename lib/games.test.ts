@@ -1,12 +1,12 @@
 import { asc, eq } from "drizzle-orm";
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   epicGamePlaytime as epicGamePlaytimeTable,
-  game as gameTable,
   gameDistinctPair as gameDistinctPairTable,
   gameStateChange as gameStateChangeTable,
-  gogGame as gogGameTable,
+  game as gameTable,
   gogGamePlaytime as gogGamePlaytimeTable,
+  gogGame as gogGameTable,
   steamAppInfo as steamAppInfoTable,
   steamGamePlaytime as steamGamePlaytimeTable,
 } from "~~/db/schema";

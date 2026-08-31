@@ -1,6 +1,21 @@
 import { desc, eq } from "drizzle-orm";
+import tryCatch from "#shared/utils/tryCatch";
+import {
+  type EpicGame,
+  type EpicGamePlaytime,
+  type EpicUser,
+  epicGame,
+  epicGamePlaytime,
+  epicIgnoredItem,
+  epicUser,
+  game,
+} from "~~/db/schema";
+import { db } from "~~/lib/db";
 import {
   EpicApiError,
+  type EpicCatalogItem,
+  type EpicLibraryRecord,
+  type EpicToken,
   getEpicAccount,
   getEpicCatalogItems,
   getEpicLibraryItems,
@@ -9,21 +24,7 @@ import {
   getEpicStoreSlug,
   getEpicToken,
   refreshEpicToken,
-  type EpicCatalogItem,
-  type EpicLibraryRecord,
-  type EpicToken,
 } from "~~/lib/epic/api";
-import tryCatch from "#shared/utils/tryCatch";
-import { db } from "~~/lib/db";
-import {
-  epicGame,
-  epicGamePlaytime,
-  epicIgnoredItem,
-  epicUser,
-  game,
-  type EpicGame,
-  type EpicUser,
-} from "~~/db/schema";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
 import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
@@ -69,7 +70,7 @@ export async function createOrUpdateEpicUser(code: string) {
     throw new Error(`Failed to authenticate with Epic: ${tokenError.message}`);
   }
   const currentEpicUser = await getEpicUser();
-  if (!!currentEpicUser && currentEpicUser.accountId !== token.account_id) {
+  if (currentEpicUser && currentEpicUser.accountId !== token.account_id) {
     throw new Error("grate only supports a single Epic account");
   }
   const { data: account } = await tryCatch(
@@ -426,7 +427,7 @@ export async function recordEpicPlaytime(
   const increased =
     !!lastRecord && playtimeMinutes > lastRecord.playtimeMinutes;
   const lastPlayedAt = increased ? now : null;
-  let record;
+  let record: EpicGamePlaytime;
   if (
     lastRecord?.playtimeMinutes === playtimeMinutes &&
     penultimateRecord?.playtimeMinutes === playtimeMinutes

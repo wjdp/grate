@@ -1,5 +1,5 @@
-import { getGame } from "~~/lib/games";
 import { gameRouterParamsSchema } from "#shared/schemas/games";
+import { getGame } from "~~/lib/games";
 
 export default defineEventHandler(async (event) => {
   const { id } = await getValidatedRouterParams(

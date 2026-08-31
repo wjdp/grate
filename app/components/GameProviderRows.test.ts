@@ -4,10 +4,10 @@ import {
   mountSuspended,
   registerEndpoint,
 } from "@nuxt/test-utils/runtime";
-import type { GameDetail } from "#shared/types/Game";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import UApp from "@nuxt/ui/components/App.vue";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h } from "vue";
+import type { GameDetail } from "#shared/types/Game";
 import GameProviderRows from "./GameProviderRows.vue";
 
 const { navigateToMock } = vi.hoisted(() => ({ navigateToMock: vi.fn() }));

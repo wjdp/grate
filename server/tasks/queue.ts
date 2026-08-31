@@ -20,8 +20,8 @@ function parseIdFromStore(v: unknown): number | null {
     return v;
   }
   if (typeof v === "string") {
-    const id = parseInt(v);
-    if (!isNaN(id)) {
+    const id = parseInt(v, 10);
+    if (!Number.isNaN(id)) {
       return id;
     }
   }

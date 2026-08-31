@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parseSteamProfileInput } from "#shared/steam-profile";
 
 const STEAM_ID = "76561197960435530";

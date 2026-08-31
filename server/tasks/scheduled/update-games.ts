@@ -5,7 +5,7 @@ export default defineTask({
     name: "scheduled:update-games",
     description: "Update the game library for every connected provider",
   },
-  async run({ payload, context }) {
+  async run() {
     await createTask("updateGames");
     return { result: "Success" };
   },

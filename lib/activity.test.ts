@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   epicGamePlaytime as epicGamePlaytimeTable,
   gogGamePlaytime as gogGamePlaytimeTable,
   steamGamePlaytime as steamGamePlaytimeTable,
 } from "~~/db/schema";
-import { db } from "~~/lib/db";
 import { getDailyPlaytime } from "~~/lib/activity";
+import { db } from "~~/lib/db";
 import {
   createEpicGame,
   createGogGame,

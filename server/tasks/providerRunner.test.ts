@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderId } from "#shared/tasks";
 import type { ProviderJobs } from "~~/lib/providerJobs";
-import type { Task } from "~~/server/tasks/queue";
-import { updateInProgressTask } from "~~/server/tasks/queue";
 import {
   runProviderJobs,
   throwOnProviderFailures,
 } from "~~/server/tasks/providerRunner";
+import type { Task } from "~~/server/tasks/queue";
+import { updateInProgressTask } from "~~/server/tasks/queue";
 
 vi.mock("~~/server/tasks/queue", () => ({
   updateInProgressTask: vi.fn(),

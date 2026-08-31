@@ -1,6 +1,6 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import { db } from "~~/lib/db";
+import { beforeEach, describe, expect, it } from "vitest";
 import { steamPicsMetadata } from "~~/db/schema";
+import { db } from "~~/lib/db";
 import { createSteamGame } from "~~/lib/fixtures/game";
 import { flushDb } from "~~/test/db";
 import { resolveArtSources } from "./sources";

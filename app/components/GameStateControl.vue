@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {
+  type GameState,
   GameStateHues,
   GameStateIcons,
   GameStateNames,
-  type GameState,
 } from "#shared/game-state";
 
 interface StateItem {

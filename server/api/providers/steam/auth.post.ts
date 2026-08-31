@@ -1,6 +1,6 @@
-import { createOrUpdateSteamUser } from "~~/lib/steam/service";
 import { steamAuthBodySchema } from "#shared/schemas/providers";
 import tryCatch from "#shared/utils/tryCatch";
+import { createOrUpdateSteamUser } from "~~/lib/steam/service";
 
 export default defineEventHandler(async (event) => {
   const credentials = await readValidatedBody(event, steamAuthBodySchema.parse);

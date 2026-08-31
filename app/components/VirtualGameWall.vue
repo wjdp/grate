@@ -70,9 +70,9 @@ onMounted(async () => {
   mediaQueries = COLUMN_BREAKPOINTS.map(({ query }) =>
     window.matchMedia(query),
   );
-  mediaQueries.forEach((query) =>
-    query.addEventListener("change", readColumns),
-  );
+  mediaQueries.forEach((query) => {
+    query.addEventListener("change", readColumns);
+  });
 
   if (containerRef.value) {
     containerWidth.value = containerRef.value.clientWidth;
@@ -91,9 +91,9 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  mediaQueries.forEach((query) =>
-    query.removeEventListener("change", readColumns),
-  );
+  mediaQueries.forEach((query) => {
+    query.removeEventListener("change", readColumns);
+  });
   widthObserver?.disconnect();
 });
 

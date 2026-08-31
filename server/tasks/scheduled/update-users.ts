@@ -5,7 +5,7 @@ export default defineTask({
     name: "scheduled:update-users",
     description: "Update user information for every connected provider",
   },
-  async run({ payload, context }) {
+  async run() {
     await createTask("updateUsers");
     return { result: "Success" };
   },

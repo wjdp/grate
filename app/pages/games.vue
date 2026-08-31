@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import { getPageTitle } from "#shared/title";
 import {
   GAME_STATES,
+  type GameState,
   GameStateHues,
   GameStateNames,
-  type GameState,
 } from "#shared/game-state";
+import { getPageTitle } from "#shared/title";
 import type { GameWithProviders } from "#shared/types/Game";
 
 useSeoMeta({ title: getPageTitle("Library") });

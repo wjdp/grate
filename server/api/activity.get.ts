@@ -1,5 +1,5 @@
-import { getDailyPlaytime } from "~~/lib/activity";
 import { activityQuerySchema } from "#shared/schemas/activity";
+import { getDailyPlaytime } from "~~/lib/activity";
 
 export default defineEventHandler(async (event) => {
   const { year } = await getValidatedQuery(event, activityQuerySchema.parse);

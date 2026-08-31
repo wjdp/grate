@@ -1,9 +1,8 @@
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import createFetchMock from "vitest-fetch-mock";
-import { vi, beforeEach, describe, expect, it, afterAll } from "vitest";
-import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
-
 import Response7670 from "./fixtures/store/7670.json";
 import Response443080 from "./fixtures/store/443080.json";
+import { getAppDetails, parseReleaseDate, SteamStoreError } from "./store";
 
 const BIOSHOCK_APP_ID = 7670;
 const INVALID_APP_ID = 443080;

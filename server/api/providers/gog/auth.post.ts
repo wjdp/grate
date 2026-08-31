@@ -1,6 +1,6 @@
-import { createOrUpdateGogUser } from "~~/lib/gog/service";
 import { gogAuthBodySchema } from "#shared/schemas/providers";
 import tryCatch from "#shared/utils/tryCatch";
+import { createOrUpdateGogUser } from "~~/lib/gog/service";
 
 export default defineEventHandler(async (event) => {
   const { code } = await readValidatedBody(event, gogAuthBodySchema.parse);

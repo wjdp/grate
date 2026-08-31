@@ -4,20 +4,16 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "prepare": "husky || true",
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "lint": "prettier --write .",
-    "lint:ci": "prettier --check .",
+    "lint": "biome check --write",
+    "lint:ci": "biome ci",
     "typecheck": "nuxt typecheck",
     "test": "vitest",
     "db:migrate": "tsx db/migrate-cli.ts",
     "db:studio": "drizzle-kit studio"
-  },
-  "lint-staged": {
-    "**/*": "prettier --write"
   },
   "dependencies": {
     "@tanstack/vue-virtual": "^3.13.36",
@@ -30,6 +26,7 @@
   },
   "packageManager": "pnpm@11.24.0+sha512.bd27e345e976dcb0be0b7a1228217b049a817e21b1f355c90dbe7dc46671895a8bc1e6d06c24554505ea93ea0b45f489a27ec1bfbc8de6a9659fca0f16fa0000",
   "devDependencies": {
+    "@biomejs/biome": "2.5.11",
     "@faker-js/faker": "^9.9.0",
     "@iconify-json/lucide": "^1.2.127",
     "@iconify-json/simple-icons": "^1.2.94",
@@ -42,13 +39,9 @@
     "drizzle-kit": "^0.31.10",
     "happy-dom": "^20.12.0",
     "hookable": "^5.5.3",
-    "husky": "^9.1.7",
-    "lint-staged": "^15.5.2",
+    "lefthook": "^2.1.12",
     "luxon": "^3.7.2",
     "nuxt": "^4.5.2",
-    "prettier": "3.5.3",
-    "prettier-plugin-sh": "^0.15.0",
-    "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",

@@ -1,14 +1,14 @@
 <script lang="ts" setup>
-import { getGameArtUrls } from "#shared/art";
 import type { ArtUrls } from "#shared/art";
+import { getGameArtUrls } from "#shared/art";
 import {
+  type GameState,
   GameStateHues,
   GameStateIcons,
   GameStateNames,
-  type GameState,
 } from "#shared/game-state";
-import type { GameDetail } from "#shared/types/Game";
 import { getPageTitle } from "#shared/title";
+import type { GameDetail } from "#shared/types/Game";
 
 useSeoMeta({ title: getPageTitle("Organise Games") });
 
@@ -85,7 +85,9 @@ onMounted(() => {
 });
 
 const moveOn = async (pauseMs: number) => {
-  organisedGameIds.value.push(theGame.value!.id);
+  if (theGame.value) {
+    organisedGameIds.value.push(theGame.value.id);
+  }
   theGame.value = undefined;
   theArt.value = null;
   organiseState.value = "loading";

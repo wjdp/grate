@@ -1,5 +1,5 @@
-import { unmarkDistinct } from "~~/lib/duplicates";
 import { distinctPairRouterParamsSchema } from "#shared/schemas/games";
+import { unmarkDistinct } from "~~/lib/duplicates";
 
 export default defineEventHandler(async (event) => {
   const { id } = await getValidatedRouterParams(

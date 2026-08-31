@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { DuplicatePair } from "#shared/types/Game";
 import type { Provider } from "#shared/providers";
+import type { DuplicatePair } from "#shared/types/Game";
 
 type PairSide = DuplicatePair["a"];
 

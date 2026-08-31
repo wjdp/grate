@@ -1,10 +1,10 @@
+import sleep from "#shared/utils/sleep";
 import {
   findGamesNeedingStoreData,
   populateStoreData,
 } from "~~/lib/steam/service";
-import sleep from "#shared/utils/sleep";
-import { updateInProgressTask } from "~~/server/tasks/queue";
 import type { Task } from "~~/server/tasks/queue";
+import { updateInProgressTask } from "~~/server/tasks/queue";
 
 export default async (task: Task) => {
   const games = await findGamesNeedingStoreData();

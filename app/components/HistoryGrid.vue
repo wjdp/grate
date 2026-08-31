@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { DailyPlaytime } from "~~/lib/activity";
 import { formatPlaytime } from "~/utils/formatPlaytime";
+import type { DailyPlaytime } from "~~/lib/activity";
 
 const { year, days } = defineProps<{
   year: number;

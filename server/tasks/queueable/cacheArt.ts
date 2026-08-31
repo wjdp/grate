@@ -10,6 +10,9 @@ import {
   ensureArtCached,
 } from "~~/server/art";
 import type { ArtProvider } from "~~/server/art";
+import mapWithConcurrency from "#shared/utils/mapWithConcurrency";
+
+const CACHE_ART_CONCURRENCY = 8;
 
 async function cacheArtForGame(provider: ArtProvider, id: number) {
   for (const type of ART_TYPES_BY_PROVIDER[provider]) {
@@ -66,15 +69,15 @@ export default async (task: Task) => {
   ];
 
   const numRows = rows.length;
-  let i = 0;
-  for (const row of rows) {
+  let done = 0;
+  await mapWithConcurrency(rows, CACHE_ART_CONCURRENCY, async (row) => {
     await cacheArtForGame(row.provider, row.id);
-    i++;
+    done++;
     await updateInProgressTask(task, {
-      progress: i / numRows,
-      done: i,
+      progress: done / numRows,
+      done,
       total: numRows,
       message: `Cached art for ${row.name}`,
     });
-  }
+  });
 };

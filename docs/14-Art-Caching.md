@@ -22,7 +22,7 @@ One art cache covering Steam, GOG and Epic, serving images at sizes close to wha
 Defects in the existing cache:
 
 1. `cacheArt` writes whatever `fetch` returns — no status/content-type check. Steam 404 bodies are cached as art (confirmed: `data/art/steam/1012560/background.jpg` is 146 bytes).
-2. `isSteamArtCached` returns true if *any one* of the 7 files exists → partial/failed runs never retried. No TTL, no invalidation, no delete path.
+2. `isSteamArtCached` returns true if _any one_ of the 7 files exists → partial/failed runs never retried. No TTL, no invalidation, no delete path.
 3. Everything is written as `.jpg` including `logo.png`.
 
 ### GOG (hotlinked, resize broken)
@@ -56,13 +56,13 @@ Self-hosted inverts normal cache wisdom: server↔client link is LAN-fast, so ov
 
 Generalised vocabulary, mapped per provider. A provider lacking a type 404s and `getGameArtUrls` falls back.
 
-| Type         | Shape / use                              | Steam                                        | GOG                                                  | Epic                                     |
-| ------------ | ---------------------------------------- | -------------------------------------------- | ---------------------------------------------------- | ---------------------------------------- |
-| `icon`       | small square; list rows                  | community icon via `imgIconUrl` (~32px)      | `iconSquareUrl ?? iconUrl` + `glx_icon_square`       | derived: tall box, cropped square server-side |
-| `poster`     | tall box (2:3); poster wall              | `library_600x900_2x.jpg` (1200×1800)         | `boxArtImageUrl`                                     | `boxArtTallUrl` (DieselGameBoxTall)      |
-| `hero`       | wide banner; game page top               | `library_hero.jpg` (up to 3840×1240)         | `backgroundImageUrl`                                 | `boxArtWideUrl` (2560×1440)              |
-| `background` | full-page backdrop (shown blurred)       | `page_bg_generated_v6b.jpg`                  | `galaxyBackgroundImageUrl ?? backgroundImageUrl`     | `boxArtWideUrl`                          |
-| `logo`       | transparent wordmark; over hero          | `logo.png`                                   | `logoUrl` + `glx_logo_2x`                            | `logoUrl` (DieselGameBoxLogo, often null)|
+| Type         | Shape / use                        | Steam                                   | GOG                                              | Epic                                          |
+| ------------ | ---------------------------------- | --------------------------------------- | ------------------------------------------------ | --------------------------------------------- |
+| `icon`       | small square; list rows            | community icon via `imgIconUrl` (~32px) | `iconSquareUrl ?? iconUrl` + `glx_icon_square`   | derived: tall box, cropped square server-side |
+| `poster`     | tall box (2:3); poster wall        | `library_600x900_2x.jpg` (1200×1800)    | `boxArtImageUrl`                                 | `boxArtTallUrl` (DieselGameBoxTall)           |
+| `hero`       | wide banner; game page top         | `library_hero.jpg` (up to 3840×1240)    | `backgroundImageUrl`                             | `boxArtWideUrl` (2560×1440)                   |
+| `background` | full-page backdrop (shown blurred) | `page_bg_generated_v6b.jpg`             | `galaxyBackgroundImageUrl ?? backgroundImageUrl` | `boxArtWideUrl`                               |
+| `logo`       | transparent wordmark; over hero    | `logo.png`                              | `logoUrl` + `glx_logo_2x`                        | `logoUrl` (DieselGameBoxLogo, often null)     |
 
 Notes:
 

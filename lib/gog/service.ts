@@ -50,7 +50,7 @@ export async function createOrUpdateGogUser(code: string) {
     throw new Error("Failed to get user data from GOG");
   }
   const currentGogUser = await getGogUser();
-  if (!!currentGogUser && currentGogUser.gogUserId !== user.userId) {
+  if (currentGogUser && currentGogUser.gogUserId !== user.userId) {
     throw new Error("grate only supports a single GOG account");
   }
   return db

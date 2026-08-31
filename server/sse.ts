@@ -1,4 +1,4 @@
-import { H3Event, createEventStream } from "h3";
+import { type H3Event, createEventStream } from "h3";
 import { createHooks } from "hookable";
 import type { SseMessageMap, SseMessageType } from "~~/lib/hooks";
 

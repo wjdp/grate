@@ -4,20 +4,16 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "prepare": "husky || true",
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "lint": "prettier --write .",
-    "lint:ci": "prettier --check .",
+    "lint": "biome check --write",
+    "lint:ci": "biome ci",
     "typecheck": "nuxt typecheck",
     "test": "vitest",
     "db:migrate": "tsx db/migrate-cli.ts",
     "db:studio": "drizzle-kit studio"
-  },
-  "lint-staged": {
-    "**/*": "prettier --write"
   },
   "dependencies": {
     "@tanstack/vue-virtual": "^3.13.36",
@@ -43,8 +39,7 @@
     "drizzle-kit": "^0.31.10",
     "happy-dom": "^20.12.0",
     "hookable": "^5.5.3",
-    "husky": "^9.1.7",
-    "lint-staged": "^15.5.2",
+    "lefthook": "^2.1.12",
     "luxon": "^3.7.2",
     "nuxt": "^4.5.2",
     "tailwindcss": "^4.3.3",

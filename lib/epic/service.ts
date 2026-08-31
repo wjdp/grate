@@ -69,7 +69,7 @@ export async function createOrUpdateEpicUser(code: string) {
     throw new Error(`Failed to authenticate with Epic: ${tokenError.message}`);
   }
   const currentEpicUser = await getEpicUser();
-  if (!!currentEpicUser && currentEpicUser.accountId !== token.account_id) {
+  if (currentEpicUser && currentEpicUser.accountId !== token.account_id) {
     throw new Error("grate only supports a single Epic account");
   }
   const { data: account } = await tryCatch(

@@ -2,12 +2,7 @@
 import type { GameState } from "#shared/game-state";
 import { getGameArtUrls } from "#shared/art";
 import { getPageTitle } from "#shared/title";
-import {
-  getEpicRowLinks,
-  getGogRowLinks,
-  getSteamRowLinks,
-  ProviderLabels,
-} from "#shared/providers";
+import { getPrimaryLaunch, ProviderLabels } from "#shared/providers";
 
 const route = useRoute();
 const id = parseIntRouteParam(route.params.id);
@@ -82,34 +77,9 @@ const providerCount = computed(
     steamGames.value.length + gogGames.value.length + epicGames.value.length,
 );
 
-interface LaunchTarget {
-  playtimeMinutes: number;
-  playUrl: string;
-}
-
-const primaryLaunch = computed<LaunchTarget | null>(() => {
-  const targets: LaunchTarget[] = [
-    ...steamGames.value.map((steamRow) => ({
-      playtimeMinutes: steamRow.playtimeForever ?? 0,
-      playUrl: getSteamRowLinks(steamRow).playUrl,
-    })),
-    ...gogGames.value.map((gogRow) => ({
-      playtimeMinutes: gogRow.playtimeMinutes ?? 0,
-      playUrl: getGogRowLinks(gogRow).playUrl,
-    })),
-    ...epicGames.value.map((epicRow) => ({
-      playtimeMinutes: epicRow.playtimeMinutes ?? 0,
-      playUrl: getEpicRowLinks(epicRow).playUrl,
-    })),
-  ];
-  return (
-    targets.reduce<LaunchTarget | null>(
-      (best, target) =>
-        !best || target.playtimeMinutes > best.playtimeMinutes ? target : best,
-      null,
-    ) ?? null
-  );
-});
+const primaryLaunch = computed(() =>
+  game.value ? getPrimaryLaunch(game.value) : null,
+);
 
 const playtimeColumns = [
   { accessorKey: "timestampStart", header: "Start" },

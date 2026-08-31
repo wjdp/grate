@@ -46,3 +46,37 @@ export function getEpicRowLinks(row: EpicRow): ProviderRowLinks {
     playUrl,
   };
 }
+
+export interface PrimaryLaunch extends ProviderRowLinks {
+  playtimeMinutes: number;
+}
+
+interface PrimaryLaunchGame {
+  steamGames: (SteamRow & { playtimeForever?: number | null })[];
+  gogGames: (GogRow & { playtimeMinutes?: number | null })[];
+  epicGames: (EpicRow & { playtimeMinutes?: number | null })[];
+}
+
+export function getPrimaryLaunch(
+  game: PrimaryLaunchGame,
+): PrimaryLaunch | null {
+  const targets: PrimaryLaunch[] = [
+    ...game.steamGames.map((row) => ({
+      playtimeMinutes: row.playtimeForever ?? 0,
+      ...getSteamRowLinks(row),
+    })),
+    ...game.gogGames.map((row) => ({
+      playtimeMinutes: row.playtimeMinutes ?? 0,
+      ...getGogRowLinks(row),
+    })),
+    ...game.epicGames.map((row) => ({
+      playtimeMinutes: row.playtimeMinutes ?? 0,
+      ...getEpicRowLinks(row),
+    })),
+  ];
+  return targets.reduce<PrimaryLaunch | null>(
+    (best, target) =>
+      !best || target.playtimeMinutes > best.playtimeMinutes ? target : best,
+    null,
+  );
+}

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "~~/lib/db";
-import { epicGame, gogGame, steamGame } from "~~/db/schema";
+import { epicGame, gogGame, steamGame, steamPicsMetadata } from "~~/db/schema";
 import { getSteamArtUrls } from "~~/lib/steam/art";
 import { resolveGogImageUrl } from "#shared/art";
 import type { ArtKey, EpicArtType, GogArtType, SteamArtType } from "./types";
@@ -11,6 +11,15 @@ const GOG_LOGO_FORMATTER = "glx_logo_2x";
 // Many Steam apps have no library art at either size; the header capsule is a
 // poor but non-empty poster, so it ends the chain.
 const STEAM_POSTER_FALLBACKS = ["poster", "posterSmall", "header"] as const;
+
+const STEAM_PICS_ASSETS_BASE_URL =
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps";
+
+// PICS asset paths are opaque and content-hashed — append verbatim, never
+// construct them.
+function picsAssetUrl(appId: number, path: string | null): string | null {
+  return path ? `${STEAM_PICS_ASSETS_BASE_URL}/${appId}/${path}` : null;
+}
 
 export interface ArtSource {
   url: string;
@@ -28,28 +37,88 @@ function sourceCandidates(
   return url ? [{ url, ...(derive ? { derive } : {}) }] : [];
 }
 
+// Ordered candidate list from several possibly-null URLs, deduplicated and
+// with nulls dropped.
+function orderedCandidates(urls: Array<string | null | undefined>): ArtSource[] {
+  const seen = new Set<string>();
+  const candidates: ArtSource[] = [];
+  for (const url of urls) {
+    if (url && !seen.has(url)) {
+      seen.add(url);
+      candidates.push({ url });
+    }
+  }
+  return candidates;
+}
+
 async function resolveSteamArtSources(
   appId: number,
   type: SteamArtType,
 ): Promise<ArtSource[]> {
-  if (type === "poster") {
-    const urls = getSteamArtUrls(appId);
-    return STEAM_POSTER_FALLBACKS.map((fallback) => ({ url: urls[fallback] }));
+  const legacyUrls = getSteamArtUrls(appId);
+
+  if (type === "background" || type === "backgroundV6B") {
+    return sourceCandidates(legacyUrls[type]);
   }
-  if (type !== "icon") {
-    return sourceCandidates(getSteamArtUrls(appId)[type]);
+
+  if (type === "icon") {
+    const row = db
+      .select()
+      .from(steamGame)
+      .where(eq(steamGame.appId, appId))
+      .get();
+    const picsRow = db
+      .select()
+      .from(steamPicsMetadata)
+      .where(eq(steamPicsMetadata.appId, appId))
+      .get();
+    const primary =
+      row?.imgIconUrl ?
+        `http://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${row.imgIconUrl}.jpg`
+      : null;
+    const fallback =
+      picsRow?.iconHash ?
+        `http://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${picsRow.iconHash}.jpg`
+      : null;
+    return orderedCandidates([primary, fallback]);
   }
-  const row = db
+
+  const picsRow = db
     .select()
-    .from(steamGame)
-    .where(eq(steamGame.appId, appId))
+    .from(steamPicsMetadata)
+    .where(eq(steamPicsMetadata.appId, appId))
     .get();
-  if (!row || !row.imgIconUrl) {
-    return [];
+
+  switch (type) {
+    case "poster":
+      return orderedCandidates([
+        picsAssetUrl(appId, picsRow?.capsule2xPath ?? null),
+        picsAssetUrl(appId, picsRow?.capsulePath ?? null),
+        ...STEAM_POSTER_FALLBACKS.map((fallback) => legacyUrls[fallback]),
+      ]);
+    case "posterSmall":
+      return orderedCandidates([
+        picsAssetUrl(appId, picsRow?.capsulePath ?? null),
+        legacyUrls.posterSmall,
+      ]);
+    case "hero":
+      return orderedCandidates([
+        picsAssetUrl(appId, picsRow?.hero2xPath ?? null),
+        picsAssetUrl(appId, picsRow?.heroPath ?? null),
+        legacyUrls.hero,
+      ]);
+    case "logo":
+      return orderedCandidates([
+        picsAssetUrl(appId, picsRow?.logo2xPath ?? null),
+        picsAssetUrl(appId, picsRow?.logoPath ?? null),
+        legacyUrls.logo,
+      ]);
+    case "header":
+      return orderedCandidates([
+        picsAssetUrl(appId, picsRow?.headerPath ?? null),
+        legacyUrls.header,
+      ]);
   }
-  return sourceCandidates(
-    `http://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${row.imgIconUrl}.jpg`,
-  );
 }
 
 async function resolveGogArtSources(

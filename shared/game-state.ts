@@ -37,8 +37,8 @@ export const GameStateHues: Record<GameState, GameStateHue> = {
     dot: "bg-blue-500",
   },
   PERIODIC: {
-    badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
-    dot: "bg-amber-500",
+    badge: "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+    dot: "bg-violet-500",
   },
   SHELVED: {
     badge: "bg-grey-500/15 text-grey-700 dark:text-grey-300",

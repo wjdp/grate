@@ -25,7 +25,7 @@ const unsortedPlayedCount = computed(
   <div class="space-y-8">
     <UAlert
       v-if="needsProvider"
-      color="primary"
+      color="neutral"
       variant="soft"
       icon="i-lucide-plug"
       title="grate needs a provider"

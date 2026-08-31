@@ -173,7 +173,7 @@ const merge = async (targetId: number, sourceIds: number[]) => {
             @click="merge(game.id, [selected.id])"
           />
           <UButton
-            color="primary"
+            color="neutral"
             variant="outline"
             :label="`Merge into ${selected.name}`"
             :loading="pending"

@@ -13,5 +13,6 @@ const appConfig = useAppConfig();
         <slot />
       </template>
     </UDashboardPanel>
+    <AppCommandPalette />
   </UDashboardGroup>
 </template>

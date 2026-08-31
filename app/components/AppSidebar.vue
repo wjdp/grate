@@ -13,6 +13,17 @@ watchEffect(() => {
   }
 });
 
+const { open: openCommandPalette } = useCommandPalette();
+
+const searchLinks: NavigationMenuItem[] = [
+  {
+    label: "Search",
+    icon: "i-lucide-search",
+    slot: "search",
+    onSelect: openCommandPalette,
+  },
+];
+
 const mainLinks = computed<NavigationMenuItem[]>(() => [
   { label: "Library", icon: "i-lucide-library-big", to: "/games" },
   { label: "Organise", icon: "i-lucide-list-checks", to: "/organise" },
@@ -58,6 +69,19 @@ const debugLinks: NavigationMenuItem[] = [
     </template>
 
     <template #default="{ collapsed }">
+      <UNavigationMenu
+        :items="searchLinks"
+        :collapsed="collapsed"
+        orientation="vertical"
+        tooltip
+      >
+        <template #search-trailing>
+          <span v-if="!collapsed" class="ms-auto flex items-center gap-0.5">
+            <UKbd value="meta" />
+            <UKbd value="k" />
+          </span>
+        </template>
+      </UNavigationMenu>
       <UNavigationMenu
         :items="mainLinks"
         :collapsed="collapsed"

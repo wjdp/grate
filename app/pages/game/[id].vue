@@ -34,6 +34,11 @@ watch(
 
 const art = computed(() => game.value && getGameArtUrls(game.value));
 
+const { recordView } = useRecentlyViewedGames();
+onMounted(() => {
+  if (game.value) recordView(id);
+});
+
 // `useFetch` data is a shallowRef, so the optimistic update has to replace the
 // object rather than write through it.
 const applyGameState = (state: GameState | null) => {

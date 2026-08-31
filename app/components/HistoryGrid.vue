@@ -74,11 +74,11 @@ const weekAndDayNumberToDate = (week: number, day: number) => {
 };
 
 const SCALE = [
-  "bg-muted",
-  "bg-amber-200 dark:bg-amber-900",
-  "bg-amber-400 dark:bg-amber-700",
-  "bg-amber-600 dark:bg-amber-500",
-  "bg-amber-800 dark:bg-amber-400",
+  "bg-grey-300 dark:bg-grey-700",
+  "bg-[oklch(0.90_0.100_90)] dark:bg-[oklch(0.45_0.090_66)]",
+  "bg-[oklch(0.80_0.140_84)] dark:bg-[oklch(0.59_0.115_74)]",
+  "bg-[oklch(0.70_0.150_78)] dark:bg-[oklch(0.73_0.135_82)]",
+  "bg-[oklch(0.60_0.135_72)] dark:bg-[oklch(0.879_0.151_89.9)]",
 ];
 
 const BUCKET_EDGES = [60, 180, 360];

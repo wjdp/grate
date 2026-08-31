@@ -41,7 +41,7 @@ describe("HistoryGrid", () => {
     expect(titles).toContain("2021-01-02: nothing");
   });
 
-  it("buckets playtime into the amber scale", async () => {
+  it("buckets playtime into the intensity scale", async () => {
     const component = await mountSuspended(HistoryGrid, {
       props: {
         year: 2021,
@@ -61,11 +61,11 @@ describe("HistoryGrid", () => {
         .find((cell) => cell.attributes("title")?.startsWith(date))!
         .classes();
 
-    expect(classesFor("2021-01-01")).toContain("bg-muted");
-    expect(classesFor("2021-01-02")).toContain("bg-amber-200");
-    expect(classesFor("2021-01-03")).toContain("bg-amber-400");
-    expect(classesFor("2021-01-04")).toContain("bg-amber-600");
-    expect(classesFor("2021-01-05")).toContain("bg-amber-800");
+    expect(classesFor("2021-01-01")).toContain("bg-grey-300");
+    expect(classesFor("2021-01-02")).toContain("bg-[oklch(0.90_0.100_90)]");
+    expect(classesFor("2021-01-03")).toContain("bg-[oklch(0.80_0.140_84)]");
+    expect(classesFor("2021-01-04")).toContain("bg-[oklch(0.70_0.150_78)]");
+    expect(classesFor("2021-01-05")).toContain("bg-[oklch(0.60_0.135_72)]");
   });
 
   it("labels the months across the top", async () => {

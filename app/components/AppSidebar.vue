@@ -27,7 +27,11 @@ const debugLinks: NavigationMenuItem[] = [
   >
     <template #header="{ collapsed }">
       <NuxtLink to="/" class="flex min-w-0 items-center gap-2">
-        <img src="/icon.png" alt="" class="size-6 shrink-0" />
+        <img
+          src="/icon.png"
+          alt=""
+          class="size-6 shrink-0 invert dark:invert-0"
+        />
         <span
           v-if="!collapsed"
           class="font-display text-highlighted truncate text-lg font-semibold tracking-tight"

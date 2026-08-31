@@ -31,6 +31,9 @@ const openMenu = async (component: Control) => {
   await settle();
 };
 
+const triggerIcon = (component: Control) =>
+  component.find("button span.iconify");
+
 const menuOptions = () =>
   Array.from(document.querySelectorAll("[role='option']")) as HTMLElement[];
 
@@ -49,14 +52,18 @@ describe("GameStateControl", () => {
     const component = await mount(null);
 
     expect(component.text()).toContain("Unsorted");
-    expect(component.find("span.size-2").classes()).toContain("bg-grey-400");
+    expect(triggerIcon(component).classes()).toEqual(
+      expect.arrayContaining(["i-lucide:circle-dashed", "text-grey-500"]),
+    );
   });
 
   it("shows the label and hue of the current state", async () => {
     const component = await mount("PLAYING");
 
     expect(component.text()).toContain("Playing");
-    expect(component.find("span.size-2").classes()).toContain("bg-blue-500");
+    expect(triggerIcon(component).classes()).toEqual(
+      expect.arrayContaining(["i-lucide:play", "text-blue-600"]),
+    );
   });
 
   it("falls back to unsorted for an unknown state", async () => {
@@ -74,6 +81,39 @@ describe("GameStateControl", () => {
     expect(labels[0]).toBe("Unsorted");
     expect(labels).toContain("Backlog");
     expect(labels).toContain("Abandoned");
+  });
+
+  it("tints each option icon with its state hue", async () => {
+    const component = await mount(null);
+    await openMenu(component);
+
+    const completed = menuOptions().find((option) =>
+      option.textContent?.includes("Completed"),
+    )!;
+    const icon = completed.querySelector("span.iconify")!;
+
+    expect(icon.className).toContain("i-lucide:trophy");
+    expect(icon.className).toContain("text-green-600");
+  });
+
+  it("splits the states into four groups", async () => {
+    const component = await mount(null);
+    await openMenu(component);
+
+    const groups = Array.from(
+      document.querySelectorAll("[data-slot='group']"),
+    ).map((group) =>
+      Array.from(group.querySelectorAll("[role='option']")).map((option) =>
+        option.textContent?.trim(),
+      ),
+    );
+
+    expect(groups).toEqual([
+      ["Unsorted"],
+      ["Backlog"],
+      ["Playing", "Periodic", "Shelved"],
+      ["Played", "Completed", "Retired", "Abandoned"],
+    ]);
   });
 
   it("emits the picked state through the model and change event", async () => {

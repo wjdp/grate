@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { getSteamArtUrls } from "~~/lib/steam/art";
-import type { SteamArtUrls } from "~~/lib/steam/art";
+import { STEAM_ART_TYPES } from "~~/server/art/types";
 import type { SteamPicsMetadata } from "~~/db/schema";
 
 type SerialisedPicsMetadata = {
@@ -9,18 +8,15 @@ type SerialisedPicsMetadata = {
     : SteamPicsMetadata[K];
 };
 
+const STORE_ITEM_ASSETS_BASE =
+  "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps";
+const COMMUNITY_ICON_BASE =
+  "http://media.steampowered.com/steamcommunity/public/images/apps";
+
 const appId = ref("");
-const urls = ref<SteamArtUrls>();
+const fetchedAppId = ref<number>();
 const picsMetadata = ref<SerialisedPicsMetadata | null>();
-const artKeys: Array<keyof SteamArtUrls> = [
-  "logo",
-  "header",
-  "hero",
-  "posterSmall",
-  "poster",
-  "background",
-  "backgroundV6B",
-];
+const brokenArt = ref<Set<string>>(new Set());
 
 // Path/hash columns are what feeds resolveSteamArtSources; the rest of the
 // row (review scores, tags, etc.) isn't art-relevant here.
@@ -37,9 +33,18 @@ const PICS_PATH_COLUMNS: Array<keyof SerialisedPicsMetadata> = [
   "iconHash",
 ];
 
+const picsThumbnailUrl = (
+  column: (typeof PICS_PATH_COLUMNS)[number],
+  value: string,
+) =>
+  column === "iconHash"
+    ? `${COMMUNITY_ICON_BASE}/${fetchedAppId.value}/${value}.jpg`
+    : `${STORE_ITEM_ASSETS_BASE}/${fetchedAppId.value}/${value}`;
+
 const fetchArt = async () => {
   const id = Number(appId.value);
-  urls.value = getSteamArtUrls(id);
+  fetchedAppId.value = id;
+  brokenArt.value = new Set();
   const result = await $fetch(`/api/providers/steam/pics/${id}`);
   picsMetadata.value = "picsMetadata" in result ? result.picsMetadata : null;
 };
@@ -61,41 +66,61 @@ const fetchArt = async () => {
       <UButton type="submit" icon="i-lucide-image" label="Fetch art" />
     </form>
 
-    <p v-if="!urls" class="text-muted">
+    <p v-if="!fetchedAppId" class="text-muted">
       Enter a Steam app ID to preview every art URL grate uses.
     </p>
 
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div v-for="key in artKeys" :key="key" class="space-y-2">
-        <h2 class="text-muted font-mono text-xs">{{ key }}</h2>
+      <div v-for="type in STEAM_ART_TYPES" :key="type" class="space-y-2">
+        <h2 class="text-muted font-mono text-xs">{{ type }}</h2>
         <img
-          :src="urls[key]"
-          :alt="`${key} art`"
+          v-if="!brokenArt.has(type)"
+          :src="`/art/steam/${fetchedAppId}/${type}`"
+          :alt="`${type} art`"
           loading="lazy"
           class="bg-elevated border-default rounded-lg border"
+          @error="brokenArt.add(type)"
         />
+        <p
+          v-else
+          class="bg-elevated border-default text-muted rounded-lg border p-4 text-xs"
+        >
+          no art
+        </p>
       </div>
     </div>
 
-    <div v-if="urls" class="space-y-2">
+    <div v-if="fetchedAppId" class="space-y-2">
       <h2 class="font-display text-highlighted text-lg font-semibold">
         PICS metadata
       </h2>
       <p v-if="!picsMetadata" class="text-muted text-sm">no PICS row</p>
       <div
         v-else
-        class="border-default bg-elevated space-y-1 rounded-lg border p-4"
+        class="border-default bg-elevated space-y-4 rounded-lg border p-4"
       >
         <p class="text-muted font-mono text-xs">
           fetchedAt: {{ picsMetadata.fetchedAt }}
         </p>
-        <p
-          v-for="column in PICS_PATH_COLUMNS"
-          :key="column"
-          class="text-muted font-mono text-xs"
-        >
-          {{ column }}: {{ picsMetadata[column] ?? "—" }}
-        </p>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div
+            v-for="column in PICS_PATH_COLUMNS"
+            :key="column"
+            class="space-y-2"
+          >
+            <h3 class="text-muted font-mono text-xs">{{ column }}</h3>
+            <img
+              v-if="picsMetadata[column]"
+              :src="picsThumbnailUrl(column, picsMetadata[column] as string)"
+              :alt="`${column} art`"
+              loading="lazy"
+              class="bg-elevated border-default max-h-32 rounded-lg border object-contain"
+            />
+            <p class="text-muted font-mono text-xs break-all">
+              {{ picsMetadata[column] ?? "—" }}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   </div>

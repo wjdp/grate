@@ -18,9 +18,9 @@ describe("runTaskBodySchema", () => {
   });
 
   it("accepts an empty payload", () => {
-    expect(
-      runTaskBodySchema.parse({ taskName: "sleep", payload: {} }),
-    ).toEqual({ taskName: "sleep", payload: {} });
+    expect(runTaskBodySchema.parse({ taskName: "sleep", payload: {} })).toEqual(
+      { taskName: "sleep", payload: {} },
+    );
   });
 
   it("rejects an unknown provider", () => {

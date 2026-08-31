@@ -98,6 +98,10 @@ With this, a normal user never has to touch a task: users refresh every 15 min, 
 - Extract a `ProviderSyncButton` (button + state) component and place it on the three provider detail pages as well as the index cards.
 - Disable/queue-dedupe: a card whose sync is already pending or running shows state instead of a second button press queueing a duplicate.
 
+### 5b. Running task indicator in the sidebar
+
+Bottom of `AppSidebar.vue`: a compact live indicator of the currently running task (name, progress bar/fraction, latest message) fed by the same SSE `task` events; hidden when idle. Links to `/tasks` for detail. This is how a normal user knows the app is doing something without visiting any debug page.
+
 ### 6. Tasks page becomes a debug view
 
 - Keep the page and its derive-buttons-from-`TASK_NAMES` behaviour — useful for debugging and power users.

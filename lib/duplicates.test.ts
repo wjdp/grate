@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { steamAppInfo as steamAppInfoTable } from "~~/db/schema";
 import { db } from "~~/lib/db";
 import {

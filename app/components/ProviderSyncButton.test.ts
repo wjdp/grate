@@ -2,8 +2,8 @@
 import { mountSuspended, registerEndpoint } from "@nuxt/test-utils/runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "~~/server/tasks/queue";
+import { emitTask, FakeEventSource } from "~~/test/fakeEventSource";
 import ProviderSyncButton from "./ProviderSyncButton.vue";
-import { FakeEventSource, emitTask } from "~~/test/fakeEventSource";
 
 const postedBodies: unknown[] = [];
 let existingTasks: Task[] = [];

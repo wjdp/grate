@@ -1,16 +1,16 @@
 import { faker } from "@faker-js/faker";
+import { type GogUser, gogUser, type NewGogUser } from "~~/db/schema";
+import { db } from "~~/lib/db";
 import {
+  type GogGameDetail,
   GogGameDetailSchema,
+  type GogPlaytimeSessions,
   GogPlaytimeSessionsSchema,
   GogTokenSchema,
   GogUserSchema,
   type getGogToken,
   type getGogUserData,
-  type GogGameDetail,
-  type GogPlaytimeSessions,
 } from "~~/lib/gog/api";
-import { db } from "~~/lib/db";
-import { gogUser, type GogUser, type NewGogUser } from "~~/db/schema";
 
 type GogToken = Awaited<ReturnType<typeof getGogToken>>;
 type GogApiUser = Awaited<ReturnType<typeof getGogUserData>>;

@@ -1,12 +1,12 @@
 import { ProviderLabels } from "#shared/providers";
 import type { ProviderId } from "#shared/tasks";
 import {
-  PROVIDER_JOBS,
   type OnProgress,
+  PROVIDER_JOBS,
   type ProviderJobs,
 } from "~~/lib/providerJobs";
-import { updateInProgressTask } from "~~/server/tasks/queue";
 import type { Task } from "~~/server/tasks/queue";
+import { updateInProgressTask } from "~~/server/tasks/queue";
 
 export type ProviderStep<T> = (
   jobs: ProviderJobs,

@@ -12,10 +12,10 @@ import { waitForArtFetchSlot } from "./rateLimit";
 import { resolveArtSources } from "./sources";
 import type { ArtKey } from "./types";
 
-export { ArtFetchError, ArtNegativelyCachedError, ArtSourceNotFoundError };
 export { deleteCachedArt } from "./invalidate";
 export { contentTypeForPath, findCachedArtFile } from "./paths";
 export * from "./types";
+export { ArtFetchError, ArtNegativelyCachedError, ArtSourceNotFoundError };
 
 const inFlightFetches = new Map<string, Promise<string>>();
 

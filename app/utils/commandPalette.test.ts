@@ -1,10 +1,10 @@
-import type { GameWithProviders } from "#shared/types/Game";
 import { describe, expect, it } from "vitest";
+import type { GameWithProviders } from "#shared/types/Game";
 import {
-  GAME_STATE_COMMANDS,
-  GAME_STATE_COMMAND_GROUPS,
   buildGameActionCommands,
   buildNavigationCommands,
+  GAME_STATE_COMMAND_GROUPS,
+  GAME_STATE_COMMANDS,
   getGameIconUrl,
   resolveRecentGames,
 } from "./commandPalette";

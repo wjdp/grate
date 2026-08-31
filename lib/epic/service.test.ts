@@ -1,7 +1,10 @@
 import { asc, eq } from "drizzle-orm";
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { epicGame, epicIgnoredItem, epicUser, game } from "~~/db/schema";
+import { db } from "~~/lib/db";
 import {
   EpicApiError,
+  type EpicCatalogItem,
   getEpicAccount,
   getEpicCatalogItems,
   getEpicLibraryItems,
@@ -10,7 +13,6 @@ import {
   getEpicStoreSlug,
   getEpicToken,
   refreshEpicToken,
-  type EpicCatalogItem,
 } from "~~/lib/epic/api";
 import {
   createEpicUser,
@@ -29,8 +31,6 @@ import {
   updateEpicUser,
 } from "~~/lib/epic/service";
 import { createEpicGame } from "~~/lib/fixtures/game";
-import { db } from "~~/lib/db";
-import { epicGame, epicIgnoredItem, epicUser, game } from "~~/db/schema";
 import { flushDb } from "~~/test/db";
 
 vi.mock("~~/lib/epic/api", async (importOriginal) => ({

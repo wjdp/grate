@@ -1,7 +1,9 @@
 import { asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
+import type { GameState } from "#shared/game-state";
 import {
   epicGame,
   epicGamePlaytime,
+  type Game,
   game,
   gameDistinctPair,
   gameStateChange,
@@ -9,12 +11,10 @@ import {
   gogGamePlaytime,
   steamGame,
   steamGamePlaytime,
-  type Game,
 } from "~~/db/schema";
 import { db } from "~~/lib/db";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
-import type { GameState } from "#shared/game-state";
 
 export type PlaytimeProvider = "steam" | "gog" | "epic";
 

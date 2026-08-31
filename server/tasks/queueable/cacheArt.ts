@@ -1,7 +1,7 @@
+import mapWithConcurrency from "#shared/utils/mapWithConcurrency";
+import { epicGame, gogGame, steamGame } from "~~/db/schema";
 import { db } from "~~/lib/db";
-import { steamGame, gogGame, epicGame } from "~~/db/schema";
-import { updateInProgressTask } from "~~/server/tasks/queue";
-import type { Task } from "~~/server/tasks/queue";
+import type { ArtProvider } from "~~/server/art";
 import {
   ART_TYPES_BY_PROVIDER,
   ArtFetchError,
@@ -9,8 +9,8 @@ import {
   ArtSourceNotFoundError,
   ensureArtCached,
 } from "~~/server/art";
-import type { ArtProvider } from "~~/server/art";
-import mapWithConcurrency from "#shared/utils/mapWithConcurrency";
+import type { Task } from "~~/server/tasks/queue";
+import { updateInProgressTask } from "~~/server/tasks/queue";
 
 const CACHE_ART_CONCURRENCY = 8;
 

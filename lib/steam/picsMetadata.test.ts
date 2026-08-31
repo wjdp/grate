@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
 import { faker } from "@faker-js/faker";
-import { db } from "~~/lib/db";
-import { steamPicsMetadata, steamTag } from "~~/db/schema";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NewSteamGame } from "~~/db/schema";
+import { steamPicsMetadata, steamTag } from "~~/db/schema";
+import { db } from "~~/lib/db";
 import { createSteamGame as createSteamGameFixture } from "~~/lib/fixtures/game";
 import { getTagList } from "~~/lib/steam/api";
 import { getPicsMetadata, type PicsAppData } from "~~/lib/steam/pics";

@@ -1,17 +1,23 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
 import { faker } from "@faker-js/faker";
+import { eq } from "drizzle-orm";
+import { DateTime } from "luxon";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NewSteamGame } from "~~/db/schema";
+import { steamGame, steamUser, user } from "~~/db/schema";
+import { db } from "~~/lib/db";
 import {
   createGogGame as createGogGameFixture,
   createSteamGame as createSteamGameFixture,
   createSteamUser,
 } from "~~/lib/fixtures/game";
-import type { NewSteamGame } from "~~/db/schema";
+import { getUserGames, getUserInfo, resolveVanityUrl } from "~~/lib/steam/api";
 import {
   type FakeUserGameOverrides,
   generateFakeUserGame,
   generateFakeUserInfo,
   generateUnownedFakeUserGame,
 } from "~~/lib/steam/fixtures/fake";
+import Response7670 from "~~/lib/steam/fixtures/store/7670.json";
 import {
   createOrUpdateSteamUser,
   findGamesNeedingStoreData,
@@ -23,16 +29,8 @@ import {
   updateGames,
   updateUser,
 } from "~~/lib/steam/service";
-import { getUserGames, getUserInfo, resolveVanityUrl } from "~~/lib/steam/api";
 import { getAppDetails, SteamStoreError } from "~~/lib/steam/store";
-import { db } from "~~/lib/db";
-import { steamGame, steamUser, user } from "~~/db/schema";
-import { eq } from "drizzle-orm";
-
-import { DateTime } from "luxon";
 import { flushDb } from "~~/test/db";
-
-import Response7670 from "~~/lib/steam/fixtures/store/7670.json";
 
 vi.mock("~~/lib/steam/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~~/lib/steam/api")>()),

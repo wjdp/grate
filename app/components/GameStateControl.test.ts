@@ -1,7 +1,7 @@
 // @vitest-environment nuxt
 import { mountSuspended } from "@nuxt/test-utils/runtime";
-import type { GameState } from "#shared/game-state";
 import { afterEach, describe, expect, it } from "vitest";
+import type { GameState } from "#shared/game-state";
 import GameStateControl from "./GameStateControl.vue";
 
 type Control = Awaited<ReturnType<typeof mount>>;

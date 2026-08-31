@@ -1,17 +1,13 @@
 import { faker } from "@faker-js/faker";
-import { db } from "~~/lib/db";
 import {
-  epicGame,
-  game,
-  gameDistinctPair,
-  gogGame,
-  steamGame,
-  steamUser,
-  user,
   type EpicGame,
+  epicGame,
   type Game,
   type GameDistinctPair,
   type GogGame,
+  game,
+  gameDistinctPair,
+  gogGame,
   type NewEpicGame,
   type NewGame,
   type NewGogGame,
@@ -19,7 +15,11 @@ import {
   type NewSteamUser,
   type SteamGame,
   type SteamUser,
+  steamGame,
+  steamUser,
+  user,
 } from "~~/db/schema";
+import { db } from "~~/lib/db";
 
 export function createGame(overrides: Partial<NewGame> = {}): Game {
   return db

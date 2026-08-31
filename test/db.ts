@@ -1,4 +1,3 @@
-import { db } from "~~/lib/db";
 import {
   epicGame,
   epicGamePlaytime,
@@ -17,6 +16,7 @@ import {
   steamUser,
   user,
 } from "~~/db/schema";
+import { db } from "~~/lib/db";
 
 const TABLES = [
   steamGamePlaytime,

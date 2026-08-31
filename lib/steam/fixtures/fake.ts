@@ -1,11 +1,11 @@
-import {
-  userGameSchema,
-  userInfoSchema,
-  type UserGame,
-  type UserInfo,
-} from "~~/lib/steam/api";
 import { faker } from "@faker-js/faker";
 import type { SteamGame } from "~~/db/schema";
+import {
+  type UserGame,
+  type UserInfo,
+  userGameSchema,
+  userInfoSchema,
+} from "~~/lib/steam/api";
 
 function generateRTimeLastPlayed() {
   return faker.number.int({

@@ -1,7 +1,7 @@
 import { updatePicsMetadata } from "~~/lib/steam/picsMetadata";
-import { updateInProgressTask } from "~~/server/tasks/queue";
-import type { Task } from "~~/server/tasks/queue";
 import { deleteCachedArt } from "~~/server/art";
+import type { Task } from "~~/server/tasks/queue";
+import { updateInProgressTask } from "~~/server/tasks/queue";
 
 export default async (task: Task) => {
   const { appIdsWithChangedArt, tagCount } = await updatePicsMetadata(

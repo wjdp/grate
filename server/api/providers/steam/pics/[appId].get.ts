@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "~~/lib/db";
 import { steamPicsMetadata } from "~~/db/schema";
+import { db } from "~~/lib/db";
 
 const AppIdSchema = z.coerce.number().int().positive();
 

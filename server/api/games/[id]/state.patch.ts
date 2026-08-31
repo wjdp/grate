@@ -1,8 +1,8 @@
-import { setGameState } from "~~/lib/games";
 import {
   gameRouterParamsSchema,
   setGameStateBodySchema,
 } from "#shared/schemas/games";
+import { setGameState } from "~~/lib/games";
 
 export default defineEventHandler(async (event) => {
   const { id } = await getValidatedRouterParams(

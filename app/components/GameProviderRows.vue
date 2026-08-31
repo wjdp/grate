@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import type { GameDetail } from "#shared/types/Game";
 import {
   getEpicRowLinks,
   getGogRowLinks,
   getSteamRowLinks,
-  ProviderLabels,
   type Provider,
+  ProviderLabels,
 } from "#shared/providers";
+import type { GameDetail } from "#shared/types/Game";
 
 const props = defineProps<{ game: GameDetail }>();
 

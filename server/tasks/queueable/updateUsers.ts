@@ -1,8 +1,8 @@
-import type { Task } from "~~/server/tasks/queue";
 import {
   runProviderJobs,
   throwOnProviderFailures,
 } from "~~/server/tasks/providerRunner";
+import type { Task } from "~~/server/tasks/queue";
 
 export default async (task: Task) => {
   const { failures } = await runProviderJobs(task, [

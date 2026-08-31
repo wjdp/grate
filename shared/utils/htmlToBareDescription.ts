@@ -1,4 +1,4 @@
-import { parse, type Node } from "node-html-parser";
+import { type Node, parse } from "node-html-parser";
 
 const REMOVABLE_SELECTOR = "video, img, script, style";
 const HEADING_SELECTOR = "h1, h2, h3, h4, h5, h6";

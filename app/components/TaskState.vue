@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { SseTask } from "~~/lib/hooks";
 import type { BadgeProps } from "@nuxt/ui";
+import type { SseTask } from "~~/lib/hooks";
 
 defineProps<{
   state: SseTask["state"];

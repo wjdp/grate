@@ -1,14 +1,14 @@
 import { and, asc, desc, eq } from "drizzle-orm";
+import { normaliseGameName } from "#shared/utils/normaliseGameName";
 import {
   epicGame,
+  type GameDistinctPair,
   game,
   gameDistinctPair,
   gogGame,
   steamGame,
-  type GameDistinctPair,
 } from "~~/db/schema";
 import { db } from "~~/lib/db";
-import { normaliseGameName } from "#shared/utils/normaliseGameName";
 
 const providerRowsWithAppInfo = {
   steamGames: { orderBy: asc(steamGame.appId), with: { appInfo: true } },

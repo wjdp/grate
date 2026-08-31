@@ -1,9 +1,9 @@
 import { getGameArtUrls } from "#shared/art";
 import {
+  type GameState,
   GameStateHues,
   GameStateIcons,
   GameStateNames,
-  type GameState,
 } from "#shared/game-state";
 import { getPrimaryLaunch } from "#shared/providers";
 import type { GameWithProviders } from "#shared/types/Game";

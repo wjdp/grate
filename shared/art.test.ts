@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
-import type { GameWithProviders } from "#shared/types/Game";
+import { describe, expect, it } from "vitest";
 import {
   getGameArtUrls,
   resolveEpicImageUrl,
   resolveGogImageUrl,
 } from "#shared/art";
+import type { GameWithProviders } from "#shared/types/Game";
 
 const GOG_HASH =
   "e743fa32a4d83f522e01b9bbbb95d2a8173cb3d4bdbafdcc5b6292afc5ed7783";

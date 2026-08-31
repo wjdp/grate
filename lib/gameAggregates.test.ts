@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { refreshGameAggregates } from "~~/lib/gameAggregates";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   createEpicGame,
   createGame,
   createGogGame,
   createSteamGame,
 } from "~~/lib/fixtures/game";
+import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { flushDb } from "~~/test/db";
 
 describe("refreshGameAggregates", () => {

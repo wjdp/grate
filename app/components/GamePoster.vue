@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { GameWithProviders } from "#shared/types/Game";
-import type { Provider } from "#shared/providers";
 import { getGameArtUrls } from "#shared/art";
+import type { Provider } from "#shared/providers";
+import type { GameWithProviders } from "#shared/types/Game";
 
 const props = defineProps<{ game: GameWithProviders }>();
 

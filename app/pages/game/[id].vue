@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import type { GameState } from "#shared/game-state";
 import { getGameArtUrls } from "#shared/art";
-import { getPageTitle } from "#shared/title";
+import type { GameState } from "#shared/game-state";
 import { getPrimaryLaunch, ProviderLabels } from "#shared/providers";
+import { getPageTitle } from "#shared/title";
 
 const route = useRoute();
 const id = parseIntRouteParam(route.params.id);

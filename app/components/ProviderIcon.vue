@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ProviderLabels, type Provider } from "#shared/providers";
+import { type Provider, ProviderLabels } from "#shared/providers";
 
 defineProps<{ provider: Provider }>();
 

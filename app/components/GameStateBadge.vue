@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { BadgeProps } from "@nuxt/ui";
 import {
+  type GameState,
   GameStateHues,
   GameStateIcons,
   GameStateNames,
-  type GameState,
 } from "#shared/game-state";
 
 defineProps<{ state: GameState | null; size?: BadgeProps["size"] }>();

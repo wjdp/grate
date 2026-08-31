@@ -1,5 +1,5 @@
-import { markDistinct } from "~~/lib/duplicates";
 import { distinctPairBodySchema } from "#shared/schemas/games";
+import { markDistinct } from "~~/lib/duplicates";
 
 export default defineEventHandler(async (event) => {
   const { gameAId, gameBId } = await readValidatedBody(

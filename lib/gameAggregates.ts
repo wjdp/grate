@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { game, type Game } from "~~/db/schema";
+import { type Game, game } from "~~/db/schema";
 import { db } from "~~/lib/db";
 
 function steamLastPlayedAt(rTimeLastPlayed: number | null | undefined) {

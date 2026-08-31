@@ -1,10 +1,10 @@
 import type { RecordPlaytimesResult } from "~~/lib/providerJobs";
-import type { Task } from "~~/server/tasks/queue";
 import { queueProviderFollowUps } from "~~/server/tasks/providerFollowUps";
 import {
   runProviderJobs,
   throwOnProviderFailures,
 } from "~~/server/tasks/providerRunner";
+import type { Task } from "~~/server/tasks/queue";
 
 export default async (task: Task) => {
   const { runs, failures } = await runProviderJobs<

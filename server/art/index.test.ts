@@ -1,8 +1,8 @@
 import { existsSync, mkdtempSync, readFileSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import createFetchMock from "vitest-fetch-mock";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import createFetchMock from "vitest-fetch-mock";
 
 const dataDir = mkdtempSync(join(tmpdir(), "grate-art-ensure-"));
 vi.stubEnv("DATA_DIR", dataDir);

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { STEAM_ART_TYPES } from "~~/server/art/types";
 import type { SteamPicsMetadata } from "~~/db/schema";
+import { STEAM_ART_TYPES } from "~~/server/art/types";
 
 type SerialisedPicsMetadata = {
   [K in keyof SteamPicsMetadata]: SteamPicsMetadata[K] extends Date | null

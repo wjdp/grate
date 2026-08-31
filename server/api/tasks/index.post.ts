@@ -1,5 +1,5 @@
-import { createTask } from "~~/server/tasks/queue";
 import { runTaskBodySchema } from "#shared/schemas/tasks";
+import { createTask } from "~~/server/tasks/queue";
 
 export default defineEventHandler(async (event) => {
   const { taskName, payload } = await readValidatedBody(

@@ -160,6 +160,58 @@ export const steamAppInfo = sqliteTable("SteamAppInfo", {
   backgroundRaw: text().notNull(),
 });
 
+export interface SteamLogoPosition {
+  pinnedPosition: string;
+  widthPct: number;
+  heightPct: number;
+}
+
+export interface SteamAssociation {
+  type: string;
+  name: string;
+}
+
+export const steamPicsMetadata = sqliteTable("SteamPicsMetadata", {
+  appId: integer()
+    .primaryKey()
+    .references(() => steamGame.appId, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    }),
+  fetchedAt: datetime().notNull(),
+  changenumber: integer(),
+  // Library asset paths are opaque, relative to the store_item_assets CDN root
+  capsulePath: text(),
+  capsule2xPath: text(),
+  heroPath: text(),
+  hero2xPath: text(),
+  heroBlurPath: text(),
+  logoPath: text(),
+  logo2xPath: text(),
+  headerPath: text(),
+  header2xPath: text(),
+  logoPosition: json().$type<SteamLogoPosition | null>(),
+  iconHash: text(),
+  reviewScore: integer(),
+  reviewPercentage: integer(),
+  deckCompatibility: integer(),
+  steamosCompatibility: integer(),
+  steamMachineCompatibility: integer(),
+  storeTags: json().$type<number[] | null>(),
+  associations: json().$type<SteamAssociation[] | null>(),
+  steamReleaseDate: datetime(),
+  originalReleaseDate: datetime(),
+  nameLocalized: json().$type<Record<string, string> | null>(),
+  supportedLanguages: json().$type<Record<string, unknown> | null>(),
+  osList: text(),
+  controllerSupport: text(),
+});
+
+export const steamTag = sqliteTable("SteamTag", {
+  tagId: integer().primaryKey(),
+  name: text().notNull(),
+});
+
 export const steamGamePlaytime = sqliteTable("SteamGamePlaytime", {
   id: autoIncrementId(),
   steamAppId: integer()
@@ -320,6 +372,7 @@ export const gameStateChangeRelations = relations(
 export const steamGameRelations = relations(steamGame, ({ one, many }) => ({
   game: one(game, { fields: [steamGame.gameId], references: [game.id] }),
   appInfo: one(steamAppInfo),
+  picsMetadata: one(steamPicsMetadata),
   playtimeRecords: many(steamGamePlaytime),
 }));
 
@@ -329,6 +382,16 @@ export const steamAppInfoRelations = relations(steamAppInfo, ({ one }) => ({
     references: [steamGame.appId],
   }),
 }));
+
+export const steamPicsMetadataRelations = relations(
+  steamPicsMetadata,
+  ({ one }) => ({
+    steamGame: one(steamGame, {
+      fields: [steamPicsMetadata.appId],
+      references: [steamGame.appId],
+    }),
+  }),
+);
 
 export const steamGamePlaytimeRelations = relations(
   steamGamePlaytime,
@@ -388,6 +451,10 @@ export type SteamGame = typeof steamGame.$inferSelect;
 export type NewSteamGame = typeof steamGame.$inferInsert;
 export type SteamAppInfo = typeof steamAppInfo.$inferSelect;
 export type NewSteamAppInfo = typeof steamAppInfo.$inferInsert;
+export type SteamPicsMetadata = typeof steamPicsMetadata.$inferSelect;
+export type NewSteamPicsMetadata = typeof steamPicsMetadata.$inferInsert;
+export type SteamTag = typeof steamTag.$inferSelect;
+export type NewSteamTag = typeof steamTag.$inferInsert;
 export type SteamGamePlaytime = typeof steamGamePlaytime.$inferSelect;
 export type NewSteamGamePlaytime = typeof steamGamePlaytime.$inferInsert;
 export type GogGame = typeof gogGame.$inferSelect;

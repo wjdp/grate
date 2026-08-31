@@ -26,6 +26,8 @@ const TABLES = [
   "SteamGame",
   "SteamAppInfo",
   "SteamGamePlaytime",
+  "SteamPicsMetadata",
+  "SteamTag",
   "GogGame",
   "GogGamePlaytime",
   "GogIgnoredProduct",
@@ -279,7 +281,7 @@ describe("runMigrations", () => {
     for (const table of TABLES) expect(tables).toContain(table);
     expect(
       sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([7]);
+    ).toEqual([8]);
     expect(tables).not.toContain("_prisma_migrations");
   });
 
@@ -303,7 +305,7 @@ describe("runMigrations", () => {
       FINAL_PRISMA_MIGRATION,
       createHash("sha256").update(FINAL_PRISMA_MIGRATION_SQL).digest("hex"),
     ]);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 7 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 8 });
 
     const backfilled = sqlite
       .prepare(
@@ -336,6 +338,8 @@ describe("runMigrations", () => {
       EpicGamePlaytime: 0,
       EpicIgnoredItem: 0,
       GameDistinctPair: 0,
+      SteamPicsMetadata: 0,
+      SteamTag: 0,
     });
   });
 
@@ -348,7 +352,7 @@ describe("runMigrations", () => {
     const { db, sqlite } = open(path);
     runMigrations(sqlite, db);
 
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 7 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 8 });
     expect(rowCounts(path)).toEqual({
       ...before,
       SteamGamePlaytime: 4,
@@ -357,6 +361,8 @@ describe("runMigrations", () => {
       EpicGamePlaytime: 0,
       EpicIgnoredItem: 0,
       GameDistinctPair: 0,
+      SteamPicsMetadata: 0,
+      SteamTag: 0,
     });
     expect(lastPlayedAt(path)).toEqual(
       isoBefore.map(([id, , value]) => [
@@ -419,7 +425,7 @@ describe("runMigrations", () => {
 
     expect(schemaOf(path)).toEqual(schema);
     expect(rowCounts(path)).toEqual(counts);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 7 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 8 });
     expectNativeStorage(path);
   });
 });

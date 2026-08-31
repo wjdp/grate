@@ -6,4 +6,6 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   prisma: false
+  # steam-user only needs the runtime, not protobufjs's CLI codegen postinstall
+  protobufjs: false
   vue-demi: true

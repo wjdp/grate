@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+/* Nuxt's Tailwind content scan stops at app/; shared/ holds class strings too. */
+@source "../../../shared";
+
 @theme static {
   --font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,

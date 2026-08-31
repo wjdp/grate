@@ -44,6 +44,14 @@ export function generateFakeGogUser(
   });
 }
 
+export function fakeGogImageUrl(extension: "png" | "jpg" = "png"): string {
+  return `https://images.gog-statics.com/${faker.string.hexadecimal({
+    length: 64,
+    casing: "lower",
+    prefix: "",
+  })}.${extension}`;
+}
+
 export interface FakeGogGameDetailOverrides {
   id?: number;
   title?: string;
@@ -63,12 +71,12 @@ export function generateFakeGogGameDetail(
     description: overrides.description ?? faker.lorem.paragraph(),
     overview: faker.lorem.sentence(),
     _links: {
-      icon: { href: faker.internet.url() },
-      iconSquare: { href: faker.internet.url() },
-      logo: { href: faker.internet.url() },
-      boxArtImage: { href: faker.internet.url() },
-      backgroundImage: { href: faker.internet.url() },
-      galaxyBackgroundImage: { href: faker.internet.url() },
+      icon: { href: fakeGogImageUrl("png") },
+      iconSquare: { href: fakeGogImageUrl("png") },
+      logo: { href: fakeGogImageUrl("png") },
+      boxArtImage: { href: fakeGogImageUrl("jpg") },
+      backgroundImage: { href: fakeGogImageUrl("jpg") },
+      galaxyBackgroundImage: { href: fakeGogImageUrl("jpg") },
       ...overrides.links,
     },
     _embedded: {

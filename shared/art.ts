@@ -9,11 +9,15 @@ export interface ArtUrls {
 
 const ART_URL_BASE_PATH = "/art/steam";
 
-// GOG's v2 API returns templated image hrefs, e.g.
-// https://images.gog.com/<hash>_{formatter}.{ext} — the caller picks a named
-// formatter (a GOG-side resize preset) and an extension. Anything left
-// unsubstituted 404s, so every GOG URL goes through this.
-const GOG_EXTENSION = "png";
+// GOG image hrefs come in two shapes. The v2 API documents a templated href
+// (https://images.gog.com/<hash>_{formatter}.{ext}) where the caller picks a
+// named formatter (a GOG-side resize preset) and an extension. In practice
+// every stored href is a plain hash URL
+// (https://images.gog-statics.com/<hash>.png), and the CDN applies a preset
+// when the formatter is appended before the extension.
+const GOG_TEMPLATED_EXTENSION = "png";
+const GOG_TEMPLATE_MARKER = "{formatter}";
+const GOG_HASH_URL_PATTERN = /^(.*)\.([A-Za-z0-9]+)$/;
 
 export function resolveGogImageUrl(
   url: string | null | undefined,
@@ -22,16 +26,43 @@ export function resolveGogImageUrl(
   if (!url) {
     return null;
   }
-  return url
-    .replace("{formatter}", formatter)
-    .replace("{ext}", GOG_EXTENSION)
-    .replace(/\.{ext}$/, `.${GOG_EXTENSION}`);
+  if (url.includes(GOG_TEMPLATE_MARKER)) {
+    return url
+      .replace(GOG_TEMPLATE_MARKER, formatter)
+      .replace("{ext}", GOG_TEMPLATED_EXTENSION)
+      .replace(/\.{ext}$/, `.${GOG_TEMPLATED_EXTENSION}`);
+  }
+  const hashUrl = GOG_HASH_URL_PATTERN.exec(url);
+  if (!hashUrl) {
+    return url;
+  }
+  const [, base, extension] = hashUrl;
+  return `${base}_${formatter}.${extension}`;
+}
+
+export function resolveEpicImageUrl(
+  url: string | null | undefined,
+  { w, h }: { w?: number; h?: number },
+): string | null {
+  if (!url) {
+    return null;
+  }
+  if (w === undefined && h === undefined) {
+    return url;
+  }
+  const resized = new URL(url);
+  if (w !== undefined) {
+    resized.searchParams.set("w", String(w));
+  }
+  if (h !== undefined) {
+    resized.searchParams.set("h", String(h));
+  }
+  resized.searchParams.set("resize", "1");
+  return resized.toString();
 }
 
 const GOG_LOGO_FORMATTER = "glx_logo_2x";
-const GOG_BOX_ART_FORMATTER = "product_card_v2_mobile_slider_639";
-const GOG_BACKGROUND_FORMATTER = "glx_bg_top_padding_7";
-const GOG_ICON_FORMATTER = "glx_icon_square";
+const GOG_ICON_FORMATTER = "glx_square_icon_v2";
 
 export function getGogIconUrl(
   gogGame: Pick<
@@ -76,16 +107,9 @@ export function getGameArtUrls(game: GameWithProviders): ArtUrls | null {
   const gogGame = getPrimaryGogGame(game);
   if (gogGame) {
     const logo = resolveGogImageUrl(gogGame.logoUrl, GOG_LOGO_FORMATTER);
-    const boxArt = resolveGogImageUrl(
-      gogGame.boxArtImageUrl,
-      GOG_BOX_ART_FORMATTER,
-    );
+    const boxArt = gogGame.boxArtImageUrl || null;
     const background =
-      resolveGogImageUrl(
-        gogGame.galaxyBackgroundImageUrl,
-        GOG_BACKGROUND_FORMATTER,
-      ) ??
-      resolveGogImageUrl(gogGame.backgroundImageUrl, GOG_BACKGROUND_FORMATTER);
+      gogGame.galaxyBackgroundImageUrl || gogGame.backgroundImageUrl || null;
     return {
       header: logo ?? boxArt,
       poster: boxArt,

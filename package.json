@@ -18,6 +18,7 @@
     "**/*": "prettier --write"
   },
   "dependencies": {
+    "@tanstack/vue-virtual": "^3.13.36",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.2",
     "sharp": "^0.35.4"

@@ -293,18 +293,8 @@ const clearFilters = () => {
       </UButton>
     </div>
 
-    <div
-      v-else-if="view === 'wall'"
-      class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
-    >
-      <GamePoster v-for="game in sortedGames" :key="game.id" :game="game" />
-    </div>
+    <VirtualGameWall v-else-if="view === 'wall'" :games="sortedGames" />
 
-    <div
-      v-else
-      class="divide-default border-default divide-y overflow-hidden rounded-lg border"
-    >
-      <GameRow v-for="game in sortedGames" :key="game.id" :game="game" />
-    </div>
+    <VirtualGameList v-else :games="sortedGames" />
   </div>
 </template>

@@ -129,24 +129,26 @@ const split = async (row: ProviderRow) => {
         </dl>
 
         <template #footer>
-          <div class="flex flex-wrap gap-2">
+          <div class="flex items-center gap-2">
             <PlayButton :href="row.playUrl" />
             <UButton
               variant="outline"
               color="neutral"
               icon="i-lucide-external-link"
-              :label="`Open in ${row.providerLabel}`"
+              label="Open"
+              :aria-label="`Open in ${row.providerLabel}`"
               @click="openUrl(row.openUrl)"
             />
-            <UButton
-              v-if="canSplit"
-              variant="ghost"
-              color="neutral"
-              icon="i-lucide-split"
-              label="Split off"
-              :loading="splittingKey === row.key"
-              @click="split(row)"
-            />
+            <UTooltip v-if="canSplit" text="Split off" class="ml-auto">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                icon="i-lucide-split"
+                aria-label="Split off"
+                :loading="splittingKey === row.key"
+                @click="split(row)"
+              />
+            </UTooltip>
           </div>
         </template>
       </UCard>

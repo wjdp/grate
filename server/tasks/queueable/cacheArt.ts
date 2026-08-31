@@ -5,6 +5,7 @@ import type { Task } from "~~/server/tasks/queue";
 import {
   ART_TYPES_BY_PROVIDER,
   ArtFetchError,
+  ArtNegativelyCachedError,
   ArtSourceNotFoundError,
   ensureArtCached,
 } from "~~/server/art";
@@ -15,6 +16,10 @@ async function cacheArtForGame(provider: ArtProvider, id: number) {
     try {
       await ensureArtCached({ provider, id, type }, { rateLimit: true });
     } catch (error) {
+      // A recorded miss is already done as far as the bulk task is concerned.
+      if (error instanceof ArtNegativelyCachedError) {
+        continue;
+      }
       if (
         error instanceof ArtSourceNotFoundError ||
         error instanceof ArtFetchError

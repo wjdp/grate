@@ -46,6 +46,10 @@ export function artFilePath(key: ArtKey, extension: string) {
   return `${artDirectory(key)}/${key.type}.${extension}`;
 }
 
+export function artMissingMarkerPath(key: ArtKey) {
+  return `${artDirectory(key)}/${key.type}.missing`;
+}
+
 export async function findCachedArtFile(key: ArtKey): Promise<string | null> {
   for (const extension of CACHED_ART_EXTENSIONS) {
     const path = artFilePath(key, extension);

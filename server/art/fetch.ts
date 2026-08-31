@@ -1,4 +1,5 @@
 import fs from "fs";
+import { clearMissingMarker } from "./missing";
 import {
   artDirectory,
   artFilePath,
@@ -8,6 +9,8 @@ import {
 import type { ArtKey } from "./types";
 
 export class ArtSourceNotFoundError extends Error {}
+// A miss already recorded on disk: no network call was made for it.
+export class ArtNegativelyCachedError extends ArtSourceNotFoundError {}
 export class ArtFetchError extends Error {}
 
 export interface FetchedImage {
@@ -51,6 +54,7 @@ export async function writeArtFile(
   await fs.promises.writeFile(temporaryPath, body);
   await fs.promises.rename(temporaryPath, path);
   await removeStaleArtFiles(key, path);
+  await clearMissingMarker(key);
   return path;
 }
 

@@ -6,6 +6,8 @@ import {
 } from "@nuxt/test-utils/runtime";
 import type { GameDetail } from "#shared/types/Game";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import UApp from "@nuxt/ui/components/App.vue";
+import { defineComponent, h } from "vue";
 import GameProviderRows from "./GameProviderRows.vue";
 
 const { navigateToMock } = vi.hoisted(() => ({ navigateToMock: vi.fn() }));
@@ -60,8 +62,16 @@ const epicRow = {
   storeSlug: "alan-wake",
 };
 
+// UTooltip needs the TooltipProvider that UApp installs.
 const mount = (game: GameDetail) =>
-  mountSuspended(GameProviderRows, { props: { game } });
+  mountSuspended(
+    defineComponent({
+      setup: () => () =>
+        h(UApp, null, {
+          default: () => h(GameProviderRows, { game }),
+        }),
+    }),
+  );
 
 beforeEach(() => {
   splitRequests.length = 0;
@@ -119,7 +129,11 @@ describe("GameProviderRows", () => {
     const buttonLabelled = (label: string) =>
       component
         .findAll("button")
-        .find((button) => button.text().includes(label))!;
+        .find(
+          (button) =>
+            button.text().includes(label) ||
+            button.attributes("aria-label") === label,
+        )!;
 
     await buttonLabelled("Play").trigger("click");
     expect(openSpy).toHaveBeenCalledWith("steam://run/620", "_self");
@@ -136,7 +150,11 @@ describe("GameProviderRows", () => {
       makeGame({ steamGames: [steamRow] } as unknown as Partial<GameDetail>),
     );
 
-    expect(component.text()).not.toContain("Split off");
+    expect(
+      component
+        .findAll("button")
+        .filter((button) => button.attributes("aria-label") === "Split off"),
+    ).toHaveLength(0);
   });
 
   it("splits a row and navigates to the new game", async () => {
@@ -149,7 +167,7 @@ describe("GameProviderRows", () => {
 
     const splitButtons = component
       .findAll("button")
-      .filter((button) => button.text().includes("Split off"));
+      .filter((button) => button.attributes("aria-label") === "Split off");
     expect(splitButtons).toHaveLength(2);
 
     await splitButtons[1]!.trigger("click");
@@ -173,7 +191,7 @@ describe("GameProviderRows", () => {
 
     const splitButton = component
       .findAll("button")
-      .find((button) => button.text().includes("Split off"))!;
+      .find((button) => button.attributes("aria-label") === "Split off")!;
     await splitButton.trigger("click");
     await vi.waitFor(() =>
       expect(component.text()).toContain("Could not split this provider row."),

@@ -1,6 +1,6 @@
 ---
 type: task
-status: open
+status: done
 ---
 
 # Art misses and poster fallbacks
@@ -50,3 +50,12 @@ Both independent — parallel.
 ## Unanswered questions
 
 None.
+
+## Outcome
+
+Implemented 2026-08-31, commits `53502d6`…`a18b52c`. As specced, with notes:
+
+- `ArtNegativelyCachedError extends ArtSourceNotFoundError`, so existing 404 handling covers it; the marker check runs before the in-flight map, and one marker covers a whole candidate chain. `ArtFetchError` (network/5xx/non-image) never writes a marker.
+- The steam poster chain is built from `getSteamArtUrls` keys — `lib/steam/art.ts` and the debug page untouched.
+- Placeholder colour: FNV-1a hash of name → hue, s 34% / l 30%, same in both modes; title `font-display` semibold, `line-clamp-4`, `to-black/40` bottom gradient.
+- Also purged 628 poisoned 146-byte HTML "art" files from `data/art/steam` (written by the pre-14 fetcher); fetch-on-miss refills honestly.

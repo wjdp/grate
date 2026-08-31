@@ -140,7 +140,7 @@ const playtimeMeta = {
   <div v-if="game" class="space-y-6">
     <ArtHero
       :background="art?.background ?? null"
-      :header="art?.header ?? null"
+      :logo="art?.logo ?? null"
       :title="game.name"
     >
       <div class="ml-auto flex flex-wrap items-center justify-end gap-2">

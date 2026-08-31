@@ -69,7 +69,7 @@ const controlState = ref<GameState | null>(null);
 
     <section class="flex flex-col gap-3">
       <h2 class="text-highlighted font-semibold">Art hero</h2>
-      <ArtHero :background="null" :header="null" title="A game with no art" />
+      <ArtHero :background="null" :logo="null" title="A game with no art" />
     </section>
 
     <section class="flex flex-col gap-3">

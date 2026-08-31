@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineProps<{
   background: string | null;
-  header: string | null;
+  logo: string | null;
   title: string;
 }>();
 </script>
@@ -21,8 +21,8 @@ defineProps<{
     />
     <div class="relative flex min-h-48 items-end gap-4 p-6">
       <img
-        v-if="header"
-        :src="header"
+        v-if="logo"
+        :src="logo"
         :alt="title"
         class="max-h-32 w-auto max-w-full"
       />

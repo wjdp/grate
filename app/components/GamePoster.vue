@@ -28,6 +28,8 @@ const providers = computed<Provider[]>(() => {
         v-if="posterUrl"
         :src="posterUrl"
         :alt="game.name"
+        width="600"
+        height="800"
         loading="lazy"
         class="size-full object-cover"
       />

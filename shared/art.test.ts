@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
+import type { GameWithProviders } from "#shared/types/Game";
 import {
-  getGogIconUrl,
+  getGameArtUrls,
   resolveEpicImageUrl,
   resolveGogImageUrl,
 } from "#shared/art";
@@ -56,38 +57,154 @@ describe("resolveGogImageUrl", () => {
   });
 });
 
-describe("getGogIconUrl", () => {
-  it("prefers the square icon", () => {
-    expect(
-      getGogIconUrl({
-        iconSquareUrl: `https://images.gog-statics.com/${GOG_SQUARE_ICON_HASH}.png`,
-        iconUrl: `https://images.gog-statics.com/${GOG_HASH}.png`,
+const makeGame = (rows: Record<string, unknown>): GameWithProviders =>
+  ({
+    id: 1,
+    name: "Test Game",
+    steamGames: [],
+    gogGames: [],
+    epicGames: [],
+    ...rows,
+  }) as unknown as GameWithProviders;
+
+const steamRow = { appId: 620, name: "Portal 2" };
+
+const gogRow = {
+  gogId: 1207658930,
+  name: "Baldur's Gate",
+  iconUrl: `https://images.gog-statics.com/${GOG_HASH}.png`,
+  iconSquareUrl: `https://images.gog-statics.com/${GOG_SQUARE_ICON_HASH}.png`,
+  logoUrl: `https://images.gog-statics.com/${GOG_JPG_HASH}.jpg`,
+  boxArtImageUrl: `https://images.gog-statics.com/${GOG_HASH}.png`,
+  backgroundImageUrl: `https://images.gog-statics.com/${GOG_JPG_HASH}.jpg`,
+  galaxyBackgroundImageUrl: `https://images.gog-statics.com/${GOG_HASH}.jpg`,
+};
+
+const epicRow = {
+  epicId: 7,
+  name: "Alan Wake",
+  boxArtTallUrl: EPIC_BOX_ART,
+  boxArtWideUrl:
+    "https://cdn1.epicgames.com/offer/fn/Fortnite_DieselGameBoxWide.jpg",
+  logoUrl: "https://cdn1.epicgames.com/offer/fn/Fortnite_DieselGameBoxLogo.png",
+};
+
+describe("getGameArtUrls", () => {
+  it("returns null when the game has no provider rows", () => {
+    expect(getGameArtUrls(makeGame({}))).toBeNull();
+  });
+
+  it("builds steam route urls, mapping background to the legacy type name", () => {
+    expect(getGameArtUrls(makeGame({ steamGames: [steamRow] }))).toEqual({
+      icon: "/art/steam/620/icon",
+      poster: "/art/steam/620/poster",
+      hero: "/art/steam/620/hero",
+      background: "/art/steam/620/backgroundV6B",
+      logo: "/art/steam/620/logo",
+    });
+  });
+
+  it("prefers steam over gog and epic", () => {
+    const art = getGameArtUrls(
+      makeGame({
+        steamGames: [steamRow],
+        gogGames: [gogRow],
+        epicGames: [epicRow],
       }),
-    ).toBe(
-      `https://images.gog-statics.com/${GOG_SQUARE_ICON_HASH}_glx_square_icon_v2.png`,
     );
+    expect(art?.poster).toBe("/art/steam/620/poster");
   });
 
-  it("falls back to the plain icon when the square icon is absent", () => {
+  it("prefers gog over epic", () => {
+    const art = getGameArtUrls(
+      makeGame({ gogGames: [gogRow], epicGames: [epicRow] }),
+    );
+    expect(art?.poster).toBe("/art/gog/1207658930/poster");
+  });
+
+  it("builds gog route urls when the backing columns are present", () => {
+    expect(getGameArtUrls(makeGame({ gogGames: [gogRow] }))).toEqual({
+      icon: "/art/gog/1207658930/icon",
+      poster: "/art/gog/1207658930/poster",
+      hero: "/art/gog/1207658930/hero",
+      background: "/art/gog/1207658930/background",
+      logo: "/art/gog/1207658930/logo",
+    });
+  });
+
+  it("emits null for gog types whose columns are empty or absent", () => {
     expect(
-      getGogIconUrl({
-        iconSquareUrl: null,
-        iconUrl: `https://images.gog-statics.com/${GOG_HASH}.png`,
-      }),
-    ).toBe(`https://images.gog-statics.com/${GOG_HASH}_glx_square_icon_v2.png`);
+      getGameArtUrls(
+        makeGame({
+          gogGames: [
+            {
+              ...gogRow,
+              iconUrl: "",
+              iconSquareUrl: "",
+              logoUrl: null,
+              boxArtImageUrl: null,
+              backgroundImageUrl: "",
+              galaxyBackgroundImageUrl: null,
+            },
+          ],
+        }),
+      ),
+    ).toEqual({
+      icon: null,
+      poster: null,
+      hero: null,
+      background: null,
+      logo: null,
+    });
   });
 
-  it("falls back when the square icon is an empty string", () => {
+  it("falls back to the plain gog icon and background columns", () => {
+    const art = getGameArtUrls(
+      makeGame({
+        gogGames: [
+          {
+            ...gogRow,
+            iconSquareUrl: "",
+            galaxyBackgroundImageUrl: null,
+          },
+        ],
+      }),
+    );
+    expect(art?.icon).toBe("/art/gog/1207658930/icon");
+    expect(art?.background).toBe("/art/gog/1207658930/background");
+  });
+
+  it("builds epic route urls when the backing columns are present", () => {
+    expect(getGameArtUrls(makeGame({ epicGames: [epicRow] }))).toEqual({
+      icon: "/art/epic/7/icon",
+      poster: "/art/epic/7/poster",
+      hero: "/art/epic/7/hero",
+      background: "/art/epic/7/background",
+      logo: "/art/epic/7/logo",
+    });
+  });
+
+  it("emits null for epic types whose columns are absent", () => {
     expect(
-      getGogIconUrl({
-        iconSquareUrl: "",
-        iconUrl: `https://images.gog-statics.com/${GOG_HASH}.png`,
-      }),
-    ).toBe(`https://images.gog-statics.com/${GOG_HASH}_glx_square_icon_v2.png`);
-  });
-
-  it("returns null when neither icon is present", () => {
-    expect(getGogIconUrl({ iconSquareUrl: null, iconUrl: null })).toBeNull();
+      getGameArtUrls(
+        makeGame({
+          epicGames: [
+            {
+              ...epicRow,
+              boxArtTallUrl: null,
+              boxArtWideUrl: null,
+              logoUrl: "",
+            },
+          ],
+        }),
+      ),
+    ).toEqual({
+      icon: null,
+      poster: null,
+      hero: null,
+      background: null,
+      logo: null,
+    });
   });
 });
 

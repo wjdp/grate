@@ -119,13 +119,13 @@ defineShortcuts({
     <div v-if="theGame" class="flex flex-col gap-6">
       <ArtHero
         :background="theArt?.background ?? null"
-        :header="theArt?.header ?? null"
+        :logo="theArt?.logo ?? null"
         :title="theGame.name"
       />
 
       <div>
         <h1
-          v-if="theArt?.header"
+          v-if="theArt?.logo"
           class="font-display text-highlighted text-2xl font-semibold tracking-tight"
         >
           {{ theGame.name }}

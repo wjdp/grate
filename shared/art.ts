@@ -1,13 +1,14 @@
 import type { GameWithProviders } from "./types/Game";
 
 export interface ArtUrls {
-  header: string | null;
+  icon: string | null;
   poster: string | null;
-  posterSmall: string | null;
+  hero: string | null;
   background: string | null;
+  logo: string | null;
 }
 
-const ART_URL_BASE_PATH = "/art/steam";
+const ART_URL_BASE_PATH = "/art";
 
 // GOG image hrefs come in two shapes. The v2 API documents a templated href
 // (https://images.gog.com/<hash>_{formatter}.{ext}) where the caller picks a
@@ -61,21 +62,6 @@ export function resolveEpicImageUrl(
   return resized.toString();
 }
 
-const GOG_LOGO_FORMATTER = "glx_logo_2x";
-const GOG_ICON_FORMATTER = "glx_square_icon_v2";
-
-export function getGogIconUrl(
-  gogGame: Pick<
-    GameWithProviders["gogGames"][number],
-    "iconSquareUrl" | "iconUrl"
-  >,
-): string | null {
-  return (
-    resolveGogImageUrl(gogGame.iconSquareUrl, GOG_ICON_FORMATTER) ??
-    resolveGogImageUrl(gogGame.iconUrl, GOG_ICON_FORMATTER)
-  );
-}
-
 export function getPrimarySteamGame(game: GameWithProviders) {
   return game.steamGames[0] ?? null;
 }
@@ -88,42 +74,83 @@ export function getPrimaryEpicGame(game: GameWithProviders) {
   return game.epicGames[0] ?? null;
 }
 
-export function getEpicIconUrl(
-  epicGame: Pick<GameWithProviders["epicGames"][number], "boxArtTallUrl">,
+// The art route serves `/art/<provider>/<id>/<type>` and fetches on miss, so a
+// URL is emitted whenever the client can see a source exists. Steam art is
+// derived by convention from the app id, so every Steam type gets a URL; GOG
+// and Epic art is only cacheable when the backing column holds a URL.
+function artUrl(
+  provider: "steam" | "gog" | "epic",
+  id: number,
+  type: string,
+): string {
+  return `${ART_URL_BASE_PATH}/${provider}/${id}/${type}`;
+}
+
+function artUrlWhenPresent(
+  provider: "gog" | "epic",
+  id: number,
+  type: string,
+  ...sources: (string | null | undefined)[]
 ): string | null {
-  return epicGame.boxArtTallUrl ?? null;
+  return sources.some((source) => Boolean(source))
+    ? artUrl(provider, id, type)
+    : null;
 }
 
 export function getGameArtUrls(game: GameWithProviders): ArtUrls | null {
   const steamGame = getPrimarySteamGame(game);
   if (steamGame) {
+    const { appId } = steamGame;
     return {
-      header: `${ART_URL_BASE_PATH}/${steamGame.appId}/header`,
-      poster: `${ART_URL_BASE_PATH}/${steamGame.appId}/poster`,
-      posterSmall: `${ART_URL_BASE_PATH}/${steamGame.appId}/posterSmall`,
-      background: `${ART_URL_BASE_PATH}/${steamGame.appId}/backgroundV6B`,
+      icon: artUrl("steam", appId, "icon"),
+      poster: artUrl("steam", appId, "poster"),
+      hero: artUrl("steam", appId, "hero"),
+      background: artUrl("steam", appId, "backgroundV6B"),
+      logo: artUrl("steam", appId, "logo"),
     };
   }
   const gogGame = getPrimaryGogGame(game);
   if (gogGame) {
-    const logo = resolveGogImageUrl(gogGame.logoUrl, GOG_LOGO_FORMATTER);
-    const boxArt = gogGame.boxArtImageUrl || null;
-    const background =
-      gogGame.galaxyBackgroundImageUrl || gogGame.backgroundImageUrl || null;
+    const { gogId } = gogGame;
     return {
-      header: logo ?? boxArt,
-      poster: boxArt,
-      posterSmall: boxArt,
-      background,
+      icon: artUrlWhenPresent(
+        "gog",
+        gogId,
+        "icon",
+        gogGame.iconSquareUrl,
+        gogGame.iconUrl,
+      ),
+      poster: artUrlWhenPresent("gog", gogId, "poster", gogGame.boxArtImageUrl),
+      hero: artUrlWhenPresent("gog", gogId, "hero", gogGame.backgroundImageUrl),
+      background: artUrlWhenPresent(
+        "gog",
+        gogId,
+        "background",
+        gogGame.galaxyBackgroundImageUrl,
+        gogGame.backgroundImageUrl,
+      ),
+      logo: artUrlWhenPresent("gog", gogId, "logo", gogGame.logoUrl),
     };
   }
   const epicGame = getPrimaryEpicGame(game);
   if (epicGame) {
+    const { epicId } = epicGame;
     return {
-      header: epicGame.logoUrl ?? epicGame.boxArtWideUrl,
-      poster: epicGame.boxArtTallUrl,
-      posterSmall: epicGame.boxArtTallUrl,
-      background: epicGame.boxArtWideUrl,
+      icon: artUrlWhenPresent("epic", epicId, "icon", epicGame.boxArtTallUrl),
+      poster: artUrlWhenPresent(
+        "epic",
+        epicId,
+        "poster",
+        epicGame.boxArtTallUrl,
+      ),
+      hero: artUrlWhenPresent("epic", epicId, "hero", epicGame.boxArtWideUrl),
+      background: artUrlWhenPresent(
+        "epic",
+        epicId,
+        "background",
+        epicGame.boxArtWideUrl,
+      ),
+      logo: artUrlWhenPresent("epic", epicId, "logo", epicGame.logoUrl),
     };
   }
   return null;

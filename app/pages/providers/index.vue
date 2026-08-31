@@ -39,7 +39,7 @@ const providers = computed(() => [
         </h1>
         <p class="text-muted mt-1 text-sm">Where your games come from</p>
       </div>
-      <ProviderSyncButton class="min-w-48" />
+      <ProviderSyncButton class="min-w-48" block />
     </div>
 
     <div class="grid gap-4 sm:grid-cols-3">

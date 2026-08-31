@@ -77,10 +77,11 @@ describe("GameStateControl", () => {
     await openMenu(component);
 
     const labels = menuOptions().map((option) => option.textContent?.trim());
-    expect(labels).toHaveLength(9);
+    expect(labels).toHaveLength(10);
     expect(labels[0]).toBe("Unsorted");
     expect(labels).toContain("Backlog");
     expect(labels).toContain("Abandoned");
+    expect(labels).toContain("Ignored");
   });
 
   it("tints each option icon with its state hue", async () => {
@@ -96,7 +97,7 @@ describe("GameStateControl", () => {
     expect(icon.className).toContain("text-green-600");
   });
 
-  it("splits the states into four groups", async () => {
+  it("splits the states into five groups", async () => {
     const component = await mount(null);
     await openMenu(component);
 
@@ -113,6 +114,7 @@ describe("GameStateControl", () => {
       ["Backlog"],
       ["Playing", "Periodic", "Shelved"],
       ["Played", "Completed", "Retired", "Abandoned"],
+      ["Ignored"],
     ]);
   });
 

@@ -26,6 +26,10 @@ const STATE_GROUPS: StateGroup[] = [
     label: "Finished with",
     states: ["PLAYED", "COMPLETED", "RETIRED", "ABANDONED"],
   },
+  {
+    label: "Not for me",
+    states: ["IGNORED"],
+  },
 ];
 
 const STATES_IN_DISPLAY_ORDER = STATE_GROUPS.flatMap((group) => group.states);
@@ -202,7 +206,7 @@ defineShortcuts({
         <USkeleton class="h-20 rounded-lg" />
       </div>
       <div class="grid gap-2 sm:grid-cols-2">
-        <USkeleton v-for="index in 8" :key="index" class="h-10 rounded-md" />
+        <USkeleton v-for="index in 9" :key="index" class="h-10 rounded-md" />
       </div>
     </div>
 

@@ -40,6 +40,7 @@ const groups: StateItem[][] = [
     toItem("RETIRED"),
     toItem("ABANDONED"),
   ],
+  [toItem("IGNORED")],
 ];
 
 const items = groups.flat();

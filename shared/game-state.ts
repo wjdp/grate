@@ -7,6 +7,7 @@ export const GAME_STATES = [
   "COMPLETED",
   "RETIRED",
   "ABANDONED",
+  "IGNORED",
 ] as const;
 
 export type GameState = (typeof GAME_STATES)[number];
@@ -20,6 +21,7 @@ export const GameStateNames: Record<GameState, string> = {
   COMPLETED: "Completed",
   RETIRED: "Retired",
   ABANDONED: "Abandoned",
+  IGNORED: "Ignored",
 } as const;
 
 export interface GameStateHue {
@@ -69,6 +71,11 @@ export const GameStateHues: Record<GameState, GameStateHue> = {
     dot: "bg-red-500",
     icon: "text-red-600 dark:text-red-400",
   },
+  IGNORED: {
+    badge: "bg-slate-500/15 text-slate-700 dark:text-slate-300",
+    dot: "bg-slate-500",
+    icon: "text-slate-600 dark:text-slate-400",
+  },
 } as const;
 
 export const GameStateIcons: Record<GameState, string> = {
@@ -80,4 +87,5 @@ export const GameStateIcons: Record<GameState, string> = {
   COMPLETED: "i-lucide-trophy",
   RETIRED: "i-lucide-moon",
   ABANDONED: "i-lucide-x",
+  IGNORED: "i-lucide-ban",
 } as const;

@@ -9,9 +9,9 @@ describe("htmlToBareDescription", () => {
   });
 
   it("strips paragraph and line-break tags", () => {
-    expect(
-      htmlToBareDescription("<p>First line.<br>Second line.</p>"),
-    ).toBe("First line. Second line.");
+    expect(htmlToBareDescription("<p>First line.<br>Second line.</p>")).toBe(
+      "First line. Second line.",
+    );
   });
 
   it("strips a realistic GOG-style description down to the lead text", () => {

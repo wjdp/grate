@@ -54,3 +54,81 @@ export function resolveRecentGames(
 export function getGameIconUrl(game: GameWithProviders): string | null {
   return getGameArtUrls(game)?.icon ?? null;
 }
+
+export type GameActionId = "go-to" | "set-state" | "play" | "open-store";
+
+export interface GameActionCommand {
+  id: GameActionId;
+  label: string;
+  icon: string;
+  url?: string;
+}
+
+export function buildGameActionCommands(
+  game: GameWithProviders,
+): GameActionCommand[] {
+  const launch = getPrimaryLaunch(game);
+  const launchCommands: GameActionCommand[] = launch
+    ? [
+        {
+          id: "play",
+          label: "Play",
+          icon: "i-lucide-play",
+          url: launch.playUrl,
+        },
+        {
+          id: "open-store",
+          label: "Open store page",
+          icon: "i-lucide-external-link",
+          url: launch.openUrl,
+        },
+      ]
+    : [];
+  return [
+    { id: "go-to", label: "Go to game", icon: "i-lucide-arrow-right" },
+    { id: "set-state", label: "Set state…", icon: "i-lucide-tag" },
+    ...launchCommands,
+  ];
+}
+
+export interface StateCommand {
+  state: GameState | null;
+  label: string;
+  icon: string;
+  iconClass: string;
+}
+
+const toStateCommand = (state: GameState): StateCommand => ({
+  state,
+  label: GameStateNames[state],
+  icon: GameStateIcons[state],
+  iconClass: GameStateHues[state].icon,
+});
+
+// Grouped as GameStateControl groups them, so both pickers read the same.
+export const GAME_STATE_COMMAND_GROUPS: StateCommand[][] = [
+  [
+    {
+      state: null,
+      label: "Unsorted",
+      icon: "i-lucide-circle-dashed",
+      iconClass: "text-grey-500 dark:text-grey-400",
+    },
+  ],
+  [toStateCommand("BACKLOG")],
+  [
+    toStateCommand("PLAYING"),
+    toStateCommand("PERIODIC"),
+    toStateCommand("SHELVED"),
+  ],
+  [
+    toStateCommand("PLAYED"),
+    toStateCommand("COMPLETED"),
+    toStateCommand("RETIRED"),
+    toStateCommand("ABANDONED"),
+  ],
+  [toStateCommand("IGNORED")],
+];
+
+export const GAME_STATE_COMMANDS: StateCommand[] =
+  GAME_STATE_COMMAND_GROUPS.flat();

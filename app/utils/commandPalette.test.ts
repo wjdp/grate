@@ -1,6 +1,9 @@
 import type { GameWithProviders } from "#shared/types/Game";
 import { describe, expect, it } from "vitest";
 import {
+  GAME_STATE_COMMANDS,
+  GAME_STATE_COMMAND_GROUPS,
+  buildGameActionCommands,
   buildNavigationCommands,
   getGameIconUrl,
   resolveRecentGames,
@@ -76,6 +79,84 @@ describe("resolveRecentGames", () => {
 
   it("resolves to nothing when the library has not loaded", () => {
     expect(resolveRecentGames([], [1, 2])).toEqual([]);
+  });
+});
+
+describe("buildGameActionCommands", () => {
+  it("offers only navigation and state for a game with no launch target", () => {
+    const commands = buildGameActionCommands(makeGame({}));
+
+    expect(commands.map((command) => command.id)).toEqual([
+      "go-to",
+      "set-state",
+    ]);
+  });
+
+  it("offers play and store links from the primary provider", () => {
+    const commands = buildGameActionCommands(
+      makeGame({
+        steamGames: [
+          { appId: 620, playtimeForever: 10 },
+        ] as unknown as GameWithProviders["steamGames"],
+      }),
+    );
+
+    expect(commands.map((command) => command.id)).toEqual([
+      "go-to",
+      "set-state",
+      "play",
+      "open-store",
+    ]);
+    expect(commands.find((command) => command.id === "play")?.url).toBe(
+      "steam://run/620",
+    );
+  });
+
+  it("picks the provider with the most playtime", () => {
+    const commands = buildGameActionCommands(
+      makeGame({
+        steamGames: [
+          { appId: 620, playtimeForever: 10 },
+        ] as unknown as GameWithProviders["steamGames"],
+        gogGames: [
+          { gogId: 42, playtimeMinutes: 500 },
+        ] as unknown as GameWithProviders["gogGames"],
+      }),
+    );
+
+    expect(commands.find((command) => command.id === "play")?.url).toBe(
+      "goggalaxy://runGame/42",
+    );
+  });
+});
+
+describe("game state commands", () => {
+  it("groups the states as GameStateControl does", () => {
+    const groups = GAME_STATE_COMMAND_GROUPS.map((group) =>
+      group.map((command) => command.label),
+    );
+
+    expect(groups).toEqual([
+      ["Unsorted"],
+      ["Backlog"],
+      ["Playing", "Periodic", "Shelved"],
+      ["Played", "Completed", "Retired", "Abandoned"],
+      ["Ignored"],
+    ]);
+  });
+
+  it("offers unsorted plus every state, hue-tinted", () => {
+    expect(GAME_STATE_COMMANDS).toHaveLength(10);
+    expect(GAME_STATE_COMMANDS[0]).toMatchObject({
+      state: null,
+      icon: "i-lucide-circle-dashed",
+    });
+    expect(
+      GAME_STATE_COMMANDS.find((command) => command.state === "COMPLETED"),
+    ).toMatchObject({
+      icon: "i-lucide-trophy",
+      iconClass: "text-green-600 dark:text-green-400",
+    });
   });
 });
 

@@ -28,6 +28,17 @@ const games = [
 
 registerEndpoint("/api/games", () => ({ games }));
 
+const stateRequests: unknown[] = [];
+registerEndpoint("/api/games/1/state", {
+  method: "PATCH",
+  handler: async (event) => {
+    // The mock request carries the raw JSON body on the node request object.
+    const { body } = event.node.req as unknown as { body: string };
+    stateRequests.push(JSON.parse(body));
+    return { game: { id: 1 } };
+  },
+});
+
 const { routeMock } = vi.hoisted(() => ({
   routeMock: { path: "/games", params: {} as Record<string, string> },
 }));
@@ -66,7 +77,18 @@ const search = async (term: string) => {
   await settle();
 };
 
+const pick = async (label: string) => {
+  const option = Array.from(document.querySelectorAll("[role='option']")).find(
+    (item) => item.textContent?.includes(label),
+  )! as HTMLElement;
+  option.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+  option.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+  option.click();
+  await settle();
+};
+
 beforeEach(() => {
+  stateRequests.length = 0;
   routeMock.path = "/games";
   routeMock.params = {};
   localStorage.clear();
@@ -105,11 +127,56 @@ describe("AppCommandPalette", () => {
     expect(itemLabels()[0]).toContain("Baldur's Gate");
   });
 
+  it("shows actions for the game being viewed", async () => {
+    routeMock.path = "/game/1";
+    routeMock.params = { id: "1" };
+    await mountPalette();
+
+    expect(groupLabels()[0]).toBe("Portal 2");
+    expect(itemLabels().slice(0, 4)).toEqual([
+      "Go to game",
+      "Set state…",
+      "Play",
+      "Open store page",
+    ]);
+  });
+
+  it("shows the state list on the set-state pane", async () => {
+    const { pushPane } = useCommandPalette();
+    await mountPalette();
+    pushPane({ kind: "set-state", gameId: 1 });
+    await settle();
+
+    expect(itemLabels()).toEqual([
+      "Unsorted",
+      "Backlog",
+      "Playing",
+      "Periodic",
+      "Shelved",
+      "Played",
+      "Completed",
+      "Retired",
+      "Abandoned",
+      "Ignored",
+    ]);
+  });
+
   it("searches the library by name", async () => {
     await mountPalette();
     await search("portal");
 
     expect(groupLabels()).toEqual(["Games"]);
     expect(itemLabels()[0]).toContain("Portal 2");
+  });
+
+  it("sets the state and closes on picking one", async () => {
+    const palette = useCommandPalette();
+    await mountPalette();
+    palette.pushPane({ kind: "set-state", gameId: 1 });
+    await settle();
+    await pick("Completed");
+
+    expect(stateRequests).toEqual([{ state: "COMPLETED" }]);
+    expect(palette.isOpen.value).toBe(false);
   });
 });

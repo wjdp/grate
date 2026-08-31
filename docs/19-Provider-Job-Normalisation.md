@@ -1,6 +1,6 @@
 ---
 type: task
-status: doing
+status: done
 ---
 
 # Normalised provider jobs, sync UX and task progress

@@ -46,8 +46,10 @@
   --ui-border: var(--color-grey-300);
   --ui-border-muted: var(--color-grey-300);
   --ui-border-accented: var(--color-grey-400);
-  /* Nuxt UI picks shade 500 for light mode; #fed250 is far too pale to carry
-     white text, so light mode uses the darker end of the amber family. */
+  /* Nuxt UI defaults --ui-primary to shade 500 in light mode. Here --ui-primary
+     is a text-level accent (links, active nav, rings) rather than a fill, so it
+     has to clear WCAG AA against --ui-bg (grey-100): amber-700 only manages
+     3.85:1, amber-800 reaches 5.87:1, so 800 is the lightest shade that passes. */
   --ui-primary: var(--ui-color-primary-800);
 }
 
@@ -59,6 +61,9 @@
   --ui-border: var(--color-grey-800);
   --ui-border-muted: var(--color-grey-800);
   --ui-border-accented: var(--color-grey-700);
+  /* The bright end of the ramp: #fed250 itself, stated rather than inherited
+     from Nuxt UI's shade-400 dark-mode default. */
+  --ui-primary: var(--ui-color-primary-400);
 }
 
 html,

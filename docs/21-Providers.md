@@ -45,17 +45,17 @@ Adding a provider means `lib/<provider>/` (api + service + tests), a `PROVIDER_J
 
 Judged on API viability and what grate cares about (library + playtime). Effort assumes the doc-19 architecture.
 
-| Provider | Library | Playtime | API | Effort | Verdict |
-| --- | --- | --- | --- | --- | --- |
-| itch.io | ✅ purchases | ❌ | official, per-user API key | low | **do first** |
-| PlayStation | played titles | ✅ per-title minutes | unofficial (`psn-api`, NPSSO token) | medium | **strong** — best playtime source outside Steam |
-| Xbox / Game Pass | title history | ✅ minutes played | partner-only officially; OpenXBL or reverse-engineered | medium | good, but Game Pass blurs owned vs access |
-| Amazon Games | ✅ Prime freebies | ❌ | reverse-engineered (Nile) | medium | worthwhile for Prime hoarders |
-| Humble Bundle | ✅ purchases | ❌ | unofficial | low-medium | mostly Steam keys; DRM-free trove is the value |
-| EA App | ❌ usable | ❌ | none public, fragile RE | high | skip |
-| Ubisoft Connect | ❌ usable | partial (club API, RE) | none public | high | skip |
-| Battle.net | ❌ (no library endpoint) | ❌ | official APIs cover other data | — | skip; tiny fixed catalogue |
-| Nintendo Switch | ❌ | partial (parental-controls API, RE, flaky) | unofficial | high | skip for now |
+| Provider         | Library                  | Playtime                                   | API                                                    | Effort     | Verdict                                         |
+| ---------------- | ------------------------ | ------------------------------------------ | ------------------------------------------------------ | ---------- | ----------------------------------------------- |
+| itch.io          | ✅ purchases             | ❌                                         | official, per-user API key                             | low        | **do first**                                    |
+| PlayStation      | played titles            | ✅ per-title minutes                       | unofficial (`psn-api`, NPSSO token)                    | medium     | **strong** — best playtime source outside Steam |
+| Xbox / Game Pass | title history            | ✅ minutes played                          | partner-only officially; OpenXBL or reverse-engineered | medium     | good, but Game Pass blurs owned vs access       |
+| Amazon Games     | ✅ Prime freebies        | ❌                                         | reverse-engineered (Nile)                              | medium     | worthwhile for Prime hoarders                   |
+| Humble Bundle    | ✅ purchases             | ❌                                         | unofficial                                             | low-medium | mostly Steam keys; DRM-free trove is the value  |
+| EA App           | ❌ usable                | ❌                                         | none public, fragile RE                                | high       | skip                                            |
+| Ubisoft Connect  | ❌ usable                | partial (club API, RE)                     | none public                                            | high       | skip                                            |
+| Battle.net       | ❌ (no library endpoint) | ❌                                         | official APIs cover other data                         | —          | skip; tiny fixed catalogue                      |
+| Nintendo Switch  | ❌                       | partial (parental-controls API, RE, flaky) | unofficial                                             | high       | skip for now                                    |
 
 ### Notes per candidate
 

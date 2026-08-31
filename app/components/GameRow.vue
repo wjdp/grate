@@ -16,6 +16,7 @@ const providers = computed<Provider[]>(() => {
 <template>
   <NuxtLink
     :to="`/game/${game.id}`"
+    :prefetch="false"
     class="hover:bg-elevated flex items-center gap-3 px-3 py-2 transition-colors"
   >
     <GameIcon :game="game" class="size-8 shrink-0 rounded-md" />

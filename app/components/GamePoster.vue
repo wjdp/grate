@@ -24,6 +24,7 @@ const providers = computed<Provider[]>(() => {
 <template>
   <NuxtLink
     :to="`/game/${game.id}`"
+    :prefetch="false"
     class="group block transition-transform motion-safe:hover:-translate-y-0.5"
   >
     <div

@@ -11,6 +11,17 @@ import {
 } from "~~/server/art";
 import type { ArtProvider } from "~~/server/art";
 
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (totalMinutes < 60) return `${totalMinutes}m ${seconds}s`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}m`;
+}
+
 async function cacheArtForGame(provider: ArtProvider, id: number) {
   for (const type of ART_TYPES_BY_PROVIDER[provider]) {
     try {
@@ -66,13 +77,18 @@ export default async (task: Task) => {
   ];
 
   const numRows = rows.length;
+  const startedAt = Date.now();
   let i = 0;
   for (const row of rows) {
     await cacheArtForGame(row.provider, row.id);
+    i++;
+    const eta =
+      i < 5
+        ? "estimating…"
+        : `~${formatDuration(((Date.now() - startedAt) / i) * (numRows - i))} remaining`;
     await updateInProgressTask(task, {
       progress: i / numRows,
-      message: `Cached art for ${row.name}`,
+      message: `Cached art for ${row.name} (${i}/${numRows}, ${eta})`,
     });
-    i++;
   }
 };

@@ -3,6 +3,7 @@ import {
   epicGamePlaytime as epicGamePlaytimeTable,
   gogGamePlaytime as gogGamePlaytimeTable,
   steamGamePlaytime as steamGamePlaytimeTable,
+  user,
 } from "~~/db/schema";
 import { getDailyPlaytime } from "~~/lib/activity";
 import { db } from "~~/lib/db";
@@ -46,6 +47,7 @@ function recordEpic(epicId: number, timestampEnd: string, minutes: number) {
 describe("getDailyPlaytime", () => {
   beforeEach(async () => {
     await flushDb();
+    db.insert(user).values({ timezone: "UTC", dayBoundaryHour: 6 }).run();
   });
 
   it("returns an empty list when there are no snapshots", async () => {
@@ -87,6 +89,24 @@ describe("getDailyPlaytime", () => {
     expect(await getDailyPlaytime(2025)).toStrictEqual([
       { date: "2025-05-03", minutes: 30 },
     ]);
+  });
+
+  it("attributes an early-hours session to the previous play day", async () => {
+    const steamGame = createSteamGame();
+    recordSteam(steamGame.appId, "2025-03-01T22:00:00.000Z", 100);
+    recordSteam(steamGame.appId, "2025-03-02T01:00:00.000Z", 190);
+    expect(await getDailyPlaytime(2025)).toStrictEqual([
+      { date: "2025-03-01", minutes: 90 },
+    ]);
+  });
+
+  it("respects a supplied day boundary and zone", async () => {
+    const steamGame = createSteamGame();
+    recordSteam(steamGame.appId, "2025-03-01T22:00:00.000Z", 100);
+    recordSteam(steamGame.appId, "2025-03-02T01:00:00.000Z", 190);
+    expect(
+      await getDailyPlaytime(2025, { timezone: "UTC", dayBoundaryHour: 0 }),
+    ).toStrictEqual([{ date: "2025-03-02", minutes: 90 }]);
   });
 
   it("filters to the requested year", async () => {

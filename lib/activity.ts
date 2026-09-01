@@ -1,11 +1,12 @@
 import { asc } from "drizzle-orm";
-import { DateTime } from "luxon";
+import { type PlayDaySettings, playDayOf } from "#shared/playDay";
 import {
   epicGamePlaytime,
   gogGamePlaytime,
   steamGamePlaytime,
 } from "~~/db/schema";
 import { db } from "~~/lib/db";
+import { getPlayDaySettings } from "~~/lib/settings";
 
 export interface DailyPlaytime {
   date: string;
@@ -54,7 +55,11 @@ async function getSnapshots(): Promise<Snapshot[]> {
   ];
 }
 
-export async function getDailyPlaytime(year: number): Promise<DailyPlaytime[]> {
+export async function getDailyPlaytime(
+  year: number,
+  settings?: PlayDaySettings,
+): Promise<DailyPlaytime[]> {
+  const playDaySettings = settings ?? (await getPlayDaySettings());
   const snapshots = await getSnapshots();
   const previousByRow = new Map<string, number>();
   const minutesByDate = new Map<string, number>();
@@ -67,8 +72,7 @@ export async function getDailyPlaytime(year: number): Promise<DailyPlaytime[]> {
     const delta = snapshot.playtimeMinutes - previous;
     if (delta <= 0) continue;
 
-    const date = DateTime.fromJSDate(snapshot.timestampEnd).toISODate();
-    if (!date) continue;
+    const date = playDayOf(snapshot.timestampEnd, playDaySettings);
     minutesByDate.set(date, (minutesByDate.get(date) ?? 0) + delta);
   }
 

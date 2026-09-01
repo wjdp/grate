@@ -36,13 +36,13 @@ function queryParam<Value extends string>(
 const STATE_FILTERS = ["all", "unsorted", ...GAME_STATES] as const;
 const PROVIDER_FILTERS = ["all", "steam", "gog", "epic"] as const;
 const PLAYED_FILTERS = ["all", "played", "unplayed", "recent"] as const;
-const SORTS = ["name", "playtime", "lastPlayed"] as const;
+const SORTS = ["lastPlayed", "name", "playtime"] as const;
 
 const search = queryParam("q", "");
 const stateFilter = queryParam("state", "all", STATE_FILTERS);
 const providerFilter = queryParam("provider", "all", PROVIDER_FILTERS);
 const playedFilter = queryParam("played", "all", PLAYED_FILTERS);
-const sort = queryParam("sort", "name", SORTS);
+const sort = queryParam("sort", "lastPlayed", SORTS);
 
 const view = useCookie<"wall" | "list">("library-view", {
   default: () => "wall",
@@ -95,9 +95,9 @@ const playedItems: FilterItem[] = [
 ];
 
 const sortItems: FilterItem[] = [
+  { value: "lastPlayed", label: "Last played" },
   { value: "name", label: "Name" },
   { value: "playtime", label: "Playtime" },
-  { value: "lastPlayed", label: "Last played" },
 ];
 
 const RECENT_DAYS = 14;
@@ -140,11 +140,14 @@ const filteredGames = computed(() =>
 
 const sortedGames = computed(() =>
   [...filteredGames.value].sort((a, b) => {
-    if (sort.value === "playtime") return b.playtimeMinutes - a.playtimeMinutes;
+    if (sort.value === "playtime")
+      return (
+        b.playtimeMinutes - a.playtimeMinutes || a.name.localeCompare(b.name)
+      );
     if (sort.value === "lastPlayed") {
       const at = a.lastPlayedAt ? new Date(a.lastPlayedAt).getTime() : 0;
       const bt = b.lastPlayedAt ? new Date(b.lastPlayedAt).getTime() : 0;
-      return bt - at;
+      return bt - at || a.name.localeCompare(b.name);
     }
     return a.name.localeCompare(b.name);
   }),

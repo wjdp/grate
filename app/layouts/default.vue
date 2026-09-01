@@ -7,7 +7,7 @@ const appConfig = useAppConfig();
     <AppSidebar />
     <UDashboardPanel>
       <template #header>
-        <UDashboardNavbar :title="appConfig.title" class="lg:hidden" />
+        <AppNavbar :title="appConfig.title" class="lg:hidden" />
       </template>
       <template #body>
         <slot />

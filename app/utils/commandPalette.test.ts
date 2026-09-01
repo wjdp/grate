@@ -139,15 +139,15 @@ describe("game state commands", () => {
 
     expect(groups).toEqual([
       ["Unsorted"],
-      ["Backlog"],
-      ["Playing", "Periodic", "Shelved"],
+      ["Backlog", "Shelved"],
+      ["Playing", "Stalled", "Periodic"],
       ["Played", "Completed", "Retired", "Abandoned"],
       ["Ignored"],
     ]);
   });
 
   it("offers unsorted plus every state, hue-tinted", () => {
-    expect(GAME_STATE_COMMANDS).toHaveLength(10);
+    expect(GAME_STATE_COMMANDS).toHaveLength(11);
     expect(GAME_STATE_COMMANDS[0]).toMatchObject({
       state: null,
       icon: "i-lucide-circle-dashed",

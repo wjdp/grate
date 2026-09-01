@@ -20,7 +20,7 @@ interface StateGroup {
 const STATE_GROUPS: StateGroup[] = [
   {
     label: "Still going",
-    states: ["BACKLOG", "PLAYING", "PERIODIC", "SHELVED"],
+    states: ["BACKLOG", "SHELVED", "PLAYING", "STALLED", "PERIODIC"],
   },
   {
     label: "Finished with",

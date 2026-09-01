@@ -14,8 +14,8 @@ describe("gameStateItemGroups", () => {
 
     expect(labels).toEqual([
       ["Unsorted"],
-      ["Backlog"],
-      ["Playing", "Periodic", "Shelved"],
+      ["Backlog", "Shelved"],
+      ["Playing", "Stalled", "Periodic"],
       ["Played", "Completed", "Retired", "Abandoned"],
       ["Ignored"],
     ]);

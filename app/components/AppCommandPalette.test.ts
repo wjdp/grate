@@ -156,9 +156,10 @@ describe("AppCommandPalette", () => {
     expect(itemLabels()).toEqual([
       "Unsorted",
       "Backlog",
-      "Playing",
-      "Periodic",
       "Shelved",
+      "Playing",
+      "Stalled",
+      "Periodic",
       "Played",
       "Completed",
       "Retired",

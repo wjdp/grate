@@ -116,11 +116,11 @@ export const GAME_STATE_COMMAND_GROUPS: StateCommand[][] = [
       iconClass: "text-grey-500 dark:text-grey-400",
     },
   ],
-  [toStateCommand("BACKLOG")],
+  [toStateCommand("BACKLOG"), toStateCommand("SHELVED")],
   [
     toStateCommand("PLAYING"),
+    toStateCommand("STALLED"),
     toStateCommand("PERIODIC"),
-    toStateCommand("SHELVED"),
   ],
   [
     toStateCommand("PLAYED"),

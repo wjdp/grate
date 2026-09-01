@@ -66,7 +66,7 @@ describe("GameStateControl", () => {
     await openMenu(component);
 
     const labels = menuOptions().map((option) => option.textContent?.trim());
-    expect(labels).toHaveLength(10);
+    expect(labels).toHaveLength(11);
     expect(labels[0]).toBe("Unsorted");
     expect(labels).toContain("Backlog");
     expect(labels).toContain("Abandoned");
@@ -87,8 +87,8 @@ describe("GameStateControl", () => {
 
     expect(groups).toEqual([
       ["Unsorted"],
-      ["Backlog"],
-      ["Playing", "Periodic", "Shelved"],
+      ["Backlog", "Shelved"],
+      ["Playing", "Stalled", "Periodic"],
       ["Played", "Completed", "Retired", "Abandoned"],
       ["Ignored"],
     ]);

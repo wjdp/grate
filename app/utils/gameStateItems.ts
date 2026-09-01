@@ -30,11 +30,11 @@ export function gameStateItem(state: GameState): GameStateItem {
 
 export const gameStateItemGroups: GameStateItem[][] = [
   [unsortedGameStateItem],
-  [gameStateItem("BACKLOG")],
+  [gameStateItem("BACKLOG"), gameStateItem("SHELVED")],
   [
     gameStateItem("PLAYING"),
+    gameStateItem("STALLED"),
     gameStateItem("PERIODIC"),
-    gameStateItem("SHELVED"),
   ],
   [
     gameStateItem("PLAYED"),

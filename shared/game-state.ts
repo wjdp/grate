@@ -1,8 +1,9 @@
 export const GAME_STATES = [
   "BACKLOG",
-  "PLAYING",
-  "PERIODIC",
   "SHELVED",
+  "PLAYING",
+  "STALLED",
+  "PERIODIC",
   "PLAYED",
   "COMPLETED",
   "RETIRED",
@@ -14,9 +15,10 @@ export type GameState = (typeof GAME_STATES)[number];
 
 export const GameStateNames: Record<GameState, string> = {
   BACKLOG: "Backlog",
-  PLAYING: "Playing",
-  PERIODIC: "Periodic",
   SHELVED: "Shelved",
+  PLAYING: "Playing",
+  STALLED: "Stalled",
+  PERIODIC: "Periodic",
   PLAYED: "Played",
   COMPLETED: "Completed",
   RETIRED: "Retired",
@@ -36,20 +38,25 @@ export const GameStateHues: Record<GameState, GameStateHue> = {
     dot: "bg-orange-500",
     icon: "text-orange-600 dark:text-orange-400",
   },
+  SHELVED: {
+    badge: "bg-grey-500/15 text-grey-700 dark:text-grey-300",
+    dot: "bg-grey-500",
+    icon: "text-grey-600 dark:text-grey-400",
+  },
   PLAYING: {
     badge: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
     dot: "bg-blue-500",
     icon: "text-blue-600 dark:text-blue-400",
   },
+  STALLED: {
+    badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+    dot: "bg-amber-500",
+    icon: "text-amber-600 dark:text-amber-400",
+  },
   PERIODIC: {
     badge: "bg-violet-500/15 text-violet-700 dark:text-violet-300",
     dot: "bg-violet-500",
     icon: "text-violet-600 dark:text-violet-400",
-  },
-  SHELVED: {
-    badge: "bg-grey-500/15 text-grey-700 dark:text-grey-300",
-    dot: "bg-grey-500",
-    icon: "text-grey-600 dark:text-grey-400",
   },
   PLAYED: {
     badge: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300",
@@ -80,9 +87,10 @@ export const GameStateHues: Record<GameState, GameStateHue> = {
 
 export const GameStateIcons: Record<GameState, string> = {
   BACKLOG: "i-lucide-inbox",
-  PLAYING: "i-lucide-play",
-  PERIODIC: "i-lucide-repeat",
   SHELVED: "i-lucide-archive",
+  PLAYING: "i-lucide-play",
+  STALLED: "i-lucide-pause",
+  PERIODIC: "i-lucide-repeat",
   PLAYED: "i-lucide-check",
   COMPLETED: "i-lucide-trophy",
   RETIRED: "i-lucide-moon",

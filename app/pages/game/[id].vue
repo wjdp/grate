@@ -58,6 +58,34 @@ const updateGameState = async (state: GameState | null) => {
   }
 };
 
+const toast = useToast();
+
+const applyGameHidden = (hidden: boolean) => {
+  if (!data.value?.game) return;
+  data.value = { ...data.value, game: { ...data.value.game, hidden } };
+};
+
+const updateGameHidden = async (hidden: boolean) => {
+  if (!game.value) throw new Error("Game not loaded");
+  const previousHidden = game.value.hidden;
+  applyGameHidden(hidden);
+  try {
+    await $fetch(`/api/games/${id}/hidden`, {
+      method: "PATCH",
+      body: { hidden },
+    });
+  } catch (error) {
+    applyGameHidden(previousHidden);
+    toast.add({
+      title: hidden ? "Could not hide game" : "Could not unhide game",
+      description:
+        error instanceof Error ? fetchErrorMessage(error) : undefined,
+      icon: "i-lucide-triangle-alert",
+      color: "error",
+    });
+  }
+};
+
 const onMerged = async () => {
   await Promise.all([refresh(), refreshTimeline()]);
 };
@@ -94,9 +122,32 @@ const primaryLaunch = computed(() =>
     >
       <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
         <GameStateControl v-model="state" @change="updateGameState(state)" />
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :icon="game.hidden ? 'i-lucide-eye' : 'i-lucide-eye-off'"
+          :label="game.hidden ? 'Unhide' : 'Hide'"
+          @click="updateGameHidden(!game.hidden)"
+        />
         <PlayButton v-if="primaryLaunch" :href="primaryLaunch.playUrl" />
       </div>
     </ArtHero>
+
+    <UAlert
+      v-if="game.hidden"
+      color="neutral"
+      variant="soft"
+      icon="i-lucide-eye-off"
+      title="Hidden from your library"
+      :actions="[
+        {
+          label: 'Unhide',
+          color: 'neutral',
+          variant: 'outline',
+          onClick: () => updateGameHidden(false),
+        },
+      ]"
+    />
 
     <div
       class="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-8 lg:space-y-0"

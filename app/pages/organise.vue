@@ -37,6 +37,9 @@ const STATES_IN_DISPLAY_ORDER = STATE_GROUPS.flatMap((group) => group.states);
 const shortcutKeyFor = (state: GameState) =>
   String(STATES_IN_DISPLAY_ORDER.indexOf(state) + 1);
 
+const nextFreeDigit = STATES_IN_DISPLAY_ORDER.length + 1;
+const HIDE_SHORTCUT_KEY = nextFreeDigit <= 9 ? String(nextFreeDigit) : "h";
+
 const { data } = useFetch("/api/games");
 const games = computed(() => data.value?.games);
 const organisedGameIds = ref<number[]>([]);
@@ -45,6 +48,7 @@ const gamesToOrganise = computed(() =>
   games.value?.filter(
     (game) =>
       !game.state &&
+      !game.hidden &&
       game.playtimeMinutes > 0 &&
       !organisedGameIds.value.includes(game.id),
   ),
@@ -109,6 +113,15 @@ const skipGame = async () => {
   await moveOn(200);
 };
 
+const hideGame = async () => {
+  if (!theGame.value) return;
+  await $fetch(`/api/games/${theGame.value.id}/hidden`, {
+    method: "PATCH",
+    body: { hidden: true },
+  });
+  await moveOn(300);
+};
+
 defineShortcuts({
   ...Object.fromEntries(
     STATES_IN_DISPLAY_ORDER.map((state) => [
@@ -116,6 +129,7 @@ defineShortcuts({
       () => setGameState(state),
     ]),
   ),
+  [HIDE_SHORTCUT_KEY]: hideGame,
   s: skipGame,
 });
 </script>
@@ -183,6 +197,24 @@ defineShortcuts({
             />
             <span class="flex-1 text-left">{{ GameStateNames[state] }}</span>
             <UKbd :value="shortcutKeyFor(state)" />
+          </UButton>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <p class="text-dimmed text-xs tracking-wide">Not a game</p>
+        <div class="grid gap-2 sm:grid-cols-2">
+          <UButton
+            variant="soft"
+            color="neutral"
+            size="lg"
+            icon="i-lucide-eye-off"
+            class="w-full"
+            :ui="{ label: 'flex flex-1 items-center gap-2' }"
+            @click="hideGame"
+          >
+            <span class="flex-1 text-left">Hide</span>
+            <UKbd :value="HIDE_SHORTCUT_KEY" />
           </UButton>
         </div>
       </div>

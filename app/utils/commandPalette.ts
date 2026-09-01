@@ -56,7 +56,12 @@ export function getGameIconUrl(game: GameWithProviders): string | null {
   return getGameArtUrls(game)?.icon ?? null;
 }
 
-export type GameActionId = "go-to" | "set-state" | "play" | "open-store";
+export type GameActionId =
+  | "go-to"
+  | "set-state"
+  | "toggle-hidden"
+  | "play"
+  | "open-store";
 
 export interface GameActionCommand {
   id: GameActionId;
@@ -88,6 +93,11 @@ export function buildGameActionCommands(
   return [
     { id: "go-to", label: "Go to game", icon: "i-lucide-arrow-right" },
     { id: "set-state", label: "Set state…", icon: "i-lucide-tag" },
+    {
+      id: "toggle-hidden",
+      label: game.hidden ? "Unhide" : "Hide",
+      icon: game.hidden ? "i-lucide-eye" : "i-lucide-eye-off",
+    },
     ...launchCommands,
   ];
 }

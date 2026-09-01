@@ -14,6 +14,7 @@ const makeGame = (game: Partial<GameWithProviders>): GameWithProviders =>
     id: 1,
     name: "Test Game",
     state: null,
+    hidden: false,
     steamGames: [],
     gogGames: [],
     epicGames: [],
@@ -90,7 +91,24 @@ describe("buildGameActionCommands", () => {
     expect(commands.map((command) => command.id)).toEqual([
       "go-to",
       "set-state",
+      "toggle-hidden",
     ]);
+  });
+
+  it("offers Hide for a visible game", () => {
+    const hide = buildGameActionCommands(makeGame({ hidden: false })).find(
+      (command) => command.id === "toggle-hidden",
+    );
+
+    expect(hide).toMatchObject({ label: "Hide", icon: "i-lucide-eye-off" });
+  });
+
+  it("offers Unhide for a hidden game", () => {
+    const unhide = buildGameActionCommands(makeGame({ hidden: true })).find(
+      (command) => command.id === "toggle-hidden",
+    );
+
+    expect(unhide).toMatchObject({ label: "Unhide", icon: "i-lucide-eye" });
   });
 
   it("offers play and store links from the primary provider", () => {
@@ -105,6 +123,7 @@ describe("buildGameActionCommands", () => {
     expect(commands.map((command) => command.id)).toEqual([
       "go-to",
       "set-state",
+      "toggle-hidden",
       "play",
       "open-store",
     ]);

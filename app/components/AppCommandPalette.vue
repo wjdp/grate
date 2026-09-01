@@ -27,6 +27,9 @@ const games = computed(() => data.value?.games ?? []);
 const gamesById = computed(
   () => new Map(games.value.map((game) => [game.id, game])),
 );
+// Hidden games stay out of search and recents, but remain resolvable by id so a
+// hidden game's own page still offers its actions.
+const visibleGames = computed(() => games.value.filter((game) => !game.hidden));
 
 watch(isOpen, (opened) => {
   if (!opened) return;
@@ -85,6 +88,31 @@ const setGameState = async (
   }
 };
 
+const setGameHidden = async (game: GameWithProviders, hidden: boolean) => {
+  try {
+    await $fetch(`/api/games/${game.id}/hidden`, {
+      method: "PATCH",
+      body: { hidden },
+    });
+    close();
+    toast.add({
+      title: hidden ? "Hidden from library" : "Shown in library",
+      description: game.name,
+      icon: hidden ? "i-lucide-eye-off" : "i-lucide-eye",
+      color: "success",
+    });
+    await refreshNuxtData();
+  } catch (error) {
+    toast.add({
+      title: hidden ? "Could not hide game" : "Could not unhide game",
+      description:
+        error instanceof Error ? fetchErrorMessage(error) : undefined,
+      icon: "i-lucide-triangle-alert",
+      color: "error",
+    });
+  }
+};
+
 // Items navigate through `onSelect` rather than `to`: a link item picks up the
 // route-active styling, which reads as a second highlight next to the keyboard
 // one whenever the palette lists the page you are already on.
@@ -119,6 +147,9 @@ const toGameActionItems = (game: GameWithProviders): CommandPaletteItem[] =>
         onSelect: () => pushPane({ kind: "set-state", gameId: game.id }),
       };
     }
+    if (action.id === "toggle-hidden") {
+      return { ...item, onSelect: () => setGameHidden(game, !game.hidden) };
+    }
     return {
       ...item,
       onSelect: () => {
@@ -148,10 +179,13 @@ const rootGroups = computed<CommandPaletteGroup<CommandPaletteItem>[]>(() => {
     groups.push({
       id: "games",
       label: "Games",
-      items: games.value.map(toGameItem),
+      items: visibleGames.value.map(toGameItem),
     });
   } else {
-    const recentGames = resolveRecentGames(games.value, recentGameIds.value);
+    const recentGames = resolveRecentGames(
+      visibleGames.value,
+      recentGameIds.value,
+    );
     if (recentGames.length) {
       groups.push({
         id: "recent",

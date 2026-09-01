@@ -12,6 +12,7 @@ const games = [
     id: 1,
     name: "Portal 2",
     state: "PLAYING",
+    hidden: false,
     steamGames: [{ appId: 620, playtimeForever: 10 }],
     gogGames: [],
     epicGames: [],
@@ -20,6 +21,16 @@ const games = [
     id: 2,
     name: "Baldur's Gate",
     state: null,
+    hidden: false,
+    steamGames: [],
+    gogGames: [],
+    epicGames: [],
+  },
+  {
+    id: 3,
+    name: "Portal Benchmark",
+    state: null,
+    hidden: true,
     steamGames: [],
     gogGames: [],
     epicGames: [],
@@ -139,11 +150,25 @@ describe("AppCommandPalette", () => {
     await mountPalette();
 
     expect(groupLabels()[0]).toBe("Portal 2");
-    expect(itemLabels().slice(0, 4)).toEqual([
+    expect(itemLabels().slice(0, 5)).toEqual([
       "Go to game",
       "Set state…",
+      "Hide",
       "Play",
       "Open store page",
+    ]);
+  });
+
+  it("offers Unhide on a hidden game's own page", async () => {
+    routeMock.path = "/game/3";
+    routeMock.params = { id: "3" };
+    await mountPalette();
+
+    expect(groupLabels()[0]).toBe("Portal Benchmark");
+    expect(itemLabels().slice(0, 3)).toEqual([
+      "Go to game",
+      "Set state…",
+      "Unhide",
     ]);
   });
 
@@ -174,6 +199,14 @@ describe("AppCommandPalette", () => {
 
     expect(groupLabels()).toEqual(["Games"]);
     expect(itemLabels()[0]).toContain("Portal 2");
+  });
+
+  it("leaves hidden games out of the search results", async () => {
+    await mountPalette();
+    await search("portal");
+
+    expect(itemLabels()).toHaveLength(1);
+    expect(itemLabels()[0]).not.toContain("Benchmark");
   });
 
   it("sets the state and closes on picking one", async () => {

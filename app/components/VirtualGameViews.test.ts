@@ -10,7 +10,7 @@ import {
 import VirtualGameList from "./VirtualGameList.vue";
 import VirtualGameWall from "./VirtualGameWall.vue";
 
-const makeGames = (count: number) =>
+const makeGames = (count: number, overrides: Partial<GameWithProviders> = {}) =>
   Array.from(
     { length: count },
     (_, index) =>
@@ -20,9 +20,11 @@ const makeGames = (count: number) =>
         playtimeMinutes: 0,
         lastPlayedAt: null,
         state: null,
+        hidden: false,
         steamGames: [],
         gogGames: [],
         epicGames: [],
+        ...overrides,
       }) as unknown as GameWithProviders,
   );
 
@@ -87,6 +89,46 @@ describe("virtualised game views", () => {
     const posters = component.findAllComponents({ name: "GamePoster" });
     expect(posters.length).toBeGreaterThan(0);
     expect(posters.length).toBeLessThan(200);
+  });
+});
+
+describe("hidden game marker", () => {
+  beforeEach(stubLayout);
+
+  it("marks hidden games in the list view", async () => {
+    const component = await mountSuspended(VirtualGameList, {
+      props: { games: makeGames(4, { hidden: true }) },
+    });
+    await nextTick();
+
+    expect(component.html()).toContain("i-lucide:eye-off");
+  });
+
+  it("leaves visible games unmarked in the list view", async () => {
+    const component = await mountSuspended(VirtualGameList, {
+      props: { games: makeGames(4) },
+    });
+    await nextTick();
+
+    expect(component.html()).not.toContain("i-lucide:eye-off");
+  });
+
+  it("marks hidden games in the wall view", async () => {
+    const component = await mountSuspended(VirtualGameWall, {
+      props: { games: makeGames(4, { hidden: true }) },
+    });
+    await nextTick();
+
+    expect(component.html()).toContain("i-lucide:eye-off");
+  });
+
+  it("leaves visible games unmarked in the wall view", async () => {
+    const component = await mountSuspended(VirtualGameWall, {
+      props: { games: makeGames(4) },
+    });
+    await nextTick();
+
+    expect(component.html()).not.toContain("i-lucide:eye-off");
   });
 });
 

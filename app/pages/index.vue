@@ -19,7 +19,7 @@ const recentGames = computed(() => recentGamesData.value?.games ?? []);
 const unsortedPlayedCount = computed(
   () =>
     (gamesData.value?.games ?? []).filter(
-      (game) => !game.state && game.playtimeMinutes > 0,
+      (game) => !game.hidden && !game.state && game.playtimeMinutes > 0,
     ).length,
 );
 </script>

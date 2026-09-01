@@ -28,8 +28,14 @@ const providers = computed<Provider[]>(() => {
     class="group block transition-transform motion-safe:hover:-translate-y-0.5"
   >
     <div
-      class="bg-elevated border-default aspect-[3/4] overflow-hidden rounded-lg border transition-shadow group-hover:shadow-lg"
+      class="bg-elevated border-default relative aspect-[3/4] overflow-hidden rounded-lg border transition-shadow group-hover:shadow-lg"
     >
+      <UIcon
+        v-if="game.hidden"
+        name="i-lucide-eye-off"
+        class="absolute end-1.5 top-1.5 z-10 size-5 rounded-md bg-black/60 p-0.5 text-white/80"
+        aria-label="Hidden"
+      />
       <img
         v-if="posterUrl && !posterFailed"
         :src="posterUrl"

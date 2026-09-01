@@ -37,12 +37,14 @@ function queryParam<Value extends string>(
 const STATE_FILTERS = ["all", "unsorted", ...GAME_STATES] as const;
 const PROVIDER_FILTERS = ["all", ...PROVIDERS] as const;
 const PLAYED_FILTERS = ["all", "played", "unplayed", "recent"] as const;
+const HIDDEN_FILTERS = ["all", "hidden"] as const;
 const SORTS = ["lastPlayed", "name", "playtime"] as const;
 
 const search = queryParam("q", "");
 const stateFilter = queryParam("state", "all", STATE_FILTERS);
 const providerFilter = queryParam("provider", "all", PROVIDER_FILTERS);
 const playedFilter = queryParam("played", "all", PLAYED_FILTERS);
+const hiddenFilter = queryParam("hidden", "all", HIDDEN_FILTERS);
 const sort = queryParam("sort", "lastPlayed", SORTS);
 
 const view = useCookie<"wall" | "list">("library-view", {
@@ -88,6 +90,11 @@ const playedItems: FilterItem[] = [
   { value: "recent", label: "Played recently" },
 ];
 
+const hiddenItems: FilterItem[] = [
+  { value: "all", label: "Visible" },
+  { value: "hidden", label: "Hidden" },
+];
+
 const sortItems: FilterItem[] = [
   { value: "lastPlayed", label: "Last played" },
   { value: "name", label: "Name" },
@@ -122,9 +129,13 @@ const matchesPlayed = (game: GameWithProviders) => {
   return true;
 };
 
+const matchesHidden = (game: GameWithProviders) =>
+  hiddenFilter.value === "hidden" ? game.hidden : !game.hidden;
+
 const filteredGames = computed(() =>
   games.value.filter(
     (game) =>
+      matchesHidden(game) &&
       matchesState(game) &&
       matchesPlayed(game) &&
       hasProvider(game, providerFilter.value) &&
@@ -147,15 +158,19 @@ const sortedGames = computed(() =>
   }),
 );
 
+// Stats always describe the visible library, whatever the hidden filter shows.
+const visibleGames = computed(() => games.value.filter((game) => !game.hidden));
+
 const totalPlaytime = computed(() =>
-  games.value.reduce((total, game) => total + game.playtimeMinutes, 0),
+  visibleGames.value.reduce((total, game) => total + game.playtimeMinutes, 0),
 );
 const playedCount = computed(
-  () => games.value.filter((game) => game.playtimeMinutes > 0).length,
+  () => visibleGames.value.filter((game) => game.playtimeMinutes > 0).length,
 );
 const recentCount = computed(
   () =>
-    games.value.filter((game) => isRecentlyPlayed(game.lastPlayedAt)).length,
+    visibleGames.value.filter((game) => isRecentlyPlayed(game.lastPlayedAt))
+      .length,
 );
 
 const stats = computed(() => [
@@ -163,18 +178,27 @@ const stats = computed(() => [
     label: "Total playtime",
     value: formatPlaytime(totalPlaytime.value) || "0m",
   },
-  { label: "Games", value: games.value.length },
+  { label: "Games", value: visibleGames.value.length },
   { label: "Played", value: playedCount.value },
-  { label: "Unplayed", value: games.value.length - playedCount.value },
+  { label: "Unplayed", value: visibleGames.value.length - playedCount.value },
   { label: "Played recently", value: recentCount.value },
 ]);
+
+const hasHiddenGames = computed(() => games.value.some((game) => game.hidden));
+
+const emptyResultTitle = computed(() =>
+  hiddenFilter.value === "hidden" && !hasHiddenGames.value
+    ? "No hidden games"
+    : "No games match",
+);
 
 const hasFilters = computed(
   () =>
     !!search.value ||
     stateFilter.value !== "all" ||
     providerFilter.value !== "all" ||
-    playedFilter.value !== "all",
+    playedFilter.value !== "all" ||
+    hiddenFilter.value !== "all",
 );
 
 const clearFilters = () => {
@@ -269,6 +293,22 @@ const clearFilters = () => {
         class="w-48"
       />
       <USelectMenu
+        v-model="hiddenFilter"
+        :items="hiddenItems"
+        value-key="value"
+        :search-input="false"
+        class="w-32"
+      >
+        <template #leading>
+          <UIcon
+            :name="
+              hiddenFilter === 'hidden' ? 'i-lucide-eye-off' : 'i-lucide-eye'
+            "
+            class="text-muted size-5 shrink-0"
+          />
+        </template>
+      </USelectMenu>
+      <USelectMenu
         v-model="sort"
         :items="sortItems"
         value-key="value"
@@ -300,7 +340,7 @@ const clearFilters = () => {
     >
       <UIcon name="i-lucide-search-x" class="text-dimmed size-10" />
       <p class="font-display text-highlighted text-lg font-semibold">
-        No games match
+        {{ emptyResultTitle }}
       </p>
       <UButton
         v-if="hasFilters"

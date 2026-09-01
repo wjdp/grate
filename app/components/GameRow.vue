@@ -20,8 +20,16 @@ const providers = computed<Provider[]>(() => {
     class="hover:bg-elevated flex items-center gap-3 px-3 py-2 transition-colors"
   >
     <GameIcon :game="game" class="size-8 shrink-0 rounded-md" />
-    <span class="text-highlighted min-w-0 flex-1 truncate text-sm font-medium">
-      {{ game.name }}
+    <span
+      class="text-highlighted flex min-w-0 flex-1 items-center gap-1.5 text-sm font-medium"
+    >
+      <span class="truncate">{{ game.name }}</span>
+      <UIcon
+        v-if="game.hidden"
+        name="i-lucide-eye-off"
+        class="text-dimmed size-3.5 shrink-0"
+        aria-label="Hidden"
+      />
     </span>
     <span class="text-muted w-20 shrink-0 text-right text-xs tabular-nums">
       {{

@@ -32,6 +32,7 @@ describe("buildNavigationCommands", () => {
       "Duplicates",
       "Activity",
       "Providers",
+      "Settings",
       "Tasks",
       "Components",
       "Events",

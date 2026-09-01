@@ -121,7 +121,7 @@ defineShortcuts({
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-2xl">
+  <PageContainer class="max-w-2xl">
     <div v-if="theGame" class="flex flex-col gap-6">
       <ArtHero
         :background="theArt?.background ?? null"
@@ -226,5 +226,5 @@ defineShortcuts({
         Back to library
       </UButton>
     </div>
-  </div>
+  </PageContainer>
 </template>

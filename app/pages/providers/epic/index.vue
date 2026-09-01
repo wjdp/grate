@@ -68,7 +68,7 @@ const connectEpic = async () => {
 </script>
 
 <template>
-  <div class="flex max-w-2xl flex-col gap-6">
+  <PageContainer class="flex max-w-2xl flex-col gap-6">
     <UBreadcrumb :items="breadcrumbs" />
 
     <h1
@@ -139,5 +139,5 @@ const connectEpic = async () => {
         Connect Epic account
       </UButton>
     </div>
-  </div>
+  </PageContainer>
 </template>

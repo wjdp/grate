@@ -76,7 +76,7 @@ const formatCreated = (createdAt: string) =>
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-3xl space-y-6">
+  <PageContainer class="max-w-3xl space-y-6">
     <div>
       <h1
         class="font-display text-highlighted text-2xl font-semibold tracking-tight"
@@ -165,5 +165,5 @@ const formatCreated = (createdAt: string) =>
         </div>
       </template>
     </UCollapsible>
-  </div>
+  </PageContainer>
 </template>

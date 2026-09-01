@@ -25,7 +25,7 @@ const unsortedPlayedCount = computed(
 </script>
 
 <template>
-  <div class="space-y-8">
+  <PageContainer class="max-w-7xl space-y-8">
     <UAlert
       v-if="needsProvider"
       color="neutral"
@@ -93,5 +93,5 @@ const unsortedPlayedCount = computed(
         </UButton>
       </div>
     </UCard>
-  </div>
+  </PageContainer>
 </template>

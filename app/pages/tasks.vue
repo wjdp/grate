@@ -129,7 +129,7 @@ const isLongMessage = (message: string) =>
 </script>
 
 <template>
-  <div class="space-y-6">
+  <PageContainer class="max-w-3xl space-y-6">
     <div class="space-y-1">
       <h1
         class="font-display text-highlighted text-2xl font-semibold tracking-tight"
@@ -241,5 +241,5 @@ const isLongMessage = (message: string) =>
         </ul>
       </template>
     </UCollapsible>
-  </div>
+  </PageContainer>
 </template>

@@ -86,7 +86,7 @@ const primaryLaunch = computed(() =>
 </script>
 
 <template>
-  <div v-if="game" class="space-y-6">
+  <PageContainer v-if="game" class="max-w-7xl space-y-6">
     <ArtHero
       :background="art?.background ?? null"
       :logo="art?.logo ?? null"
@@ -160,5 +160,5 @@ const primaryLaunch = computed(() =>
         </section>
       </div>
     </div>
-  </div>
+  </PageContainer>
 </template>

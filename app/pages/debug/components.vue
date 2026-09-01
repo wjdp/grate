@@ -13,7 +13,7 @@ const controlState = ref<GameState | null>(null);
 </script>
 
 <template>
-  <div class="flex flex-col gap-8">
+  <PageContainer class="flex max-w-7xl flex-col gap-8">
     <h1 class="font-display text-highlighted text-2xl font-semibold">
       Components
     </h1>
@@ -76,5 +76,5 @@ const controlState = ref<GameState | null>(null);
       <h2 class="text-highlighted font-semibold">History grid</h2>
       <HistoryGrid class="max-w-[64rem]" :year="2025" :days="[]" />
     </section>
-  </div>
+  </PageContainer>
 </template>

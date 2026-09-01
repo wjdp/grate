@@ -10,12 +10,12 @@ onMessage("notification", (event) => {
 </script>
 
 <template>
-  <div>
+  <PageContainer class="max-w-7xl">
     <h1>Server-Sent Events</h1>
     <p v-if="open">We're open</p>
     <p v-else>Not open</p>
     <ul>
       <li v-for="message in messages" :key="message">{{ message }}</li>
     </ul>
-  </div>
+  </PageContainer>
 </template>

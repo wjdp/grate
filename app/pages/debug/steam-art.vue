@@ -51,7 +51,7 @@ const fetchArt = async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <PageContainer class="max-w-7xl space-y-6">
     <h1 class="font-display text-highlighted text-2xl font-semibold">
       Steam art
     </h1>
@@ -123,5 +123,5 @@ const fetchArt = async () => {
         </div>
       </div>
     </div>
-  </div>
+  </PageContainer>
 </template>

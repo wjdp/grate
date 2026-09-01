@@ -14,45 +14,47 @@ const providers = computed<Provider[]>(() => {
 </script>
 
 <template>
-  <NuxtLink
-    :to="`/game/${game.id}`"
-    :prefetch="false"
-    class="hover:bg-elevated flex items-center gap-3 px-3 py-2 transition-colors"
-  >
-    <GameIcon :game="game" class="size-8 shrink-0 rounded-md" />
-    <span
-      class="text-highlighted flex min-w-0 flex-1 items-center gap-1.5 text-sm font-medium"
+  <GameContextMenu :game="game">
+    <NuxtLink
+      :to="`/game/${game.id}`"
+      :prefetch="false"
+      class="hover:bg-elevated flex items-center gap-3 px-3 py-2 transition-colors"
     >
-      <span class="truncate">{{ game.name }}</span>
-      <UIcon
-        v-if="game.hidden"
-        name="i-lucide-eye-off"
-        class="text-dimmed size-3.5 shrink-0"
-        aria-label="Hidden"
-      />
-    </span>
-    <span class="text-muted w-20 shrink-0 text-right text-xs tabular-nums">
-      {{
-        game.playtimeMinutes ? formatPlaytime(game.playtimeMinutes) : "Unplayed"
-      }}
-    </span>
-    <span
-      class="text-dimmed hidden w-32 shrink-0 text-right text-xs md:inline-block"
-    >
-      {{ game.lastPlayedAt ? formatLastPlayed(game.lastPlayedAt) : "—" }}
-    </span>
-    <span class="hidden w-28 shrink-0 justify-end sm:flex">
-      <GameStateBadge :state="game.state" size="sm" />
-    </span>
-    <span
-      class="text-dimmed hidden w-12 shrink-0 items-center justify-end gap-1 sm:flex"
-    >
-      <ProviderIcon
-        v-for="provider in providers"
-        :key="provider"
-        :provider="provider"
-        class="size-3.5"
-      />
-    </span>
-  </NuxtLink>
+      <GameIcon :game="game" class="size-8 shrink-0 rounded-md" />
+      <span
+        class="text-highlighted flex min-w-0 flex-1 items-center gap-1.5 text-sm font-medium"
+      >
+        <span class="truncate">{{ game.name }}</span>
+        <UIcon
+          v-if="game.hidden"
+          name="i-lucide-eye-off"
+          class="text-dimmed size-3.5 shrink-0"
+          aria-label="Hidden"
+        />
+      </span>
+      <span class="text-muted w-20 shrink-0 text-right text-xs tabular-nums">
+        {{
+          game.playtimeMinutes ? formatPlaytime(game.playtimeMinutes) : "Unplayed"
+        }}
+      </span>
+      <span
+        class="text-dimmed hidden w-32 shrink-0 text-right text-xs md:inline-block"
+      >
+        {{ game.lastPlayedAt ? formatLastPlayed(game.lastPlayedAt) : "—" }}
+      </span>
+      <span class="hidden w-28 shrink-0 justify-end sm:flex">
+        <GameStateBadge :state="game.state" size="sm" />
+      </span>
+      <span
+        class="text-dimmed hidden w-12 shrink-0 items-center justify-end gap-1 sm:flex"
+      >
+        <ProviderIcon
+          v-for="provider in providers"
+          :key="provider"
+          :provider="provider"
+          class="size-3.5"
+        />
+      </span>
+    </NuxtLink>
+  </GameContextMenu>
 </template>

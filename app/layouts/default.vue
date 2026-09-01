@@ -5,7 +5,7 @@ const appConfig = useAppConfig();
 <template>
   <UDashboardGroup>
     <AppSidebar />
-    <UDashboardPanel :ui="{ body: 'mx-auto w-full max-w-7xl' }">
+    <UDashboardPanel>
       <template #header>
         <UDashboardNavbar :title="appConfig.title" class="lg:hidden" />
       </template>

@@ -42,17 +42,32 @@ describe("formatSessionDuration", () => {
 });
 
 describe("formatSessionWindow", () => {
-  it("reports the anchored start", () => {
+  it("gives an anchored session as a same-day time range", () => {
     expect(
       formatSessionWindow(
         makeSession({
           anchored: true,
           provider: "steam",
-          estimatedStart: "2026-08-31T20:39:00.000Z",
+          estimatedStart: "2026-07-11T18:53:00.000Z",
+          estimatedEnd: "2026-07-11T20:11:00.000Z",
         }),
         now,
       ),
-    ).toBe("started 31 Aug 20:39");
+    ).toBe("11 Jul 18:53 – 20:11");
+  });
+
+  it("dates both ends of an anchored session crossing midnight", () => {
+    expect(
+      formatSessionWindow(
+        makeSession({
+          anchored: true,
+          provider: "steam",
+          estimatedStart: "2026-07-11T23:20:00.000Z",
+          estimatedEnd: "2026-07-12T01:05:00.000Z",
+        }),
+        now,
+      ),
+    ).toBe("11 Jul 23:20 – 12 Jul 01:05");
   });
 
   it("rounds a near-exact window to its midpoint", () => {
@@ -103,10 +118,11 @@ describe("formatSessionWindow", () => {
         makeSession({
           anchored: true,
           estimatedStart: "2024-08-31T20:39:00.000Z",
+          estimatedEnd: "2024-08-31T21:49:00.000Z",
         }),
         now,
       ),
-    ).toBe("started 31 Aug 2024 20:39");
+    ).toBe("31 Aug 2024 20:39 – 21:49");
   });
 });
 

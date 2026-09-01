@@ -41,7 +41,8 @@ For each consecutive pair with `delta = curr.playtime − prev.playtime > 0`, em
 - `estimatedStart`: `curr.timestampEnd − delta` (may precede the window — that's the point).
 - `uncertaintyMinutes`: window width plus any delta overshoot; ~0 for Steam anchored on `rTimeLastPlayed`, small for a tight manual-sync window, large for missed syncs (see downtime section).
 - Skip the initial grounding pair (`timestampStart: null` baseline + its partner) — pre-history, not a session.
-- Steam: when `rTimeLastPlayed` changed, use it to anchor session start instead of subtracting.
+- Steam: when `rTimeLastPlayed` changed, use it to anchor the session *end* — it is the moment Steam last flushed the total, so it dates the end of the play the delta counts, not its start. `estimatedStart = anchor − delta`.
+- Steam flushes hourly mid-session, so one sitting arrives as a run of anchored deltas whose ends meet the next start. Merge consecutive anchored deltas of the same provider row when the gap is within 5 minutes (observed jitter ≤ 1s); never merge unanchored ones — GOG/Epic already report per completed session, and an unanchored Steam delta gives no contiguity evidence.
 
 Inferred `lastPlayedAt` for GOG (and Epic where absent) = end bound of the latest inferred session, written to `GogGame.lastPlayedAt` and flowed through `refreshGameAggregates` — canonical store, so all-games filtering/sorting keeps working with no special cases.
 
@@ -90,10 +91,10 @@ Cheapest first; a+d likely the starting point, b/c candidates once data accumula
 
 ## Landed
 
-- **Derivation**: `deriveSessions`/`inferredLastPlayedAt` (`lib/playtimeTimeline.ts`). Grounding pair needs no special case — its delta is 0, so it's skipped like any zero delta. Steam anchors a session's start on `rTimeLastPlayed` only for the first delta where it changed; continuation deltas (unchanged anchor) fall back to window bounds. `uncertaintyMinutes = max(windowMinutes, minutes)`.
+- **Derivation**: `deriveSessions`/`inferredLastPlayedAt` (`lib/playtimeTimeline.ts`). Grounding pair needs no special case — its delta is 0, so it's skipped like any zero delta. Steam anchors a session's *end* on `rTimeLastPlayed` (the last flush time) whenever it changed, with `estimatedStart = end − minutes`; continuation deltas (unchanged anchor) fall back to window bounds. Consecutive anchored deltas whose gap is within `CONTIGUOUS_ANCHOR_TOLERANCE_MINUTES` (5) are merged into one session, so a long Steam sitting reads as one row rather than a dozen "1h" ones. `uncertaintyMinutes = max(windowMinutes, minutes)` when unanchored, 0 when anchored.
 - **API**: `getGameTimeline` (`lib/games.ts`) + `GET /api/games/[id]/timeline`, sharing the per-provider snapshot loader with `getGamePlaytimes`.
 - **GOG/Epic `lastPlayedAt`**: inferred via `inferredLastPlayedAt` in `lib/gog/service.ts` and `lib/epic/service.ts` when the provider gives none. Backfills on next sync; no data migration.
-- **UI**: game page renders `PlaytimeSessionList` (options a + d) grouped by day, replacing the raw table. Wording rules in `app/utils/formatSessionWindow.ts`; a session is low-confidence when `uncertaintyMinutes > 2 × minutes` or the observation window exceeds 24h. Raw cumulative rows moved behind `PlaytimeRawHistoryModal` ("Raw sync data").
+- **UI**: game page renders `PlaytimeSessionList` (options a + d) grouped by day, replacing the raw table. Wording rules in `app/utils/formatSessionWindow.ts` (an anchored session renders as a range, `11 Jul 18:53 – 20:11`); a session is low-confidence when `uncertaintyMinutes > 2 × minutes` or the observation window exceeds 24h. Raw cumulative rows moved behind `PlaytimeRawHistoryModal` ("Raw sync data").
 - **Play day**: `User.timezone`/`dayBoundaryHour` (migration `0008_user_settings.sql`, default boundary 06:00) + `shared/playDay.ts` (`playDayOf`) + `/api/settings` (GET/PATCH) + a Settings page. `getDailyPlaytime` (`lib/activity.ts`) and the game-page day grouping both bucket by play day, not calendar day.
 
 Open follow-ups: UI options b (horizontal day timeline) and c (day-bucketed activity chart) not built. Materialising the timeline (vs computing on read) not needed yet — revisit if slow. Debug modal is still just raw rows, not the fuller sync-debug surface sketched in decision 6's second half.

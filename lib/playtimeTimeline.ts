@@ -5,6 +5,11 @@ import type {
 
 const MILLISECONDS_PER_MINUTE = 60_000;
 
+// Steam flushes a game's total every hour or so, so one sitting arrives as a
+// run of anchored deltas whose ends and starts meet. Flush timing jitters by a
+// second or two; this absorbs that without joining genuinely separate sittings.
+const CONTIGUOUS_ANCHOR_TOLERANCE_MINUTES = 5;
+
 // Which play day a session falls on depends on user settings, so the pure
 // derivation leaves `playDay` to its caller.
 export type DerivedSession = Omit<PlaytimeSession, "playDay">;
@@ -71,7 +76,9 @@ function observeDeltas(snapshots: PlaytimeSnapshot[]): ObservedDelta[] {
   return deltas;
 }
 
-function anchoredStart(
+// `rTimeLastPlayed` is the moment Steam last flushed the total, so it dates the
+// end of the play the delta counts, not its start.
+function anchoredEnd(
   delta: ObservedDelta,
   provider: PlaytimeProvider,
 ): Date | null {
@@ -98,14 +105,14 @@ function toSession(
     endedAfter: delta.endedAfter,
     endedBefore: delta.endedBefore,
   };
-  const anchor = anchoredStart(delta, row.provider);
+  const anchor = anchoredEnd(delta, row.provider);
   if (anchor) {
     return {
       ...bounds,
-      estimatedStart: anchor,
-      estimatedEnd: new Date(
-        anchor.getTime() + delta.minutes * MILLISECONDS_PER_MINUTE,
+      estimatedStart: new Date(
+        anchor.getTime() - delta.minutes * MILLISECONDS_PER_MINUTE,
       ),
+      estimatedEnd: anchor,
       uncertaintyMinutes: 0,
       anchored: true,
     };
@@ -128,11 +135,43 @@ function toSession(
   };
 }
 
+// An unanchored delta carries no evidence that it continues the previous one,
+// and GOG/Epic already report one delta per completed session.
+function continuesPrevious(previous: DerivedSession, next: DerivedSession) {
+  if (!previous.anchored || !next.anchored) {
+    return false;
+  }
+  const gapMinutes =
+    Math.abs(next.estimatedStart.getTime() - previous.estimatedEnd.getTime()) /
+    MILLISECONDS_PER_MINUTE;
+  return gapMinutes <= CONTIGUOUS_ANCHOR_TOLERANCE_MINUTES;
+}
+
+function mergeContiguousSessions(sessions: DerivedSession[]) {
+  return sessions.reduce<DerivedSession[]>((merged, session) => {
+    const previous = merged.at(-1);
+    if (!previous || !continuesPrevious(previous, session)) {
+      merged.push(session);
+      return merged;
+    }
+    merged[merged.length - 1] = {
+      ...previous,
+      minutes: previous.minutes + session.minutes,
+      endedAfter: session.endedAfter,
+      endedBefore: session.endedBefore,
+      estimatedEnd: session.estimatedEnd,
+    };
+    return merged;
+  }, []);
+}
+
 export function deriveSessions(
   snapshots: PlaytimeSnapshot[],
   row: PlaytimeProviderRow,
 ): DerivedSession[] {
-  return observeDeltas(snapshots).map((delta) => toSession(delta, row));
+  return mergeContiguousSessions(
+    observeDeltas(snapshots).map((delta) => toSession(delta, row)),
+  );
 }
 
 export function inferredLastPlayedAt(

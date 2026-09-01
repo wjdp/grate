@@ -40,6 +40,45 @@ const cyberpunkSnapshots: PlaytimeSnapshot[] = [
   },
 ];
 
+// Rows 51790-51810 of `SteamGamePlaytime` for Factorio: one 18-hour sitting
+// flushed hourly, each flush advancing `rTimeLastPlayed` by the delta.
+const factorioRow: PlaytimeProviderRow = {
+  provider: "steam",
+  providerId: 427520,
+  providerName: "Factorio",
+};
+
+const factorioSnapshots: PlaytimeSnapshot[] = (
+  [
+    ["2026-06-12T01:00:01Z", "2026-06-12T02:00:02Z", 16323, 1781229425],
+    ["2026-06-12T02:00:02Z", "2026-06-12T19:00:01Z", 16323, 1781229425],
+    ["2026-06-12T19:00:01Z", "2026-06-12T20:00:01Z", 16353, 1781293293],
+    ["2026-06-12T20:00:01Z", "2026-06-12T21:00:02Z", 16413, 1781296893],
+    ["2026-06-12T21:00:02Z", "2026-06-12T22:00:02Z", 16473, 1781300493],
+    ["2026-06-12T22:00:02Z", "2026-06-12T23:00:01Z", 16533, 1781304094],
+    ["2026-06-12T23:00:01Z", "2026-06-13T00:00:03Z", 16593, 1781307694],
+    ["2026-06-13T00:00:03Z", "2026-06-13T01:00:01Z", 16653, 1781311294],
+    ["2026-06-13T01:00:01Z", "2026-06-13T02:00:01Z", 16713, 1781314894],
+    ["2026-06-13T02:00:01Z", "2026-06-13T03:00:01Z", 16773, 1781318494],
+    ["2026-06-13T03:00:01Z", "2026-06-13T04:00:01Z", 16833, 1781322095],
+    ["2026-06-13T04:00:01Z", "2026-06-13T05:00:02Z", 16893, 1781325695],
+    ["2026-06-13T05:00:02Z", "2026-06-13T06:00:01Z", 16953, 1781329295],
+    ["2026-06-13T06:00:01Z", "2026-06-13T07:00:01Z", 17013, 1781332895],
+    ["2026-06-13T07:00:01Z", "2026-06-13T08:00:01Z", 17073, 1781336495],
+    ["2026-06-13T08:00:01Z", "2026-06-13T09:00:01Z", 17133, 1781340095],
+    ["2026-06-13T09:00:01Z", "2026-06-13T10:00:01Z", 17193, 1781343695],
+    ["2026-06-13T10:00:01Z", "2026-06-13T11:00:02Z", 17253, 1781347295],
+    ["2026-06-13T11:00:02Z", "2026-06-13T12:00:01Z", 17313, 1781350895],
+    ["2026-06-13T12:00:01Z", "2026-06-13T13:00:01Z", 17373, 1781354495],
+    ["2026-06-13T13:00:01Z", "2026-06-13T14:00:01Z", 17399, 1781356068],
+  ] as const
+).map(([start, end, playtimeMinutes, rTimeLastPlayed]) => ({
+  timestampStart: new Date(start),
+  timestampEnd: new Date(end),
+  playtimeMinutes,
+  rTimeLastPlayed,
+}));
+
 describe("deriveSessions", () => {
   it("returns nothing for no snapshots", () => {
     expect(deriveSessions([], cyberpunkRow)).toEqual([]);
@@ -160,8 +199,8 @@ describe("deriveSessions", () => {
     expect(sessions[0]?.anchored).toBe(false);
   });
 
-  it("anchors a Steam session on rTimeLastPlayed when it changes", () => {
-    const startedAt = new Date("2026-08-31T18:00:00Z");
+  it("anchors a Steam session's end on rTimeLastPlayed when it changes", () => {
+    const flushedAt = new Date("2026-08-31T18:00:00Z");
     const sessions = deriveSessions(
       [
         {
@@ -174,19 +213,96 @@ describe("deriveSessions", () => {
           timestampStart: new Date("2026-08-31T18:00:00Z"),
           timestampEnd: new Date("2026-08-31T19:00:00Z"),
           playtimeMinutes: 545,
-          rTimeLastPlayed: startedAt.getTime() / 1000,
+          rTimeLastPlayed: flushedAt.getTime() / 1000,
         },
       ],
       steamRow,
     );
     expect(sessions[0]?.anchored).toBe(true);
-    expect(sessions[0]?.estimatedStart).toEqual(startedAt);
-    expect(sessions[0]?.estimatedEnd).toEqual(new Date("2026-08-31T18:45:00Z"));
+    expect(sessions[0]?.estimatedEnd).toEqual(flushedAt);
+    expect(sessions[0]?.estimatedStart).toEqual(
+      new Date("2026-08-31T17:15:00Z"),
+    );
     expect(sessions[0]?.uncertaintyMinutes).toBe(0);
   });
 
+  it("merges the hourly anchored deltas of one Factorio sitting into a single session", () => {
+    const sessions = deriveSessions(factorioSnapshots, factorioRow);
+    expect(sessions).toEqual([
+      {
+        ...factorioRow,
+        minutes: 1076,
+        endedAfter: new Date("2026-06-13T13:00:01Z"),
+        endedBefore: new Date("2026-06-13T14:00:01Z"),
+        estimatedStart: new Date("2026-06-12T19:11:33Z"),
+        estimatedEnd: new Date("2026-06-13T13:07:48Z"),
+        uncertaintyMinutes: 0,
+        anchored: true,
+      },
+    ]);
+  });
+
+  it("keeps anchored sessions separated by more than the merge tolerance apart", () => {
+    const sessions = deriveSessions(
+      [
+        {
+          timestampStart: new Date("2026-06-14T10:00:00Z"),
+          timestampEnd: new Date("2026-06-14T11:00:00Z"),
+          playtimeMinutes: 100,
+          rTimeLastPlayed: new Date("2026-06-14T10:30:00Z").getTime() / 1000,
+        },
+        {
+          timestampStart: new Date("2026-06-14T11:00:00Z"),
+          timestampEnd: new Date("2026-06-14T12:00:00Z"),
+          playtimeMinutes: 130,
+          rTimeLastPlayed: new Date("2026-06-14T11:30:00Z").getTime() / 1000,
+        },
+        {
+          timestampStart: new Date("2026-06-14T12:00:00Z"),
+          timestampEnd: new Date("2026-06-14T13:00:00Z"),
+          playtimeMinutes: 150,
+          rTimeLastPlayed: new Date("2026-06-14T12:50:00Z").getTime() / 1000,
+        },
+      ],
+      steamRow,
+    );
+    expect(sessions.map((session) => session.minutes)).toEqual([30, 20]);
+    expect(sessions.map((session) => session.estimatedEnd)).toEqual([
+      new Date("2026-06-14T11:30:00Z"),
+      new Date("2026-06-14T12:50:00Z"),
+    ]);
+  });
+
+  it("never merges an unanchored delta into the anchored session before it", () => {
+    const sessions = deriveSessions(
+      [
+        {
+          timestampStart: new Date("2026-06-14T10:00:00Z"),
+          timestampEnd: new Date("2026-06-14T11:00:00Z"),
+          playtimeMinutes: 100,
+          rTimeLastPlayed: new Date("2026-06-14T10:30:00Z").getTime() / 1000,
+        },
+        {
+          timestampStart: new Date("2026-06-14T11:00:00Z"),
+          timestampEnd: new Date("2026-06-14T12:00:00Z"),
+          playtimeMinutes: 130,
+          rTimeLastPlayed: new Date("2026-06-14T11:30:00Z").getTime() / 1000,
+        },
+        {
+          timestampStart: new Date("2026-06-14T12:00:00Z"),
+          timestampEnd: new Date("2026-06-14T13:00:00Z"),
+          playtimeMinutes: 160,
+          rTimeLastPlayed: new Date("2026-06-14T11:30:00Z").getTime() / 1000,
+        },
+      ],
+      steamRow,
+    );
+    expect(sessions.map((session) => session.anchored)).toEqual([true, false]);
+    expect(sessions.map((session) => session.minutes)).toEqual([30, 30]);
+  });
+
   it("treats a Steam continuation delta with unchanged rTimeLastPlayed as unanchored and bounded by its window, since Steam counts playtime live", () => {
-    const startedAt = new Date("2026-08-31T18:00:00Z");
+    const flushedAt = new Date("2026-08-31T18:00:00Z");
     const sessions = deriveSessions(
       [
         {
@@ -199,13 +315,13 @@ describe("deriveSessions", () => {
           timestampStart: new Date("2026-08-31T18:00:00Z"),
           timestampEnd: new Date("2026-08-31T19:00:00Z"),
           playtimeMinutes: 545,
-          rTimeLastPlayed: startedAt.getTime() / 1000,
+          rTimeLastPlayed: flushedAt.getTime() / 1000,
         },
         {
           timestampStart: new Date("2026-08-31T19:00:00Z"),
           timestampEnd: new Date("2026-08-31T20:00:00Z"),
           playtimeMinutes: 605,
-          rTimeLastPlayed: startedAt.getTime() / 1000,
+          rTimeLastPlayed: flushedAt.getTime() / 1000,
         },
       ],
       steamRow,

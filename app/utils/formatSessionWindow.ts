@@ -7,7 +7,12 @@ const NEAR_EXACT_WINDOW_MINUTES = 15;
 
 type SessionWindow = Pick<
   PlaytimeSessionJson,
-  "minutes" | "endedAfter" | "endedBefore" | "estimatedStart" | "anchored"
+  | "minutes"
+  | "endedAfter"
+  | "endedBefore"
+  | "estimatedStart"
+  | "estimatedEnd"
+  | "anchored"
 > &
   Partial<Pick<PlaytimeSessionJson, "uncertaintyMinutes">>;
 
@@ -54,6 +59,13 @@ function windowMinutes(session: SessionWindow) {
   );
 }
 
+function formatAnchoredRange(start: Date, end: Date, now: Date) {
+  if (start.toDateString() === end.toDateString()) {
+    return `${formatDate(start, now)} ${formatTime(start)} – ${formatTime(end)}`;
+  }
+  return `${formatDateTime(start, now)} – ${formatDateTime(end, now)}`;
+}
+
 export function formatSessionDuration(session: SessionWindow) {
   const duration = formatPlaytime(session.minutes) || "0m";
   return session.anchored ? duration : `~${duration}`;
@@ -63,7 +75,11 @@ export function formatSessionWindow(session: SessionWindow, now: Date) {
   const endedAfter = new Date(session.endedAfter);
   const endedBefore = new Date(session.endedBefore);
   if (session.anchored) {
-    return `started ${formatDateTime(new Date(session.estimatedStart), now)}`;
+    return formatAnchoredRange(
+      new Date(session.estimatedStart),
+      new Date(session.estimatedEnd),
+      now,
+    );
   }
   const width = windowMinutes(session);
   if (width <= NEAR_EXACT_WINDOW_MINUTES) {

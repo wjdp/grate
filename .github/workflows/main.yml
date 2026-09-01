@@ -18,58 +18,11 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - name: Use Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-      - name: Install dependencies
-        run: pnpm install
-      - name: Lint
-        run: pnpm run lint:ci
+  checks:
+    uses: ./.github/workflows/checks.yml
 
-  typecheck:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - name: Use Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-      - name: Install dependencies
-        run: pnpm install
-      - name: Typecheck
-        run: pnpm typecheck
-
-  vitest:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - name: Use Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-      - name: Install dependencies
-        run: pnpm install
-      - name: Prepare Nuxt types
-        run: pnpm nuxt prepare
-      - name: Test
-        run: pnpm test
-
-  release:
-    needs: [lint, typecheck, vitest]
+  edge:
+    needs: checks
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -80,8 +33,9 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v7
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+      - name: Compute short sha
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
       - name: Login to GitHub Container Registry
@@ -90,16 +44,16 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Echo the image name
-        run: echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       - name: Build & push to GitHub Container Registry
         id: push
         uses: docker/build-push-action@v7
         with:
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:edge
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          build-args: |
+            VERSION_SUFFIX=+${{ steps.sha.outputs.short }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Generate artifact attestation

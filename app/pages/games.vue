@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { GAME_STATES, type GameState } from "#shared/game-state";
+import { PROVIDERS } from "#shared/providers";
 import { getPageTitle } from "#shared/title";
 import type { GameWithProviders } from "#shared/types/Game";
 import { gameStateItemGroups } from "~/utils/gameStateItems";
@@ -34,7 +35,7 @@ function queryParam<Value extends string>(
 }
 
 const STATE_FILTERS = ["all", "unsorted", ...GAME_STATES] as const;
-const PROVIDER_FILTERS = ["all", "steam", "gog", "epic"] as const;
+const PROVIDER_FILTERS = ["all", ...PROVIDERS] as const;
 const PLAYED_FILTERS = ["all", "played", "unplayed", "recent"] as const;
 const SORTS = ["lastPlayed", "name", "playtime"] as const;
 
@@ -79,13 +80,6 @@ const selectedStateItem = computed(
     stateFilterItems.find((item) => item.value === stateFilter.value) ??
     allStatesItem,
 );
-
-const providerItems: FilterItem[] = [
-  { value: "all", label: "All providers" },
-  { value: "steam", label: "Steam" },
-  { value: "gog", label: "GOG" },
-  { value: "epic", label: "Epic" },
-];
 
 const playedItems: FilterItem[] = [
   { value: "all", label: "Played and unplayed" },
@@ -266,13 +260,7 @@ const clearFilters = () => {
           />
         </template>
       </USelectMenu>
-      <USelectMenu
-        v-model="providerFilter"
-        :items="providerItems"
-        value-key="value"
-        :search-input="false"
-        class="w-40"
-      />
+      <ProviderSelect v-model="providerFilter" class="w-40" />
       <USelectMenu
         v-model="playedFilter"
         :items="playedItems"

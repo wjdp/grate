@@ -2,6 +2,10 @@ import type { GameDetail } from "../types/Game";
 
 export type Provider = "steam" | "gog" | "epic";
 
+export const PROVIDERS: readonly Provider[] = ["steam", "gog", "epic"];
+
+export type ProviderFilter = "all" | Provider;
+
 export const ProviderLabels: Record<Provider, string> = {
   steam: "Steam",
   gog: "GOG",

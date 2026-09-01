@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { GAME_STATES, type GameState } from "#shared/game-state";
+import type { ProviderFilter } from "#shared/providers";
 import type { SseTask } from "~~/lib/hooks";
 
 const taskStates: SseTask["state"][] = [
@@ -10,6 +11,7 @@ const taskStates: SseTask["state"][] = [
 ];
 
 const controlState = ref<GameState | null>(null);
+const providerFilter = ref<ProviderFilter>("all");
 </script>
 
 <template>
@@ -34,6 +36,12 @@ const controlState = ref<GameState | null>(null);
       <h2 class="text-highlighted font-semibold">Game state control</h2>
       <GameStateControl v-model="controlState" />
       <p class="text-muted text-sm">Selected: {{ controlState ?? "null" }}</p>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-highlighted font-semibold">Provider select</h2>
+      <ProviderSelect v-model="providerFilter" class="w-40" />
+      <p class="text-muted text-sm">Selected: {{ providerFilter }}</p>
     </section>
 
     <section class="flex flex-col gap-3">

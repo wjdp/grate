@@ -1,53 +1,20 @@
 <script setup lang="ts">
+import type { GameState } from "#shared/game-state";
 import {
-  type GameState,
-  GameStateHues,
-  GameStateIcons,
-  GameStateNames,
-} from "#shared/game-state";
-
-interface StateItem {
-  value: GameState | null;
-  label: string;
-  icon: string;
-  iconClass: string;
-}
+  type GameStateItem,
+  gameStateItemGroups,
+  unsortedGameStateItem,
+} from "~/utils/gameStateItems";
 
 const state = defineModel<GameState | null>();
 const emit = defineEmits<{ change: [GameState | null] }>();
 
-const toItem = (gameState: GameState): StateItem => ({
-  value: gameState,
-  label: GameStateNames[gameState],
-  icon: GameStateIcons[gameState],
-  iconClass: GameStateHues[gameState].icon,
-});
+const items = gameStateItemGroups.flat();
 
-const unsorted: StateItem = {
-  value: null,
-  label: "Unsorted",
-  icon: "i-lucide-circle-dashed",
-  iconClass: "text-grey-500 dark:text-grey-400",
-};
-
-const groups: StateItem[][] = [
-  [unsorted],
-  [toItem("BACKLOG")],
-  [toItem("PLAYING"), toItem("PERIODIC"), toItem("SHELVED")],
-  [
-    toItem("PLAYED"),
-    toItem("COMPLETED"),
-    toItem("RETIRED"),
-    toItem("ABANDONED"),
-  ],
-  [toItem("IGNORED")],
-];
-
-const items = groups.flat();
-
-const selected = computed<StateItem>({
+const selected = computed<GameStateItem>({
   get: () =>
-    items.find((item) => item.value === (state.value ?? null)) ?? unsorted,
+    items.find((item) => item.value === (state.value ?? null)) ??
+    unsortedGameStateItem,
   set: (item) => {
     state.value = item?.value ?? null;
     emit("change", state.value ?? null);
@@ -58,7 +25,7 @@ const selected = computed<StateItem>({
 <template>
   <USelectMenu
     v-model="selected"
-    :items="groups"
+    :items="gameStateItemGroups"
     :search-input="false"
     :ui="{
       content:

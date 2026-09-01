@@ -1,12 +1,8 @@
 <script lang="ts" setup>
-import {
-  GAME_STATES,
-  type GameState,
-  GameStateHues,
-  GameStateNames,
-} from "#shared/game-state";
+import { GAME_STATES, type GameState } from "#shared/game-state";
 import { getPageTitle } from "#shared/title";
 import type { GameWithProviders } from "#shared/types/Game";
+import { gameStateItemGroups } from "~/utils/gameStateItems";
 
 useSeoMeta({ title: getPageTitle("Library") });
 
@@ -55,18 +51,34 @@ const view = useCookie<"wall" | "list">("library-view", {
 interface FilterItem {
   value: string;
   label: string;
-  dot?: string;
 }
 
-const stateItems: FilterItem[] = [
-  { value: "all", label: "All states" },
-  { value: "unsorted", label: "Unsorted" },
-  ...GAME_STATES.map((state) => ({
-    value: state,
-    label: GameStateNames[state],
-    dot: GameStateHues[state].dot,
-  })),
+interface StateFilterItem extends FilterItem {
+  icon: string;
+  iconClass: string;
+}
+
+const allStatesItem: StateFilterItem = {
+  value: "all",
+  label: "All states",
+  icon: "i-lucide-layers",
+  iconClass: "text-muted",
+};
+
+const stateFilterGroups: StateFilterItem[][] = [
+  [allStatesItem],
+  ...gameStateItemGroups.map((group) =>
+    group.map((item) => ({ ...item, value: item.value ?? "unsorted" })),
+  ),
 ];
+
+const stateFilterItems = stateFilterGroups.flat();
+
+const selectedStateItem = computed(
+  () =>
+    stateFilterItems.find((item) => item.value === stateFilter.value) ??
+    allStatesItem,
+);
 
 const providerItems: FilterItem[] = [
   { value: "all", label: "All providers" },
@@ -227,15 +239,27 @@ const clearFilters = () => {
       />
       <USelectMenu
         v-model="stateFilter"
-        :items="stateItems"
+        :items="stateFilterGroups"
         value-key="value"
         :search-input="false"
+        :ui="{
+          content:
+            'max-h-[min(24rem,var(--reka-combobox-content-available-height,24rem))]',
+        }"
         class="w-40"
       >
+        <template #leading>
+          <UIcon
+            :name="selectedStateItem.icon"
+            class="size-5 shrink-0"
+            :class="selectedStateItem.iconClass"
+          />
+        </template>
         <template #item-leading="{ item }">
-          <span
-            v-if="item.dot"
-            :class="['size-2 shrink-0 rounded-full', item.dot]"
+          <UIcon
+            :name="item.icon"
+            class="size-5 shrink-0"
+            :class="item.iconClass"
           />
         </template>
       </USelectMenu>

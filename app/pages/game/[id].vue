@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { getGameArtUrls } from "#shared/art";
 import type { GameState } from "#shared/game-state";
-import { getPrimaryLaunch, ProviderLabels } from "#shared/providers";
+import { getPrimaryLaunch } from "#shared/providers";
 import { getPageTitle } from "#shared/title";
 
 const route = useRoute();
@@ -16,13 +16,10 @@ const game = computed(() => data.value?.game);
 
 if (game.value) useSeoMeta({ title: getPageTitle(game.value.name) });
 
-const { data: playtimeData, refresh: refreshPlaytimes } = await useFetch(
-  `/api/games/${id}/playtimes`,
+const { data: timelineData, refresh: refreshTimeline } = await useFetch(
+  `/api/games/${id}/timeline`,
 );
-const playtimes = computed(() => playtimeData.value?.playtimes ?? []);
-
-const formatTimestamp = (timestamp: string) =>
-  new Date(timestamp).toLocaleString("en-GB");
+const sessions = computed(() => timelineData.value?.sessions ?? []);
 
 const state = ref(game.value?.state ?? null);
 watch(
@@ -62,7 +59,7 @@ const updateGameState = async (state: GameState | null) => {
 };
 
 const onMerged = async () => {
-  await Promise.all([refresh(), refreshPlaytimes()]);
+  await Promise.all([refresh(), refreshTimeline()]);
 };
 
 const steamGames = computed(() => game.value?.steamGames ?? []);
@@ -86,31 +83,6 @@ const primaryLaunch = computed(() =>
   game.value ? getPrimaryLaunch(game.value) : null,
 );
 
-const playtimeColumns = [
-  { accessorKey: "timestampStart", header: "Start" },
-  { accessorKey: "timestampEnd", header: "End" },
-  { accessorKey: "provider", header: "Provider" },
-  { accessorKey: "providerName", header: "Name" },
-  {
-    accessorKey: "playtimeMinutes",
-    header: "Playtime",
-    meta: {
-      class: { th: "text-right", td: "text-right font-mono tabular-nums" },
-    },
-  },
-];
-
-// Records are cumulative snapshots, newest first: a row whose total matches the
-// next-older one records no new play.
-const playtimeMeta = {
-  class: {
-    tr: (row: { index: number }) =>
-      playtimes.value[row.index + 1]?.playtimeMinutes ===
-      playtimes.value[row.index]?.playtimeMinutes
-        ? "text-dimmed"
-        : "",
-  },
-};
 </script>
 
 <template>
@@ -167,41 +139,13 @@ const playtimeMeta = {
         <GameProviderRows :game="game" />
 
         <section class="space-y-3">
-          <h2 class="font-display text-highlighted text-lg font-semibold">
-            History
-          </h2>
-          <div v-if="playtimes.length" class="overflow-x-auto">
-            <UTable
-              :data="playtimes"
-              :columns="playtimeColumns"
-              :meta="playtimeMeta"
-            >
-              <template #timestampStart-cell="{ row }">
-                <span class="font-mono text-xs">
-                  {{
-                    row.original.timestampStart
-                      ? formatTimestamp(row.original.timestampStart)
-                      : "—"
-                  }}
-                </span>
-              </template>
-              <template #timestampEnd-cell="{ row }">
-                <span class="font-mono text-xs">
-                  {{ formatTimestamp(row.original.timestampEnd) }}
-                </span>
-              </template>
-              <template #provider-cell="{ row }">
-                <span class="flex items-center gap-1.5">
-                  <ProviderIcon :provider="row.original.provider" />
-                  {{ ProviderLabels[row.original.provider] }}
-                </span>
-              </template>
-              <template #playtimeMinutes-cell="{ row }">
-                {{ formatPlaytime(row.original.playtimeMinutes) || "None" }}
-              </template>
-            </UTable>
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="font-display text-highlighted text-lg font-semibold">
+              History
+            </h2>
+            <PlaytimeRawHistoryModal :game-id="id" />
           </div>
-          <p v-else class="text-muted">No playtime recorded yet</p>
+          <PlaytimeSessionList :sessions="sessions" />
         </section>
 
         <section class="space-y-3">

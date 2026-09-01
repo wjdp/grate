@@ -9,6 +9,7 @@ import { getDailyPlaytime } from "~~/lib/activity";
 import { db } from "~~/lib/db";
 import {
   createEpicGame,
+  createGame,
   createGogGame,
   createSteamGame,
 } from "~~/lib/fixtures/game";
@@ -107,6 +108,30 @@ describe("getDailyPlaytime", () => {
     expect(
       await getDailyPlaytime(2025, { timezone: "UTC", dayBoundaryHour: 0 }),
     ).toStrictEqual([{ date: "2025-03-02", minutes: 90 }]);
+  });
+
+  it("excludes deltas from hidden games", async () => {
+    const hidden = createGame({ name: "Wallpaper Engine", hidden: true });
+    const hiddenSteamGame = createSteamGame({ gameId: hidden.id });
+    const visibleSteamGame = createSteamGame();
+    recordSteam(hiddenSteamGame.appId, "2025-06-01T12:00:00.000Z", 100);
+    recordSteam(hiddenSteamGame.appId, "2025-06-02T12:00:00.000Z", 400);
+    recordSteam(visibleSteamGame.appId, "2025-06-01T12:00:00.000Z", 10);
+    recordSteam(visibleSteamGame.appId, "2025-06-02T12:00:00.000Z", 30);
+    expect(await getDailyPlaytime(2025)).toStrictEqual([
+      { date: "2025-06-02", minutes: 20 },
+    ]);
+  });
+
+  it("excludes gog and epic rows belonging to hidden games", async () => {
+    const hidden = createGame({ name: "Galaxy", hidden: true });
+    const hiddenGogGame = createGogGame({ gameId: hidden.id });
+    const hiddenEpicGame = createEpicGame({ gameId: hidden.id });
+    recordGog(hiddenGogGame.gogId, "2025-07-01T12:00:00.000Z", 10);
+    recordGog(hiddenGogGame.gogId, "2025-07-02T12:00:00.000Z", 40);
+    recordEpic(hiddenEpicGame.epicId, "2025-07-01T12:00:00.000Z", 0);
+    recordEpic(hiddenEpicGame.epicId, "2025-07-02T12:00:00.000Z", 25);
+    expect(await getDailyPlaytime(2025)).toStrictEqual([]);
   });
 
   it("filters to the requested year", async () => {

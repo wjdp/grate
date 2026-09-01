@@ -25,7 +25,7 @@ hidden: boolean().notNull().default(false),
 Migration `db/migrations/0009_game_hidden.sql`:
 
 ```sql
-ALTER TABLE `Game` ADD `hidden` integer DEFAULT 0 NOT NULL;
+ALTER TABLE `Game` ADD `hidden` integer DEFAULT false NOT NULL;
 ```
 
 Update `meta/` snapshot and journal as for previous migrations; add the column to the migration tests' expected schema.

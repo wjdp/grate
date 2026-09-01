@@ -59,6 +59,12 @@ describe("findDuplicatePairs", () => {
     expect(pairs[0].b.id).toBe(second.id);
   });
 
+  it("excludes hidden games from pairs", async () => {
+    createGame({ name: "Dishonored" });
+    createGame({ name: "Dishonored - Definitive Edition", hidden: true });
+    expect(await findDuplicatePairs()).toStrictEqual([]);
+  });
+
   it("does not pair sequels", async () => {
     createGame({ name: "Portal" });
     createGame({ name: "Portal 2" });

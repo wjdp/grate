@@ -1,7 +1,8 @@
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { type PlayDaySettings, playDayOf } from "#shared/playDay";
 import {
   epicGamePlaytime,
+  game,
   gogGamePlaytime,
   steamGamePlaytime,
 } from "~~/db/schema";
@@ -17,6 +18,25 @@ interface Snapshot {
   rowKey: string;
   timestampEnd: Date;
   playtimeMinutes: number;
+}
+
+async function getHiddenRowKeys(): Promise<Set<string>> {
+  const hiddenGames = await db.query.game.findMany({
+    columns: { id: true },
+    with: {
+      steamGames: { columns: { appId: true } },
+      gogGames: { columns: { gogId: true } },
+      epicGames: { columns: { epicId: true } },
+    },
+    where: eq(game.hidden, true),
+  });
+  return new Set(
+    hiddenGames.flatMap((hiddenGame) => [
+      ...hiddenGame.steamGames.map((row) => `steam:${row.appId}`),
+      ...hiddenGame.gogGames.map((row) => `gog:${row.gogId}`),
+      ...hiddenGame.epicGames.map((row) => `epic:${row.epicId}`),
+    ]),
+  );
 }
 
 async function getSnapshots(): Promise<Snapshot[]> {
@@ -61,10 +81,12 @@ export async function getDailyPlaytime(
 ): Promise<DailyPlaytime[]> {
   const playDaySettings = settings ?? (await getPlayDaySettings());
   const snapshots = await getSnapshots();
+  const hiddenRowKeys = await getHiddenRowKeys();
   const previousByRow = new Map<string, number>();
   const minutesByDate = new Map<string, number>();
 
   for (const snapshot of snapshots) {
+    if (hiddenRowKeys.has(snapshot.rowKey)) continue;
     const previous = previousByRow.get(snapshot.rowKey);
     previousByRow.set(snapshot.rowKey, snapshot.playtimeMinutes);
     if (previous === undefined) continue;

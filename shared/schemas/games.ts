@@ -13,6 +13,10 @@ export const setGameStateBodySchema = z.object({
   state: z.enum(GAME_STATES).nullable(),
 });
 
+export const setGameHiddenBodySchema = z.object({
+  hidden: z.boolean(),
+});
+
 export const mergeGamesBodySchema = z.object({
   targetId: gameIdSchema,
   sourceIds: z.array(gameIdSchema).min(1),

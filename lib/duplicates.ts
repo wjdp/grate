@@ -30,7 +30,10 @@ export interface DuplicateCandidatePair {
 }
 
 function loadGamesWithProviderRows() {
-  return db.query.game.findMany({ with: providerRowsWithAppInfo });
+  return db.query.game.findMany({
+    with: providerRowsWithAppInfo,
+    where: eq(game.hidden, false),
+  });
 }
 
 function releaseYearOf(candidate: GameWithProviderRows): number | null {

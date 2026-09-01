@@ -1,4 +1,4 @@
-import { asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import type { GameState } from "#shared/game-state";
 import { playDayOf } from "#shared/playDay";
 import type { PlaytimeSession } from "#shared/types/PlaytimeSession";
@@ -184,7 +184,7 @@ export async function getGameTimeline(id: number): Promise<PlaytimeSession[]> {
 export async function getRecentGames(limit: number = 6) {
   return await db.query.game.findMany({
     with: providerRowsWithAppInfo,
-    where: isNotNull(game.lastPlayedAt),
+    where: and(isNotNull(game.lastPlayedAt), eq(game.hidden, false)),
     orderBy: desc(game.lastPlayedAt),
     limit,
   });
@@ -210,6 +210,19 @@ export async function setGameState(id: number, state: GameState | null) {
   db.insert(gameStateChange)
     .values({ gameId: updatedGame.id, state, timestamp: now })
     .run();
+  return updatedGame;
+}
+
+export async function setGameHidden(id: number, hidden: boolean) {
+  const updatedGame = db
+    .update(game)
+    .set({ hidden })
+    .where(eq(game.id, id))
+    .returning()
+    .get();
+  if (!updatedGame) {
+    throw new Error("Game not found");
+  }
   return updatedGame;
 }
 
@@ -368,21 +381,21 @@ export async function splitGame(
     throw new Error(`No ${provider} game ${providerId}`);
   }
   const previousGameId = providerRow.gameId;
+  const previousGame = db
+    .select()
+    .from(game)
+    .where(eq(game.id, previousGameId))
+    .get();
+  if (!previousGame) {
+    throw new Error(`Game ${previousGameId} not found`);
+  }
   if (countProviderRows(previousGameId) === 1) {
-    const existingGame = db
-      .select()
-      .from(game)
-      .where(eq(game.id, previousGameId))
-      .get();
-    if (!existingGame) {
-      throw new Error(`Game ${previousGameId} not found`);
-    }
-    return existingGame;
+    return previousGame;
   }
   const splitOffGame = db.transaction((tx) => {
     const createdGame = tx
       .insert(game)
-      .values({ name: providerRow.name })
+      .values({ name: providerRow.name, hidden: previousGame.hidden })
       .returning()
       .get();
     if (provider === "steam") {

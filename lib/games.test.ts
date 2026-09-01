@@ -27,6 +27,7 @@ import {
   getGameTimeline,
   getRecentGames,
   mergeGames,
+  setGameHidden,
   setGameState,
   splitGame,
 } from "~~/lib/games";
@@ -530,6 +531,21 @@ describe("getRecentGames", () => {
     }
     expect(await getRecentGames(2)).toHaveLength(2);
   });
+
+  it("excludes hidden games", async () => {
+    createGame({
+      name: "Wallpaper Engine",
+      lastPlayedAt: new Date("2024-03-01T00:00:00.000Z"),
+      hidden: true,
+    });
+    createGame({
+      name: "Hades",
+      lastPlayedAt: new Date("2024-02-01T00:00:00.000Z"),
+    });
+    expect((await getRecentGames()).map((game) => game.name)).toStrictEqual([
+      "Hades",
+    ]);
+  });
 });
 
 describe("setGameState", () => {
@@ -577,6 +593,30 @@ describe("setGameState", () => {
       "COMPLETED",
       null,
     ]);
+  });
+});
+
+describe("setGameHidden", () => {
+  beforeEach(async () => {
+    await flushDb();
+  });
+
+  it("throws when the game does not exist", async () => {
+    await expect(setGameHidden(123456, true)).rejects.toThrow("Game not found");
+  });
+
+  it("hides and unhides a game without recording a state change", async () => {
+    const game = createGame({ name: "SteamVR" });
+    expect(game.hidden).toBe(false);
+
+    const hiddenGame = await setGameHidden(game.id, true);
+    expect(hiddenGame.hidden).toBe(true);
+    expect(gameById(game.id)?.hidden).toBe(true);
+
+    const shownGame = await setGameHidden(game.id, false);
+    expect(shownGame.hidden).toBe(false);
+    expect(gameById(game.id)?.hidden).toBe(false);
+    expect(stateChangesFor(game.id)).toHaveLength(0);
   });
 });
 
@@ -882,6 +922,26 @@ describe("mergeGames", () => {
   });
 });
 
+describe("mergeGames hidden flag", () => {
+  beforeEach(async () => {
+    await flushDb();
+  });
+
+  it("keeps a hidden target hidden", async () => {
+    const target = createGame({ name: "Target", hidden: true });
+    const source = createGame({ name: "Source" });
+    const merged = await mergeGames(target.id, [source.id]);
+    expect(merged.hidden).toBe(true);
+  });
+
+  it("keeps a visible target visible when a source was hidden", async () => {
+    const target = createGame({ name: "Target" });
+    const source = createGame({ name: "Source", hidden: true });
+    const merged = await mergeGames(target.id, [source.id]);
+    expect(merged.hidden).toBe(false);
+  });
+});
+
 describe("splitGame", () => {
   beforeEach(async () => {
     await flushDb();
@@ -940,6 +1000,17 @@ describe("splitGame", () => {
     expect(remaining?.gogGames.map((row) => row.gogId)).toStrictEqual([
       first.gogId,
     ]);
+  });
+
+  it("inherits the hidden flag from the game it was split from", async () => {
+    const first = createGogGame({ name: "Tool" });
+    const second = createGogGame({ gameId: first.gameId, name: "Tool Beta" });
+    await setGameHidden(first.gameId, true);
+
+    const splitOff = await splitGame("gog", second.gogId);
+
+    expect(splitOff.hidden).toBe(true);
+    expect(gameById(first.gameId)?.hidden).toBe(true);
   });
 
   it("splits a steam row off a mixed-provider game", async () => {

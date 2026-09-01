@@ -68,6 +68,7 @@ export const game = sqliteTable("Game", {
   state: text({ enum: GAME_STATES }),
   playtimeMinutes: integer().notNull().default(0),
   lastPlayedAt: datetime(),
+  hidden: boolean().notNull().default(false),
 });
 
 export const gameStateChange = sqliteTable("GameStateChange", {

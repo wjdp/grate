@@ -57,6 +57,13 @@
       "when": 1788188151546,
       "tag": "0007_steam_pics_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788287762472,
+      "tag": "0008_user_settings",
+      "breakpoints": true
     }
   ]
 }

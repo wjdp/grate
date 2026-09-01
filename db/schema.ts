@@ -23,6 +23,8 @@ export type SteamAppInfoState = (typeof STEAM_APP_INFO_STATES)[number];
 
 export const user = sqliteTable("User", {
   id: autoIncrementId(),
+  timezone: text(),
+  dayBoundaryHour: integer().notNull().default(6),
 });
 
 export const steamUser = sqliteTable(

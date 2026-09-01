@@ -32,7 +32,7 @@ export default defineNuxtConfig({
   modules: ["@nuxt/test-utils/module", "@nuxt/ui"],
   css: ["~/assets/css/main.css"],
   runtimeConfig: {
-    public: { version },
+    public: { version: version + (process.env.VERSION_SUFFIX ?? "") },
   },
   fonts: {
     families: [

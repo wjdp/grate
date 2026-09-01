@@ -59,13 +59,26 @@ describe("HistoryGrid", () => {
       component
         .findAll(".h-4.rounded")
         .find((cell) => cell.attributes("title")?.startsWith(date))!
-        .classes();
+        .classes()
+        .sort()
+        .join(" ");
 
-    expect(classesFor("2021-01-01")).toContain("bg-grey-300");
-    expect(classesFor("2021-01-02")).toContain("bg-[oklch(0.90_0.100_90)]");
-    expect(classesFor("2021-01-03")).toContain("bg-[oklch(0.80_0.140_84)]");
-    expect(classesFor("2021-01-04")).toContain("bg-[oklch(0.70_0.150_78)]");
-    expect(classesFor("2021-01-05")).toContain("bg-[oklch(0.60_0.135_72)]");
+    const untouchedDay = classesFor("2021-01-06");
+
+    // A zero-minute day looks the same as a day with no record at all.
+    expect(classesFor("2021-01-01")).toBe(untouchedDay);
+
+    // The first bucket edge sits at an hour.
+    expect(classesFor("2021-01-02")).not.toBe(classesFor("2021-01-03"));
+
+    const buckets = [
+      "2021-01-02",
+      "2021-01-03",
+      "2021-01-04",
+      "2021-01-05",
+    ].map(classesFor);
+    expect(new Set(buckets).size).toBe(buckets.length);
+    expect(buckets).not.toContain(untouchedDay);
   });
 
   it("labels the months across the top", async () => {

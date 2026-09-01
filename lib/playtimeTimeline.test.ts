@@ -338,6 +338,101 @@ describe("deriveSessions", () => {
     expect(continuation?.uncertaintyMinutes).toBe(60);
   });
 
+  it("dates offline play by rTimeLastPlayed but leaves it unanchored, as one upload may cover several sittings", () => {
+    const uploadedLastPlayed = new Date("2026-06-19T22:00:00Z");
+    const sessions = deriveSessions(
+      [
+        {
+          timestampStart: new Date("2026-06-20T10:00:00Z"),
+          timestampEnd: new Date("2026-06-20T11:00:00Z"),
+          playtimeMinutes: 100,
+          rTimeLastPlayed: new Date("2026-06-18T09:00:00Z").getTime() / 1000,
+          playtimeDisconnected: 0,
+        },
+        {
+          timestampStart: new Date("2026-06-20T11:00:00Z"),
+          timestampEnd: new Date("2026-06-20T12:00:00Z"),
+          playtimeMinutes: 220,
+          rTimeLastPlayed: uploadedLastPlayed.getTime() / 1000,
+          playtimeDisconnected: 120,
+        },
+      ],
+      steamRow,
+    );
+    expect(sessions[0]?.anchored).toBe(false);
+    expect(sessions[0]?.minutes).toBe(120);
+    expect(sessions[0]?.estimatedEnd).toEqual(uploadedLastPlayed);
+    expect(sessions[0]?.estimatedStart).toEqual(
+      new Date("2026-06-19T20:00:00Z"),
+    );
+    expect(sessions[0]?.uncertaintyMinutes).toBe(120);
+    expect(sessions[0]?.endedAfter).toEqual(new Date("2026-06-20T11:00:00Z"));
+    expect(sessions[0]?.endedBefore).toEqual(new Date("2026-06-20T12:00:00Z"));
+  });
+
+  it("falls back to the window end for offline play whose rTimeLastPlayed did not change", () => {
+    const lastPlayed = new Date("2026-06-18T09:00:00Z").getTime() / 1000;
+    const sessions = deriveSessions(
+      [
+        {
+          timestampStart: new Date("2026-06-20T10:00:00Z"),
+          timestampEnd: new Date("2026-06-20T11:00:00Z"),
+          playtimeMinutes: 100,
+          rTimeLastPlayed: lastPlayed,
+          playtimeDisconnected: 0,
+        },
+        {
+          timestampStart: new Date("2026-06-20T11:00:00Z"),
+          timestampEnd: new Date("2026-06-20T12:00:00Z"),
+          playtimeMinutes: 220,
+          rTimeLastPlayed: lastPlayed,
+          playtimeDisconnected: 120,
+        },
+      ],
+      steamRow,
+    );
+    expect(sessions[0]?.anchored).toBe(false);
+    expect(sessions[0]?.estimatedEnd).toEqual(new Date("2026-06-20T12:00:00Z"));
+    expect(sessions[0]?.estimatedStart).toEqual(
+      new Date("2026-06-20T10:00:00Z"),
+    );
+    expect(sessions[0]?.uncertaintyMinutes).toBe(120);
+  });
+
+  it("breaks the merge of otherwise contiguous anchored deltas when the middle one banked offline play", () => {
+    const sessions = deriveSessions(
+      (
+        [
+          ["10:00:00", "11:00:00", 100, "10:00:00", 0],
+          ["11:00:00", "12:00:00", 130, "10:30:00", 0],
+          ["12:00:00", "13:00:00", 160, "11:00:00", 30],
+          ["13:00:00", "14:00:00", 190, "11:30:00", 30],
+        ] as const
+      ).map(
+        ([start, end, playtimeMinutes, lastPlayed, playtimeDisconnected]) => ({
+          timestampStart: new Date(`2026-06-20T${start}Z`),
+          timestampEnd: new Date(`2026-06-20T${end}Z`),
+          playtimeMinutes,
+          rTimeLastPlayed:
+            new Date(`2026-06-20T${lastPlayed}Z`).getTime() / 1000,
+          playtimeDisconnected,
+        }),
+      ),
+      steamRow,
+    );
+    expect(sessions.map((session) => session.anchored)).toEqual([
+      true,
+      false,
+      true,
+    ]);
+    expect(sessions.map((session) => session.minutes)).toEqual([30, 30, 30]);
+    expect(sessions.map((session) => session.estimatedEnd)).toEqual([
+      new Date("2026-06-20T10:30:00Z"),
+      new Date("2026-06-20T11:00:00Z"),
+      new Date("2026-06-20T11:30:00Z"),
+    ]);
+  });
+
   it("orders unsorted snapshots before deriving", () => {
     const shuffled = [
       cyberpunkSnapshots[2],

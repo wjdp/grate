@@ -106,6 +106,7 @@ async function getProviderRowSnapshots(
         timestampEnd: record.timestampEnd,
         playtimeMinutes: record.playtimeForever ?? 0,
         rTimeLastPlayed: record.rTimeLastPlayed,
+        playtimeDisconnected: record.playtimeDisconnected,
       })),
     });
   }

@@ -19,6 +19,7 @@ export interface PlaytimeSnapshot {
   timestampEnd: Date;
   playtimeMinutes: number;
   rTimeLastPlayed?: number | null;
+  playtimeDisconnected?: number | null;
 }
 
 export interface PlaytimeProviderRow {
@@ -33,6 +34,7 @@ interface ObservedDelta {
   endedBefore: Date;
   lastPlayedAnchor: number | null;
   previousLastPlayedAnchor: number | null;
+  playedOffline: boolean;
 }
 
 function byObservationOrder(a: PlaytimeSnapshot, b: PlaytimeSnapshot) {
@@ -71,6 +73,10 @@ function observeDeltas(snapshots: PlaytimeSnapshot[]): ObservedDelta[] {
       endedBefore: current.timestampEnd,
       lastPlayedAnchor: current.rTimeLastPlayed ?? null,
       previousLastPlayedAnchor: previous.rTimeLastPlayed ?? null,
+      playedOffline:
+        (current.playtimeDisconnected ?? 0) -
+          (previous.playtimeDisconnected ?? 0) >
+        0,
     });
   }
   return deltas;
@@ -78,7 +84,7 @@ function observeDeltas(snapshots: PlaytimeSnapshot[]): ObservedDelta[] {
 
 // `rTimeLastPlayed` is the moment Steam last flushed the total, so it dates the
 // end of the play the delta counts, not its start.
-function anchoredEnd(
+function changedLastPlayed(
   delta: ObservedDelta,
   provider: PlaytimeProvider,
 ): Date | null {
@@ -105,14 +111,14 @@ function toSession(
     endedAfter: delta.endedAfter,
     endedBefore: delta.endedBefore,
   };
-  const anchor = anchoredEnd(delta, row.provider);
-  if (anchor) {
+  const lastPlayed = changedLastPlayed(delta, row.provider);
+  if (lastPlayed && !delta.playedOffline) {
     return {
       ...bounds,
       estimatedStart: new Date(
-        anchor.getTime() - delta.minutes * MILLISECONDS_PER_MINUTE,
+        lastPlayed.getTime() - delta.minutes * MILLISECONDS_PER_MINUTE,
       ),
-      estimatedEnd: anchor,
+      estimatedEnd: lastPlayed,
       uncertaintyMinutes: 0,
       anchored: true,
     };
@@ -120,6 +126,21 @@ function toSession(
   const windowMinutes =
     (delta.endedBefore.getTime() - delta.endedAfter.getTime()) /
     MILLISECONDS_PER_MINUTE;
+  // Play banked offline arrives as one upload that may cover several sittings,
+  // so `rTimeLastPlayed` dates the last of them rather than bounding one
+  // session: date the delta by it, but keep it fuzzy and unmergeable.
+  if (delta.playedOffline) {
+    const estimatedEnd = lastPlayed ?? delta.endedBefore;
+    return {
+      ...bounds,
+      estimatedStart: new Date(
+        estimatedEnd.getTime() - delta.minutes * MILLISECONDS_PER_MINUTE,
+      ),
+      estimatedEnd,
+      uncertaintyMinutes: widerOfWindowAndSession(windowMinutes, delta.minutes),
+      anchored: false,
+    };
+  }
   const estimatedStart =
     row.provider === "steam"
       ? delta.endedAfter

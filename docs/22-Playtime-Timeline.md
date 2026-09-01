@@ -63,7 +63,7 @@ All collapse to "window got wide"; the maths doesn't change, precision does.
 - **Server down over N hourly syncs**: no rows written while down; next sync writes one change record spanning last `timestampEnd` → now. One inferred session carrying the whole delta, window = the outage. Could be many real sessions.
 - **Provider API failing** (GOG errors, token expiry): same shape — rows stop, window widens.
 - **Long single session** (longer than sync interval): for GOG/Epic nothing is reported until it ends, so this is indistinguishable from a gap; already covered by `estimatedStart` preceding the window.
-- **Offline play** (Steam `playtimeDisconnected`): delta may surface long after the play happened; window bound is honest ("some time before X") even though wide.
+- **Offline play** (Steam `playtimeDisconnected`): delta may surface long after the play happened; window bound is honest ("some time before X") even though wide. When `playtimeDisconnected` grows across a pair the delta is treated as offline play: it is dated by the changed `rTimeLastPlayed` (else the window end) but left unanchored, with uncertainty the wider of the delta and the window, since one upload may cover several sittings — unverified against real rows, as none with a disconnected increase exist in the dev database yet.
 
 Handling: replace the enum-ish `precision` with a measured `uncertaintyMinutes` (window width, or window width + delta overshoot). UI maps it to fuzziness continuously — a 4-minute manual-sync window renders near-exact, a 3-day outage renders as a wide fuzzy block. No split heuristic: never invent sessions the data can't support.
 

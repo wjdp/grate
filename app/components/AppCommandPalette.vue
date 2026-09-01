@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { CommandPaletteGroup, CommandPaletteItem } from "@nuxt/ui";
-import type { GameState } from "#shared/game-state";
 import type { GameWithProviders } from "#shared/types/Game";
 
 const { isOpen, pane, canPopPane, pushPane, popPane, open, close } =
@@ -19,6 +18,7 @@ const {
   status,
   execute: loadGames,
 } = useFetch("/api/games", {
+  key: "games",
   lazy: true,
   server: false,
   immediate: false,
@@ -53,40 +53,7 @@ const contextGame = computed(() => {
   return gamesById.value.get(Number(id)) ?? null;
 });
 
-const openLaunchUrl = (url: string) => {
-  // Provider protocol URLs (steam://, goggalaxy://) hand off to a desktop app
-  // and leave the page in place; a store page would otherwise replace grate.
-  window.open(url, url.startsWith("http") ? "_blank" : "_self");
-};
-
-const setGameState = async (
-  game: GameWithProviders,
-  state: GameState | null,
-  label: string,
-) => {
-  try {
-    await $fetch(`/api/games/${game.id}/state`, {
-      method: "PATCH",
-      body: { state },
-    });
-    close();
-    toast.add({
-      title: `State set to ${label}`,
-      description: game.name,
-      icon: "i-lucide-tag",
-      color: "success",
-    });
-    await refreshNuxtData();
-  } catch (error) {
-    toast.add({
-      title: "Could not set state",
-      description:
-        error instanceof Error ? fetchErrorMessage(error) : undefined,
-      icon: "i-lucide-triangle-alert",
-      color: "error",
-    });
-  }
-};
+const setGameState = useSetGameState();
 
 const setGameHidden = async (game: GameWithProviders, hidden: boolean) => {
   try {
@@ -220,7 +187,10 @@ const groups = computed<CommandPaletteGroup<CommandPaletteItem>[]>(() => {
         icon: command.icon,
         ui: { itemLeadingIcon: command.iconClass },
         current: command.state === (game.state ?? null),
-        onSelect: () => setGameState(game, command.state, command.label),
+        onSelect: () => {
+          close();
+          return setGameState(game, command.state);
+        },
       })),
     },
   ];

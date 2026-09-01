@@ -8,7 +8,7 @@ const {
   data: gamesData,
   status,
   execute,
-} = useFetch("/api/games", { immediate: false });
+} = useFetch("/api/games", { key: "games", immediate: false });
 
 const open = ref(false);
 const selected = ref<GameWithProviders | null>(null);

@@ -7,7 +7,7 @@ import { gameStateItemGroups } from "~/utils/gameStateItems";
 
 useSeoMeta({ title: getPageTitle("Library") });
 
-const { data } = await useFetch("/api/games");
+const { data } = await useFetch("/api/games", { key: "games" });
 const games = computed(() => data.value?.games ?? []);
 
 const route = useRoute();

@@ -40,7 +40,7 @@ const shortcutKeyFor = (state: GameState) =>
 const nextFreeDigit = STATES_IN_DISPLAY_ORDER.length + 1;
 const HIDE_SHORTCUT_KEY = nextFreeDigit <= 9 ? String(nextFreeDigit) : "h";
 
-const { data } = useFetch("/api/games");
+const { data } = useFetch("/api/games", { key: "games" });
 const games = computed(() => data.value?.games);
 const organisedGameIds = ref<number[]>([]);
 

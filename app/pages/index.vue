@@ -7,7 +7,7 @@ const { data: setupData } = await useFetch("/api/setup");
 const { data: recentGamesData } = await useFetch("/api/games/recent", {
   query: { limit: 6 },
 });
-const { data: gamesData } = await useFetch("/api/games");
+const { data: gamesData } = await useFetch("/api/games", { key: "games" });
 const { data: duplicateCount } = await useFetch("/api/games/duplicates", {
   transform: (data) => data.pairs.length,
 });

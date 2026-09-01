@@ -51,7 +51,11 @@ const debugLinks: NavigationMenuItem[] = [
   <UDashboardSidebar
     collapsible
     resizable
-    :ui="{ header: 'px-6', footer: 'border-t border-default px-3.5' }"
+    :ui="{
+      header: 'px-3.5 sm:px-3.5 lg:px-6',
+      body: 'sm:px-4',
+      footer: 'border-t border-default px-3.5 sm:px-3.5',
+    }"
   >
     <template #header="{ collapsed }">
       <NuxtLink to="/" class="flex min-w-0 items-center gap-2">

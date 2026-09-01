@@ -1,11 +1,9 @@
 <script setup lang="ts">
-defineProps<{ title?: string }>();
-
 const { open: openCommandPalette } = useCommandPalette();
 </script>
 
 <template>
-  <UDashboardNavbar :title="title">
+  <UDashboardNavbar>
     <template #toggle="{ toggleSidebar }">
       <UButton
         color="neutral"
@@ -18,6 +16,9 @@ const { open: openCommandPalette } = useCommandPalette();
           alt=""
           class="size-6 shrink-0 invert dark:invert-0"
         />
+        <span class="font-display text-highlighted truncate text-lg font-semibold tracking-tight">
+            grate
+        </span>
       </UButton>
     </template>
 

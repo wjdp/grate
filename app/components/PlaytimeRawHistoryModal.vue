@@ -5,13 +5,10 @@ const props = defineProps<{ gameId: number }>();
 
 const open = ref(false);
 
-const {
-  data,
-  status,
-  execute,
-} = await useFetch(() => `/api/games/${props.gameId}/playtimes`, {
-  immediate: false,
-});
+const { data, status, execute } = useFetch(
+  () => `/api/games/${props.gameId}/playtimes`,
+  { immediate: false },
+);
 
 const playtimes = computed(() => data.value?.playtimes ?? []);
 

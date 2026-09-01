@@ -1,6 +1,6 @@
 ---
 type: task
-status: open
+status: done
 ---
 
 # Hidden games
@@ -67,6 +67,7 @@ Update `meta/` snapshot and journal as for previous migrations; add the column t
 - Reading Steam's own per-user hidden list — not exposed by `GetOwnedGames`.
 - Bulk hide from the library list. Possible follow-up once multi-select exists.
 
-## Open questions
+## Decisions
 
-- Should "Show hidden" on the library also reveal hidden playtime in activity/stats, or should stats always exclude? Default: stats always exclude.
+- Stats and activity always exclude hidden games; the library "Hidden" filter only changes which rows are listed.
+- Organise's Hide shortcut is `h` (the state shortcuts already use 1–9 and beyond).

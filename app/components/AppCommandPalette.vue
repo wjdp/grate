@@ -7,7 +7,6 @@ const { isOpen, pane, canPopPane, pushPane, popPane, open, close } =
 const { recentGameIds } = useRecentlyViewedGames();
 const duplicateCount = useDuplicateCount();
 const route = useRoute();
-const toast = useToast();
 
 const searchTerm = ref("");
 
@@ -55,30 +54,7 @@ const contextGame = computed(() => {
 
 const setGameState = useSetGameState();
 
-const setGameHidden = async (game: GameWithProviders, hidden: boolean) => {
-  try {
-    await $fetch(`/api/games/${game.id}/hidden`, {
-      method: "PATCH",
-      body: { hidden },
-    });
-    close();
-    toast.add({
-      title: hidden ? "Hidden from library" : "Shown in library",
-      description: game.name,
-      icon: hidden ? "i-lucide-eye-off" : "i-lucide-eye",
-      color: "success",
-    });
-    await refreshNuxtData();
-  } catch (error) {
-    toast.add({
-      title: hidden ? "Could not hide game" : "Could not unhide game",
-      description:
-        error instanceof Error ? fetchErrorMessage(error) : undefined,
-      icon: "i-lucide-triangle-alert",
-      color: "error",
-    });
-  }
-};
+const setGameHidden = useSetGameHidden();
 
 // Items navigate through `onSelect` rather than `to`: a link item picks up the
 // route-active styling, which reads as a second highlight next to the keyboard
@@ -115,7 +91,13 @@ const toGameActionItems = (game: GameWithProviders): CommandPaletteItem[] =>
       };
     }
     if (action.id === "toggle-hidden") {
-      return { ...item, onSelect: () => setGameHidden(game, !game.hidden) };
+      return {
+        ...item,
+        onSelect: () => {
+          close();
+          return setGameHidden(game, !game.hidden);
+        },
+      };
     }
     return {
       ...item,

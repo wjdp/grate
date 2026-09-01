@@ -31,6 +31,17 @@ registerEndpoint("/api/games/1/state", {
   },
 });
 
+const hiddenRequests: unknown[] = [];
+
+registerEndpoint("/api/games/1/hidden", {
+  method: "PATCH",
+  handler: async (event) => {
+    const { body } = event.node.req as unknown as { body: string };
+    hiddenRequests.push(JSON.parse(body));
+    return { game: { id: 1 } };
+  },
+});
+
 const mounted: { unmount: () => void }[] = [];
 
 const itemsOf = (root: ParentNode) =>
@@ -72,8 +83,12 @@ const stateItemLabels = () =>
     .filter((item) => item.getAttribute("role") === "menuitemcheckbox")
     .map((item) => item.textContent?.trim());
 
-beforeEach(() => {
+beforeEach(async () => {
+  // Toasts are queued a tick at a time, so let the previous test's queue drain
+  // before clearing it.
+  await nextTick();
   stateRequests.length = 0;
+  hiddenRequests.length = 0;
   failStateRequests = false;
   useToast().clear();
 });
@@ -135,6 +150,38 @@ describe("GameContextMenu", () => {
     expect(useToast().toasts.value).toHaveLength(0);
   });
 
+  it("offers Hide on a visible game", async () => {
+    await openMenu();
+
+    const hide = findItem("Hide")!;
+    expect(hide).toBeTruthy();
+    expect(hide.innerHTML).toContain("i-lucide:eye-off");
+    expect(findItem("Unhide")).toBeUndefined();
+  });
+
+  it("offers Unhide on a hidden game", async () => {
+    await openMenu(makeGame({ hidden: true }));
+
+    const unhide = findItem("Unhide")!;
+    expect(unhide).toBeTruthy();
+    expect(unhide.innerHTML).toContain("i-lucide:eye");
+    expect(findItem("Hide")).toBeUndefined();
+  });
+
+  it("patches the hidden flag on selecting Hide", async () => {
+    await openMenu();
+    findItem("Hide")!.click();
+
+    await vi.waitFor(() => expect(hiddenRequests).toEqual([{ hidden: true }]));
+  });
+
+  it("unhides a hidden game", async () => {
+    await openMenu(makeGame({ hidden: true }));
+    findItem("Unhide")!.click();
+
+    await vi.waitFor(() => expect(hiddenRequests).toEqual([{ hidden: false }]));
+  });
+
   it("toasts and keeps going when the request fails", async () => {
     failStateRequests = true;
     await openMenu();
@@ -142,7 +189,9 @@ describe("GameContextMenu", () => {
     findItem("Completed")!.click();
 
     await vi.waitFor(() =>
-      expect(useToast().toasts.value[0]?.title).toBe("Could not set state"),
+      expect(useToast().toasts.value.map((toast) => toast.title)).toContain(
+        "Could not set state",
+      ),
     );
   });
 });

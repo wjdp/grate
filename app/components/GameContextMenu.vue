@@ -7,6 +7,7 @@ import { gameStateItemGroups } from "~/utils/gameStateItems";
 const props = defineProps<{ game: GameWithProviders }>();
 
 const setGameState = useSetGameState();
+const setGameHidden = useSetGameHidden();
 
 const currentState = computed(() => props.game.state ?? null);
 
@@ -52,6 +53,15 @@ const items = computed<ContextMenuItem[][]>(() => {
       },
     ]);
   }
+  groups.push([
+    {
+      label: props.game.hidden ? "Unhide" : "Hide",
+      icon: props.game.hidden ? "i-lucide-eye" : "i-lucide-eye-off",
+      onSelect: () => {
+        setGameHidden(props.game, !props.game.hidden);
+      },
+    },
+  ]);
   return groups;
 });
 </script>

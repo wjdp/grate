@@ -11,6 +11,7 @@ export const STEAM_ART_TYPES = [
   "poster",
   "background",
   "backgroundV6B",
+  "backdrop",
   "icon",
 ] as const;
 export type SteamArtType = (typeof STEAM_ART_TYPES)[number];

@@ -105,7 +105,7 @@ export function getGameArtUrls(game: GameWithProviders): ArtUrls | null {
       icon: artUrl("steam", appId, "icon"),
       poster: artUrl("steam", appId, "poster"),
       hero: artUrl("steam", appId, "hero"),
-      background: artUrl("steam", appId, "backgroundV6B"),
+      background: artUrl("steam", appId, "backdrop"),
       logo: artUrl("steam", appId, "logo"),
     };
   }

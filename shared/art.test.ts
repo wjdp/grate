@@ -94,12 +94,12 @@ describe("getGameArtUrls", () => {
     expect(getGameArtUrls(makeGame({}))).toBeNull();
   });
 
-  it("builds steam route urls, mapping background to the legacy type name", () => {
+  it("builds steam route urls, mapping background to the backdrop type", () => {
     expect(getGameArtUrls(makeGame({ steamGames: [steamRow] }))).toEqual({
       icon: "/art/steam/620/icon",
       poster: "/art/steam/620/poster",
       hero: "/art/steam/620/hero",
-      background: "/art/steam/620/backgroundV6B",
+      background: "/art/steam/620/backdrop",
       logo: "/art/steam/620/logo",
     });
   });

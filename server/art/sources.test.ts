@@ -1,5 +1,6 @@
+import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
-import { steamPicsMetadata } from "~~/db/schema";
+import { steamAppInfo, steamGame, steamPicsMetadata } from "~~/db/schema";
 import { db } from "~~/lib/db";
 import { createSteamGame } from "~~/lib/fixtures/game";
 import { flushDb } from "~~/test/db";
@@ -17,6 +18,46 @@ function createPicsMetadata(
   return db
     .insert(steamPicsMetadata)
     .values({ appId, fetchedAt: new Date(), ...overrides })
+    .returning()
+    .get();
+}
+
+function createAppInfo(appId: number, backgroundRaw: string) {
+  // steamAppInfo.appId references SteamGame, FK-enforced; a PICS fixture may
+  // already have created the parent row.
+  const existing = db
+    .select()
+    .from(steamGame)
+    .where(eq(steamGame.appId, appId))
+    .get();
+  if (!existing) {
+    createSteamGame({ appId });
+  }
+  return db
+    .insert(steamAppInfo)
+    .values({
+      appId,
+      fetchedAt: new Date(),
+      type: "game",
+      name: "Test Game",
+      isFree: false,
+      detailedDescription: "detailed",
+      aboutTheGame: "about",
+      shortDescription: "short",
+      headerImage: "header.jpg",
+      capsuleImage: "capsule.jpg",
+      capsuleImagev5: "capsulev5.jpg",
+      developers: [],
+      publishers: [],
+      platformWindows: true,
+      platformMac: false,
+      platformLinux: false,
+      categories: [],
+      genres: [],
+      screenshots: [],
+      background: "background.jpg",
+      backgroundRaw,
+    })
     .returning()
     .get();
 }
@@ -251,6 +292,60 @@ describe("resolveArtSources for steam", () => {
       expect(candidates.map((candidate) => candidate.url)).toEqual([
         "http://media.steampowered.com/steamcommunity/public/images/apps/201870/primary.jpg",
         "http://media.steampowered.com/steamcommunity/public/images/apps/201870/secondary.jpg",
+      ]);
+    });
+  });
+  describe("backdrop", () => {
+    const LEGACY_HERO =
+      "https://steamcdn-a.akamaihd.net/steam/apps/201870/library_hero.jpg";
+    const LEGACY_BACKGROUND =
+      "https://steamcdn-a.akamaihd.net/steam/apps/201870/page_bg_generated.jpg";
+    const LEGACY_BACKGROUND_V6B =
+      "https://steamcdn-a.akamaihd.net/steam/apps/201870/page_bg_generated_v6b.jpg";
+    const BACKGROUND_RAW =
+      "https://steamcdn-a.akamaihd.net/steam/apps/201870/page.bg.raw.jpg";
+
+    it("orders candidates: pics hero, legacy hero, backgroundRaw, then the page backgrounds", async () => {
+      createPicsMetadata(201870, { heroPath: "abc123/library_hero.jpg" });
+      createAppInfo(201870, BACKGROUND_RAW);
+      const candidates = await resolveArtSources({
+        provider: "steam",
+        id: 201870,
+        type: "backdrop",
+      });
+      expect(candidates.map((candidate) => candidate.url)).toEqual([
+        `${PICS_BASE_URL}/201870/abc123/library_hero.jpg`,
+        LEGACY_HERO,
+        BACKGROUND_RAW,
+        LEGACY_BACKGROUND,
+        LEGACY_BACKGROUND_V6B,
+      ]);
+    });
+
+    it("falls back to the legacy chain without a PICS row or app info", async () => {
+      const candidates = await resolveArtSources({
+        provider: "steam",
+        id: 201870,
+        type: "backdrop",
+      });
+      expect(candidates.map((candidate) => candidate.url)).toEqual([
+        LEGACY_HERO,
+        LEGACY_BACKGROUND,
+        LEGACY_BACKGROUND_V6B,
+      ]);
+    });
+
+    it("omits an empty backgroundRaw", async () => {
+      createAppInfo(201870, "");
+      const candidates = await resolveArtSources({
+        provider: "steam",
+        id: 201870,
+        type: "backdrop",
+      });
+      expect(candidates.map((candidate) => candidate.url)).toEqual([
+        LEGACY_HERO,
+        LEGACY_BACKGROUND,
+        LEGACY_BACKGROUND_V6B,
       ]);
     });
   });

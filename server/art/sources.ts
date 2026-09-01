@@ -1,6 +1,12 @@
 import { eq } from "drizzle-orm";
 import { resolveGogImageUrl } from "#shared/art";
-import { epicGame, gogGame, steamGame, steamPicsMetadata } from "~~/db/schema";
+import {
+  epicGame,
+  gogGame,
+  steamAppInfo,
+  steamGame,
+  steamPicsMetadata,
+} from "~~/db/schema";
 import { db } from "~~/lib/db";
 import { getSteamArtUrls } from "~~/lib/steam/art";
 import type { ArtKey, EpicArtType, GogArtType, SteamArtType } from "./types";
@@ -118,6 +124,20 @@ async function resolveSteamArtSources(
         picsAssetUrl(appId, picsRow?.headerPath ?? null),
         legacyUrls.header,
       ]);
+    case "backdrop": {
+      const appInfoRow = db
+        .select({ backgroundRaw: steamAppInfo.backgroundRaw })
+        .from(steamAppInfo)
+        .where(eq(steamAppInfo.appId, appId))
+        .get();
+      return orderedCandidates([
+        picsAssetUrl(appId, picsRow?.heroPath ?? null),
+        legacyUrls.hero,
+        present(appInfoRow?.backgroundRaw),
+        legacyUrls.background,
+        legacyUrls.backgroundV6B,
+      ]);
+    }
   }
 }
 

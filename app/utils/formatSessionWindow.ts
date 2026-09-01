@@ -33,19 +33,17 @@ function formatDateTime(date: Date, now: Date) {
   return `${formatDate(date, now)} ${formatTime(date)}`;
 }
 
-export function formatSessionDay(session: SessionWindow, now: Date) {
-  const day = new Date(session.endedBefore);
-  return day.toLocaleDateString("en-GB", {
+// `playDay` is a plain calendar date, so it is read as local midnight rather
+// than through `new Date("YYYY-MM-DD")`, which parses as UTC.
+export function formatSessionDay(playDay: string, now: Date) {
+  const [year, month, day] = playDay.split("-").map(Number);
+  const date = new Date(year ?? 0, (month ?? 1) - 1, day ?? 1);
+  return date.toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
-    ...(sameYear(day, now) ? {} : { year: "numeric" }),
+    ...(sameYear(date, now) ? {} : { year: "numeric" }),
   });
-}
-
-export function sessionDayKey(session: SessionWindow) {
-  const day = new Date(session.endedBefore);
-  return `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
 }
 
 function windowMinutes(session: SessionWindow) {

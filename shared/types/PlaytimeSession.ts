@@ -11,6 +11,7 @@ export interface PlaytimeSession {
   estimatedEnd: Date;
   uncertaintyMinutes: number;
   anchored: boolean;
+  playDay: string;
 }
 
 // Routes hand sessions to the client as JSON, so every Date arrives as an ISO string.

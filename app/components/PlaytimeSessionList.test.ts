@@ -30,6 +30,7 @@ const makeSession = (
   estimatedEnd: "2026-08-31T20:43:46.000Z",
   uncertaintyMinutes: 70,
   anchored: false,
+  playDay: "2026-08-31",
   ...overrides,
 });
 
@@ -41,10 +42,27 @@ describe("PlaytimeSessionList", () => {
         provider: "steam",
         minutes: 30,
         endedBefore: "2026-08-29T10:00:00.000Z",
+        playDay: "2026-08-29",
       }),
     ]);
 
     expect(component.findAll("li")).toHaveLength(2);
+  });
+
+  it("groups sessions under a heading per play day", async () => {
+    const component = await mount([
+      makeSession(),
+      makeSession({ provider: "steam", minutes: 30 }),
+      makeSession({
+        provider: "epic",
+        minutes: 15,
+        playDay: "2026-08-29",
+      }),
+    ]);
+
+    const headings = component.findAll("h3").map((heading) => heading.text());
+    expect(headings).toStrictEqual(["Monday 31 August", "Saturday 29 August"]);
+    expect(component.findAll("section")[0]?.findAll("li")).toHaveLength(2);
   });
 
   it("marks an unanchored session as approximate", async () => {

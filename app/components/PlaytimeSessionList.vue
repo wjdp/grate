@@ -14,10 +14,10 @@ interface SessionDay {
 const days = computed<SessionDay[]>(() => {
   const grouped = new Map<string, SessionDay>();
   for (const session of props.sessions) {
-    const key = sessionDayKey(session);
+    const key = session.playDay;
     const day = grouped.get(key) ?? {
       key,
-      heading: formatSessionDay(session, now),
+      heading: formatSessionDay(key, now),
       sessions: [],
     };
     day.sessions.push(session);

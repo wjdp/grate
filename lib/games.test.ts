@@ -1,3 +1,5 @@
+process.env.TZ = "UTC";
+
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
@@ -388,7 +390,33 @@ describe("getGameTimeline", () => {
         estimatedEnd: new Date("2026-08-31T20:43:46.000Z"),
         uncertaintyMinutes: 70,
         anchored: false,
+        playDay: "2026-08-31",
       },
+    ]);
+  });
+
+  it("counts a session ending before the day boundary towards the day before", async () => {
+    const gogGame = createGogGame({ name: "Blue Prince" });
+    const records = [
+      {
+        timestampStart: null,
+        timestampEnd: new Date("2026-08-31T22:00:00.000Z"),
+        playtimeMinutes: 100,
+      },
+      {
+        timestampStart: new Date("2026-08-31T22:00:00.000Z"),
+        timestampEnd: new Date("2026-09-01T01:00:00.000Z"),
+        playtimeMinutes: 160,
+      },
+    ];
+    for (const record of records) {
+      db.insert(gogGamePlaytimeTable)
+        .values({ gogId: gogGame.gogId, ...record })
+        .run();
+    }
+    const sessions = await getGameTimeline(gogGame.gameId);
+    expect(sessions.map((session) => session.playDay)).toStrictEqual([
+      "2026-08-31",
     ]);
   });
 

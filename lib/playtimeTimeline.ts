@@ -5,6 +5,10 @@ import type {
 
 const MILLISECONDS_PER_MINUTE = 60_000;
 
+// Which play day a session falls on depends on user settings, so the pure
+// derivation leaves `playDay` to its caller.
+export type DerivedSession = Omit<PlaytimeSession, "playDay">;
+
 export interface PlaytimeSnapshot {
   timestampStart: Date | null;
   timestampEnd: Date;
@@ -87,7 +91,7 @@ function widerOfWindowAndSession(windowMinutes: number, minutes: number) {
 function toSession(
   delta: ObservedDelta,
   row: PlaytimeProviderRow,
-): PlaytimeSession {
+): DerivedSession {
   const bounds = {
     ...row,
     minutes: delta.minutes,
@@ -127,7 +131,7 @@ function toSession(
 export function deriveSessions(
   snapshots: PlaytimeSnapshot[],
   row: PlaytimeProviderRow,
-): PlaytimeSession[] {
+): DerivedSession[] {
   return observeDeltas(snapshots).map((delta) => toSession(delta, row));
 }
 

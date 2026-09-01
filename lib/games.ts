@@ -1,5 +1,6 @@
 import { asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import type { GameState } from "#shared/game-state";
+import { playDayOf } from "#shared/playDay";
 import type { PlaytimeSession } from "#shared/types/PlaytimeSession";
 import {
   epicGame,
@@ -21,6 +22,7 @@ import {
   type PlaytimeProviderRow,
   type PlaytimeSnapshot,
 } from "~~/lib/playtimeTimeline";
+import { getPlayDaySettings } from "~~/lib/settings";
 
 export type PlaytimeProvider = "steam" | "gog" | "epic";
 
@@ -168,8 +170,13 @@ export async function getGamePlaytimes(
 
 export async function getGameTimeline(id: number): Promise<PlaytimeSession[]> {
   const rows = await getProviderRowSnapshots(id);
+  const playDaySettings = await getPlayDaySettings();
   return rows
     .flatMap(({ row, snapshots }) => deriveSessions(snapshots, row))
+    .map((session) => ({
+      ...session,
+      playDay: playDayOf(session.endedBefore, playDaySettings),
+    }))
     .sort((a, b) => b.endedBefore.getTime() - a.endedBefore.getTime());
 }
 

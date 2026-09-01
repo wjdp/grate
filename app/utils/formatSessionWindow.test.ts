@@ -8,7 +8,6 @@ import {
   formatSessionDuration,
   formatSessionWindow,
   isLowConfidence,
-  sessionDayKey,
 } from "./formatSessionWindow";
 
 const now = new Date("2026-09-01T12:00:00.000Z");
@@ -26,6 +25,7 @@ const makeSession = (
   estimatedEnd: "2026-08-31T20:43:46.000Z",
   uncertaintyMinutes: 70,
   anchored: false,
+  playDay: "2026-08-31",
   ...overrides,
 });
 
@@ -148,8 +148,13 @@ describe("formatObservationWindow", () => {
 });
 
 describe("formatSessionDay", () => {
-  it("names the day the session ended", () => {
-    expect(formatSessionDay(makeSession(), now)).toBe("Monday 31 August");
-    expect(sessionDayKey(makeSession())).toBe("2026-7-31");
+  it("names the play day", () => {
+    expect(formatSessionDay("2026-08-31", now)).toBe("Monday 31 August");
+  });
+
+  it("adds the year outside the current one", () => {
+    expect(formatSessionDay("2024-08-31", now)).toBe(
+      "Saturday, 31 August 2024",
+    );
   });
 });

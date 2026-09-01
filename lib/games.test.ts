@@ -635,6 +635,9 @@ describe("mergeGames", () => {
     const steamGame = createSteamGame({
       name: "Alan Wake 2",
       playtimeForever: 30,
+      rTimeLastPlayed: Math.floor(
+        new Date("2024-04-01T00:00:00.000Z").getTime() / 1000,
+      ),
     });
     const epicGame = createEpicGame({
       name: "Alan Wake 2 Epic",

@@ -1,6 +1,6 @@
 ---
 type: task
-status: open
+status: done
 ---
 
 # Playtime timeline layer
@@ -87,6 +87,16 @@ Cheapest first; a+d likely the starting point, b/c candidates once data accumula
 - Default when unset: UTC (container default). Fine, just means the 06:00 boundary is UTC-relative until configured.
 - Precedence: per-user setting > server `TZ`. Day bucketing computes in that zone; timestamps stay stored as UTC epoch ms.
 - User settings (timezone override, day-boundary hour) live on the existing `User` table (`db/schema.ts:24`) when built — editable in the web UI, not more env vars.
+
+## Landed
+
+- **Derivation**: `deriveSessions`/`inferredLastPlayedAt` (`lib/playtimeTimeline.ts`). Grounding pair needs no special case — its delta is 0, so it's skipped like any zero delta. Steam anchors a session's start on `rTimeLastPlayed` only for the first delta where it changed; continuation deltas (unchanged anchor) fall back to window bounds. `uncertaintyMinutes = max(windowMinutes, minutes)`.
+- **API**: `getGameTimeline` (`lib/games.ts`) + `GET /api/games/[id]/timeline`, sharing the per-provider snapshot loader with `getGamePlaytimes`.
+- **GOG/Epic `lastPlayedAt`**: inferred via `inferredLastPlayedAt` in `lib/gog/service.ts` and `lib/epic/service.ts` when the provider gives none. Backfills on next sync; no data migration.
+- **UI**: game page renders `PlaytimeSessionList` (options a + d) grouped by day, replacing the raw table. Wording rules in `app/utils/formatSessionWindow.ts`; a session is low-confidence when `uncertaintyMinutes > 2 × minutes` or the observation window exceeds 24h. Raw cumulative rows moved behind `PlaytimeRawHistoryModal` ("Raw sync data").
+- **Play day**: `User.timezone`/`dayBoundaryHour` (migration `0008_user_settings.sql`, default boundary 06:00) + `shared/playDay.ts` (`playDayOf`) + `/api/settings` (GET/PATCH) + a Settings page. `getDailyPlaytime` (`lib/activity.ts`) and the game-page day grouping both bucket by play day, not calendar day.
+
+Open follow-ups: UI options b (horizontal day timeline) and c (day-bucketed activity chart) not built. Materialising the timeline (vs computing on read) not needed yet — revisit if slow. Debug modal is still just raw rows, not the fuller sync-debug surface sketched in decision 6's second half.
 
 ## Unanswered questions
 

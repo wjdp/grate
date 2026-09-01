@@ -26,6 +26,7 @@ Verified 2026-08-30 — `gameplay.gog.com` sessions:
 - Per-game `GET gameplay.gog.com/games/{id}/users/{galaxyUserId}/sessions` returns only `{"time_sum": <minutes>}`. Requires `galaxyUserId`; `gogUserId` gives 403 "Wrong user".
 - Bulk `GET gameplay.gog.com/users/{galaxyUserId}/sessions` returns `{"total_sum", "game_time": [{"game_id","time_sum"}]}`, only games with playtime > 0. Sync now uses this (bc2cfb4).
 - `last_session_date` not returned by either endpoint with the launcher client id; was speculative. `/users/{id}/stats` needs the `gameplay` scope, which third-party clients don't get. No per-session or per-date breakdown available. Grounding path in `recordGogPlaytime` (25201e7) kept but only exercised by tests; GOG `lastPlayedAt` effectively derived from observed playtime changes.
+- `GogGame.lastPlayedAt` is now inferred via `inferredLastPlayedAt` over `GogGamePlaytime` history when GOG gives none (doc 22).
 - Many products lack `gogReleaseDate`/`globalReleaseDate`; both optional, `releaseDate` null (9944c7c).
 
 ## Done in wave 3

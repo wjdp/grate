@@ -31,14 +31,14 @@ Adding a provider means `lib/<provider>/` (api + service + tests), a `PROVIDER_J
 
 - **Auth**: authorization-code flow against GOG Galaxy's embedded client credentials; refresh tokens, refreshed on use.
 - **Library**: owned product ids, then a per-game detail fetch each (slow, hence per-game progress). Unfetchable products (DLC, packs, delisted) are persisted in `gogIgnoredProduct` and skipped thereafter.
-- **Playtime**: Galaxy `game_time` endpoint — cumulative minutes per game, sessions derived from deltas. Unknown ids in the feed (minus ignored) trigger a games sync.
+- **Playtime**: Galaxy `game_time` endpoint — cumulative minutes per game, sessions derived from deltas. Unknown ids in the feed (minus ignored) trigger a games sync. Last played inferred from deltas (doc 22).
 - Descriptions are HTML, stripped at ingest.
 
 ### Epic
 
 - **Auth**: authorization-code exchange (`eg1` token type, Launcher client credentials); refresh tokens.
 - **Library**: launcher library items grouped by namespace, resolved against the catalogue; unresolvable items persisted in `epicIgnoredItem`.
-- **Playtime**: playtime endpoint — cumulative seconds per artifact; same delta-session approach; unknown artifacts trigger a games sync.
+- **Playtime**: playtime endpoint — cumulative seconds per artifact; same delta-session approach; unknown artifacts trigger a games sync. Last played inferred from deltas (doc 22).
 - All of this is the reverse-engineered launcher API — stable for years (Legendary/Heroic depend on it) but unofficial.
 
 ## Could be added

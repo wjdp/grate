@@ -12,3 +12,14 @@ export interface PlaytimeSession {
   uncertaintyMinutes: number;
   anchored: boolean;
 }
+
+// Routes hand sessions to the client as JSON, so every Date arrives as an ISO string.
+export type PlaytimeSessionJson = Omit<
+  PlaytimeSession,
+  "endedAfter" | "endedBefore" | "estimatedStart" | "estimatedEnd"
+> & {
+  endedAfter: string;
+  endedBefore: string;
+  estimatedStart: string;
+  estimatedEnd: string;
+};

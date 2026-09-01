@@ -1,5 +1,6 @@
 import { asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import type { GameState } from "#shared/game-state";
+import type { PlaytimeSession } from "#shared/types/PlaytimeSession";
 import {
   epicGame,
   epicGamePlaytime,
@@ -15,6 +16,11 @@ import {
 import { db } from "~~/lib/db";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
+import {
+  deriveSessions,
+  type PlaytimeProviderRow,
+  type PlaytimeSnapshot,
+} from "~~/lib/playtimeTimeline";
 
 export type PlaytimeProvider = "steam" | "gog" | "epic";
 
@@ -65,9 +71,14 @@ function byTimestampStartDescending(
   return b.timestampStart.getTime() - a.timestampStart.getTime();
 }
 
-export async function getGamePlaytimes(
+interface ProviderRowSnapshots {
+  row: PlaytimeProviderRow;
+  snapshots: PlaytimeSnapshot[];
+}
+
+async function getProviderRowSnapshots(
   id: number,
-): Promise<GamePlaytimeRecord[]> {
+): Promise<ProviderRowSnapshots[]> {
   const gameRecord = await db.query.game.findFirst({
     where: eq(game.id, id),
     with: providerRows,
@@ -75,23 +86,26 @@ export async function getGamePlaytimes(
   if (!gameRecord) {
     throw new Error("Game not found");
   }
-  const records: GamePlaytimeRecord[] = [];
+  const rows: ProviderRowSnapshots[] = [];
   for (const steamRow of gameRecord.steamGames) {
     const steamRecords = await db
       .select()
       .from(steamGamePlaytime)
       .where(eq(steamGamePlaytime.steamAppId, steamRow.appId))
       .all();
-    records.push(
-      ...steamRecords.map((record) => ({
+    rows.push({
+      row: {
+        provider: "steam",
+        providerId: steamRow.appId,
+        providerName: steamRow.name,
+      },
+      snapshots: steamRecords.map((record) => ({
         timestampStart: record.timestampStart,
         timestampEnd: record.timestampEnd,
         playtimeMinutes: record.playtimeForever ?? 0,
-        provider: "steam" as const,
-        providerId: steamRow.appId,
-        providerName: steamRow.name,
+        rTimeLastPlayed: record.rTimeLastPlayed,
       })),
-    );
+    });
   }
   for (const gogRow of gameRecord.gogGames) {
     const gogRecords = await db
@@ -99,16 +113,18 @@ export async function getGamePlaytimes(
       .from(gogGamePlaytime)
       .where(eq(gogGamePlaytime.gogId, gogRow.gogId))
       .all();
-    records.push(
-      ...gogRecords.map((record) => ({
+    rows.push({
+      row: {
+        provider: "gog",
+        providerId: gogRow.gogId,
+        providerName: gogRow.name,
+      },
+      snapshots: gogRecords.map((record) => ({
         timestampStart: record.timestampStart,
         timestampEnd: record.timestampEnd,
         playtimeMinutes: record.playtimeMinutes,
-        provider: "gog" as const,
-        providerId: gogRow.gogId,
-        providerName: gogRow.name,
       })),
-    );
+    });
   }
   for (const epicRow of gameRecord.epicGames) {
     const epicRecords = await db
@@ -116,18 +132,45 @@ export async function getGamePlaytimes(
       .from(epicGamePlaytime)
       .where(eq(epicGamePlaytime.epicId, epicRow.epicId))
       .all();
-    records.push(
-      ...epicRecords.map((record) => ({
+    rows.push({
+      row: {
+        provider: "epic",
+        providerId: epicRow.epicId,
+        providerName: epicRow.name,
+      },
+      snapshots: epicRecords.map((record) => ({
         timestampStart: record.timestampStart,
         timestampEnd: record.timestampEnd,
         playtimeMinutes: record.playtimeMinutes,
-        provider: "epic" as const,
-        providerId: epicRow.epicId,
-        providerName: epicRow.name,
       })),
-    );
+    });
   }
-  return records.sort(byTimestampStartDescending);
+  return rows;
+}
+
+export async function getGamePlaytimes(
+  id: number,
+): Promise<GamePlaytimeRecord[]> {
+  const rows = await getProviderRowSnapshots(id);
+  return rows
+    .flatMap(({ row, snapshots }) =>
+      snapshots.map((snapshot) => ({
+        timestampStart: snapshot.timestampStart,
+        timestampEnd: snapshot.timestampEnd,
+        playtimeMinutes: snapshot.playtimeMinutes,
+        provider: row.provider,
+        providerId: row.providerId,
+        providerName: row.providerName,
+      })),
+    )
+    .sort(byTimestampStartDescending);
+}
+
+export async function getGameTimeline(id: number): Promise<PlaytimeSession[]> {
+  const rows = await getProviderRowSnapshots(id);
+  return rows
+    .flatMap(({ row, snapshots }) => deriveSessions(snapshots, row))
+    .sort((a, b) => b.endedBefore.getTime() - a.endedBefore.getTime());
 }
 
 export async function getRecentGames(limit: number = 6) {

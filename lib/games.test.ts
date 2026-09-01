@@ -22,6 +22,7 @@ import {
   getGame,
   getGamePlaytimes,
   getGames,
+  getGameTimeline,
   getRecentGames,
   mergeGames,
   setGameState,
@@ -333,6 +334,123 @@ describe("getGamePlaytimes", () => {
       ["steam", 10],
       ["gog", 30],
     ]);
+  });
+});
+
+describe("getGameTimeline", () => {
+  beforeEach(async () => {
+    await flushDb();
+  });
+
+  it("throws when the game does not exist", async () => {
+    await expect(getGameTimeline(123456)).rejects.toThrow("Game not found");
+  });
+
+  it("derives one session from the cyberpunk-shaped gog records", async () => {
+    const gogGame = createGogGame({ name: "Cyberpunk 2077" });
+    const records = [
+      {
+        timestampStart: null,
+        timestampEnd: new Date("2026-08-30T14:14:45.000Z"),
+        playtimeMinutes: 11336,
+      },
+      {
+        timestampStart: new Date("2026-08-30T14:14:45.000Z"),
+        timestampEnd: new Date("2026-08-31T20:39:20.000Z"),
+        playtimeMinutes: 11336,
+      },
+      {
+        timestampStart: new Date("2026-08-31T20:39:20.000Z"),
+        timestampEnd: new Date("2026-08-31T20:43:46.000Z"),
+        playtimeMinutes: 11406,
+      },
+      {
+        timestampStart: new Date("2026-08-31T20:43:46.000Z"),
+        timestampEnd: new Date("2026-09-01T01:00:06.000Z"),
+        playtimeMinutes: 11406,
+      },
+    ];
+    for (const record of records) {
+      db.insert(gogGamePlaytimeTable)
+        .values({ gogId: gogGame.gogId, ...record })
+        .run();
+    }
+    const sessions = await getGameTimeline(gogGame.gameId);
+    expect(sessions).toStrictEqual([
+      {
+        provider: "gog",
+        providerId: gogGame.gogId,
+        providerName: gogGame.name,
+        minutes: 70,
+        endedAfter: new Date("2026-08-31T20:39:20.000Z"),
+        endedBefore: new Date("2026-08-31T20:43:46.000Z"),
+        estimatedStart: new Date("2026-08-31T19:33:46.000Z"),
+        estimatedEnd: new Date("2026-08-31T20:43:46.000Z"),
+        uncertaintyMinutes: 70,
+        anchored: false,
+      },
+    ]);
+  });
+
+  it("merges sessions across providers, newest first", async () => {
+    const steamGame = createSteamGame({ name: "Portal 2" });
+    const gogGame = createGogGame({
+      gameId: steamGame.gameId,
+      name: "Portal 2 GOG",
+    });
+    db.insert(steamGamePlaytimeTable)
+      .values({
+        steamAppId: steamGame.appId,
+        timestampStart: null,
+        timestampEnd: new Date("2024-01-01T00:00:00.000Z"),
+        playtimeForever: 100,
+        rTimeLastPlayed: 0,
+      })
+      .run();
+    db.insert(steamGamePlaytimeTable)
+      .values({
+        steamAppId: steamGame.appId,
+        timestampStart: new Date("2024-01-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-01-01T01:00:00.000Z"),
+        playtimeForever: 130,
+        rTimeLastPlayed: Math.floor(
+          new Date("2024-01-01T00:20:00.000Z").getTime() / 1000,
+        ),
+      })
+      .run();
+    db.insert(gogGamePlaytimeTable)
+      .values({
+        gogId: gogGame.gogId,
+        timestampStart: null,
+        timestampEnd: new Date("2024-02-01T00:00:00.000Z"),
+        playtimeMinutes: 500,
+      })
+      .run();
+    db.insert(gogGamePlaytimeTable)
+      .values({
+        gogId: gogGame.gogId,
+        timestampStart: new Date("2024-02-01T00:00:00.000Z"),
+        timestampEnd: new Date("2024-02-01T01:00:00.000Z"),
+        playtimeMinutes: 545,
+      })
+      .run();
+    const sessions = await getGameTimeline(steamGame.gameId);
+    expect(
+      sessions.map((session) => [
+        session.provider,
+        session.minutes,
+        session.anchored,
+        session.endedBefore,
+      ]),
+    ).toStrictEqual([
+      ["gog", 45, false, new Date("2024-02-01T01:00:00.000Z")],
+      ["steam", 30, true, new Date("2024-01-01T01:00:00.000Z")],
+    ]);
+  });
+
+  it("returns no sessions for a game with no providers", async () => {
+    const bareGame = createGame({ name: "Hollow Knight" });
+    expect(await getGameTimeline(bareGame.id)).toStrictEqual([]);
   });
 });
 

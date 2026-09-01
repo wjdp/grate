@@ -36,7 +36,8 @@ Defined in `shared/game-state.ts`.
 | Backlog   | Curated: I intend to play this.                                                                                                                                                                                   |
 | Playing   | Actively working through it.                                                                                                                                                                                      |
 | Periodic  | Dip-in/dip-out games (roguelikes, live-service, party games). Completion isn't the goal; inactivity gaps are normal, so idle nudges don't apply.                                                                  |
-| Shelved   | Set down, intend to return. The key automation target.                                                                                                                                                            |
+| Shelved   | Consciously set down, intend to return. A pre-play state alongside Backlog even though it has playtime. Manual-only entry.                                                                                        |
+| Stalled   | Playing but idle for weeks. Observed, not decided: entered automatically. A queue for the user to resolve — resume, shelve or drop. Manual entry allowed but pointless.                                            |
 | Played    | Done with it, didn't finish, fine with that.                                                                                                                                                                      |
 | Completed | Finished it — credits rolled.                                                                                                                                                                                     |
 | Retired   | Done with a Periodic game (which can't be "completed").                                                                                                                                                           |
@@ -69,7 +70,7 @@ Some games get replayed years apart (Skyrim, Cyberpunk, The Witcher, Deus Ex). G
 
 ### Automation rules
 
-Transitions come in two layers. Note the transition graph has cycles (Shelved → Playing, Completed → Playing on replay) — it is a state machine, not a DAG.
+Transitions come in two layers. Note the transition graph has cycles (Stalled → Playing, Shelved → Playing, Completed → Playing on replay) — it is a state machine, not a DAG.
 
 **Manual transitions: unconstrained.** Any state → any state when the user does it. The user is the authority; enforcing "legal" manual moves adds friction for no benefit in a single-user tool.
 
@@ -78,18 +79,20 @@ Transitions come in two layers. Note the transition graph has cycles (Shelved �
 | Edge                          | Trigger                                       | Mode      | Default threshold       | Suppressed by                                                |
 | ----------------------------- | --------------------------------------------- | --------- | ----------------------- | ------------------------------------------------------------ |
 | Backlog → Playing             | Cumulative recent playtime passes threshold   | Automatic | ~20 min                 | — (2-min boot-and-quit stays under threshold)                |
-| Playing → Shelved             | No playtime for N weeks                       | Suggested | ~3 weeks                | Periodic state; per-game longer clock                        |
+| Playing → Stalled             | No playtime for N weeks                       | Automatic | ~3 weeks                | Periodic state; per-game longer clock                        |
+| Stalled → Playing             | Real playtime (over threshold) resumes        | Automatic | Same ~20 min guard      | New-playthrough prompt takes over for long idles (see below) |
+| Stalled → Shelved/Abandoned   | Stalled for N months                          | Suggested | ~3 months               | User previously dismissed for this game                      |
 | Shelved → Playing             | Real playtime (over threshold) resumes        | Automatic | Same ~20 min guard      | New-playthrough prompt takes over for long idles (see below) |
 | Any active → Periodic         | Play pattern looks dip-in/dip-out over months | Suggested | TBD (pattern heuristic) | User previously dismissed for this game                      |
 | Completed/long-idle → Playing | Real playtime resumes                         | Suggested | Same ~20 min guard      | — (this is the new-playthrough prompt)                       |
 | Ignored → Playing             | Real playtime appears after all               | Automatic | Same ~20 min guard      | — (playtime trumps the declaration)                          |
 
-Thresholds are user-tweakable within sensible limits, globally and per game (a RimWorld-as-project can have a longer idle clock than a Bioshock). Terminal states (Played/Completed/Retired/Abandoned) are only ever entered manually — only the user knows they're done.
+Thresholds are user-tweakable within sensible limits, globally and per game (a RimWorld-as-project can have a longer idle clock than a Bioshock). Terminal states (Played/Completed/Retired/Abandoned) are only ever entered manually — only the user knows they're done. Shelved is likewise manual-only: it records a decision, whereas Stalled records an observation. Stalled is the only state automation writes to from Playing, and the Stalled ⇄ Playing flip is genuine history, not churn.
 
 **Edge precedence on the same event.** Play resuming on an idle game can match multiple edges; resolve deliberately:
 
-- Shelved + short idle → automatic Shelved → Playing, no prompt.
-- Shelved + long idle (playthrough-gap territory) → flip to Playing, but attach the new-playthrough suggestion.
+- Stalled or Shelved + short idle → automatic → Playing, no prompt.
+- Stalled or Shelved + long idle (playthrough-gap territory) → flip to Playing, but attach the new-playthrough suggestion.
 - Completed + playtime → never silently flip to Playing; always via the new-playthrough prompt.
 - At most one suggestion per game per event — automation must never stack prompts.
 
@@ -98,7 +101,7 @@ Thresholds are user-tweakable within sensible limits, globally and per game (a R
 The answer to "what should I play?" for the overwhelmed:
 
 - You are playing these games.
-- You've forgotten about these (Playing but idle — nudge to resume or shelve).
+- You've forgotten about these (Stalled — resume, shelve or drop).
 - These are on your backlog.
 
 ## Analytics
@@ -132,6 +135,6 @@ Private to the user (no social features, so no sharing concerns):
 ## Open questions
 
 - Which games metadata API for manual entry (IGDB the obvious candidate).
-- Precise defaults for automation thresholds (20 min activation, idle weeks before shelve nudge).
+- Precise defaults for automation thresholds (20 min activation, idle weeks before Stalled, stalled months before the shelve/drop nudge).
 - Playthrough inference: what gap counts as a split, and a promotion UX that avoids nagging or noise.
 - Periodic detection: what pattern heuristic counts as dip-in/dip-out.

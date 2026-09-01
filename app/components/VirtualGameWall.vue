@@ -5,26 +5,25 @@ import type { GameWithProviders } from "#shared/types/Game";
 const props = defineProps<{ games: GameWithProviders[] }>();
 
 const SSR_ROWS = 4;
+const SSR_COLUMNS = 8;
 const GAP = 16;
 const OVERSCAN = 5;
 const POSTER_ASPECT = 4 / 3;
 const TEXT_BLOCK = 72;
+// Keep in step with the `minmax(11rem, …)` in the pre-mount fallback grid.
+const MIN_POSTER_WIDTH = 176;
+const MIN_COLUMNS = 2;
 
-/**
- * Mirrors `grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6` — the
- * classes are viewport media queries, so `matchMedia` is what keeps the number
- * of games we slice into a row in step with what the CSS actually lays out.
- */
-const COLUMN_BREAKPOINTS = [
-  { query: "(min-width: 64rem)", columns: 6 },
-  { query: "(min-width: 48rem)", columns: 4 },
-  { query: "(min-width: 40rem)", columns: 3 },
-] as const;
-
-const columns = ref(2);
 const containerRef = ref<HTMLElement | null>(null);
 const containerWidth = ref(0);
 const mounted = ref(false);
+
+const columns = computed(() =>
+  Math.max(
+    MIN_COLUMNS,
+    Math.floor((containerWidth.value + GAP) / (MIN_POSTER_WIDTH + GAP)),
+  ),
+);
 
 const { scrollElement, scrollMargin, measure } = useScrollParent(containerRef);
 const { restore } = useScrollMemory(scrollElement);
@@ -53,27 +52,11 @@ const virtualRows = computed(() => virtualizer.value.getVirtualItems());
 const rowGames = (index: number) =>
   props.games.slice(index * columns.value, (index + 1) * columns.value);
 
-const ssrGames = computed(() => props.games.slice(0, SSR_ROWS * 6));
+const ssrGames = computed(() => props.games.slice(0, SSR_ROWS * SSR_COLUMNS));
 
-let mediaQueries: MediaQueryList[] = [];
 let widthObserver: ResizeObserver | undefined;
 
-const readColumns = () => {
-  const match = COLUMN_BREAKPOINTS.find(
-    (breakpoint) => window.matchMedia(breakpoint.query).matches,
-  );
-  columns.value = match?.columns ?? 2;
-};
-
 onMounted(async () => {
-  readColumns();
-  mediaQueries = COLUMN_BREAKPOINTS.map(({ query }) =>
-    window.matchMedia(query),
-  );
-  mediaQueries.forEach((query) => {
-    query.addEventListener("change", readColumns);
-  });
-
   if (containerRef.value) {
     containerWidth.value = containerRef.value.clientWidth;
     widthObserver = new ResizeObserver(([entry]) => {
@@ -91,9 +74,6 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  mediaQueries.forEach((query) => {
-    query.removeEventListener("change", readColumns);
-  });
   widthObserver?.disconnect();
 });
 
@@ -107,7 +87,7 @@ watch([columns, () => props.games], () => {
   <div ref="containerRef">
     <div
       v-if="!mounted"
-      class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+      class="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4"
     >
       <GamePoster v-for="game in ssrGames" :key="game.id" :game="game" />
     </div>
@@ -121,8 +101,11 @@ watch([columns, () => props.games], () => {
         :key="row.index"
         :ref="(el) => virtualizer.measureElement(el as Element | null)"
         :data-index="row.index"
-        class="absolute top-0 left-0 grid w-full grid-cols-2 gap-4 pb-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
-        :style="{ transform: `translateY(${row.start - scrollMargin}px)` }"
+        class="absolute top-0 left-0 grid w-full gap-4 pb-4"
+        :style="{
+          transform: `translateY(${row.start - scrollMargin}px)`,
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        }"
       >
         <GamePoster
           v-for="game in rowGames(row.index)"

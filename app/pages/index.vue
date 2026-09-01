@@ -51,7 +51,7 @@ const unsortedPlayedCount = computed(
       </h2>
       <div
         v-if="recentGames.length"
-        class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+        class="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4"
       >
         <GamePoster v-for="game in recentGames" :key="game.id" :game="game" />
       </div>

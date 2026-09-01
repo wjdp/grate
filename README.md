@@ -40,7 +40,11 @@ services:
       - <path to local directory>:/app/data
     ports:
       - 3000:3000
+    environment:
+      - TZ=Europe/London
 ```
+
+grate uses the container's `TZ` to decide which day a session belongs to (the day runs 06:00 to 06:00, so a 1am session counts towards the night before); it defaults to UTC when unset, and can be overridden per user in Settings.
 
 Then pull and bring up the container
 

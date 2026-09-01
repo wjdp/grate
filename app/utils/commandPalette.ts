@@ -30,6 +30,7 @@ export function buildNavigationCommands(
     },
     { label: "Activity", icon: "i-lucide-activity", to: "/activity" },
     { label: "Providers", icon: "i-lucide-plug", to: "/providers" },
+    { label: "Settings", icon: "i-lucide-settings", to: "/settings" },
     { label: "Tasks", icon: "i-lucide-list-todo", to: "/tasks" },
     {
       label: "Components",

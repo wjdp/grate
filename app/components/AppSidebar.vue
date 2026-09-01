@@ -35,6 +35,7 @@ const mainLinks = computed<NavigationMenuItem[]>(() => [
   },
   { label: "Activity", icon: "i-lucide-activity", to: "/activity" },
   { label: "Providers", icon: "i-lucide-plug", to: "/providers" },
+  { label: "Settings", icon: "i-lucide-settings", to: "/settings" },
 ]);
 
 const debugLinks: NavigationMenuItem[] = [

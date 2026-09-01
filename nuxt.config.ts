@@ -55,6 +55,8 @@ export default defineNuxtConfig({
       "0 6 * * *": "scheduled:update-games",
       "20 4 1 * *": "scheduled:update-steam-pics-metadata",
     },
+    // Ignore co-located test files
+    ignore: ["**/*.test.ts"],
   },
   vite: {
     plugins: [tailwindcss()],

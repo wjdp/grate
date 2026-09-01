@@ -1,6 +1,6 @@
 ---
 type: task
-status: open
+status: done
 ---
 
 # Release process
@@ -34,6 +34,6 @@ Create an automated release process. Today every master push builds and pushes `
 
 ## Notes
 
-- The bump commit pushed to master will itself trigger the master workflow and produce an `edge` build of the same code — harmless, leave it.
+- Pushes made with the default `GITHUB_TOKEN` don't trigger other workflows, so the bump commit pushed to master won't itself fire the master workflow — no duplicate `edge` build for the release commit.
 - Existing deployments pulling `latest` will silently switch from bleeding edge to release cadence once this lands — the prod instance (currently at 3aef15a) should be repointed deliberately, to `edge` or a version tag.
 - Version display already exists: `nuxt.config.ts` reads `package.json` version into `runtimeConfig.public`, shown in `AppSidebar.vue` — the sha suffix builds on this.

@@ -233,7 +233,9 @@ defineShortcuts({
     v-model:open="isOpen"
     title="Command palette"
     description="Search games, jump to a page, or act on a game"
-    :ui="{ content: 'sm:max-w-2xl' }"
+    :ui="{
+      content: 'top-4 translate-y-0 sm:top-1/2 sm:-translate-y-1/2 sm:max-w-2xl',
+    }"
   >
     <template #content>
       <div
@@ -257,7 +259,7 @@ defineShortcuts({
         :loading="status === 'pending'"
         preserve-group-order
         close
-        class="h-96"
+        class="h-[calc(100dvh-2rem)] sm:h-96"
         :ui="{
           item: 'data-highlighted:not-data-disabled:before:bg-accented',
         }"

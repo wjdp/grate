@@ -51,7 +51,7 @@ const debugLinks: NavigationMenuItem[] = [
   <UDashboardSidebar
     collapsible
     resizable
-    :ui="{ footer: 'border-t border-default' }"
+    :ui="{ header: 'px-6', footer: 'border-t border-default px-3.5' }"
   >
     <template #header="{ collapsed }">
       <NuxtLink to="/" class="flex min-w-0 items-center gap-2">
@@ -75,6 +75,7 @@ const debugLinks: NavigationMenuItem[] = [
         :collapsed="collapsed"
         orientation="vertical"
         tooltip
+        :ui="{ link: 'px-2' }"
       >
         <template #search-trailing>
           <span v-if="!collapsed" class="ms-auto flex items-center gap-0.5">
@@ -88,6 +89,7 @@ const debugLinks: NavigationMenuItem[] = [
         :collapsed="collapsed"
         orientation="vertical"
         tooltip
+        :ui="{ link: 'px-2' }"
       />
       <UNavigationMenu
         :items="debugLinks"
@@ -95,6 +97,7 @@ const debugLinks: NavigationMenuItem[] = [
         orientation="vertical"
         tooltip
         class="mt-auto"
+        :ui="{ link: 'px-2', label: 'px-2' }"
       />
 
       <AppTaskIndicator :collapsed="collapsed" />

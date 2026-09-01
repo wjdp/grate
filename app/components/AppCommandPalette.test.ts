@@ -44,10 +44,16 @@ const { routeMock } = vi.hoisted(() => ({
 }));
 mockNuxtImport("useRoute", () => () => routeMock);
 
-// Reka's listbox settles its filtering over several microtask/timer hops.
-const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
-
 const mounted: { unmount: () => void }[] = [];
+
+const itemLabels = () =>
+  Array.from(document.querySelectorAll("[role='option']")).map((option) =>
+    option.textContent?.trim(),
+  );
+
+// Reka's listbox settles its filtering over several microtask/timer hops.
+const awaitItems = (predicate: (labels: (string | undefined)[]) => boolean) =>
+  vi.waitFor(() => expect(predicate(itemLabels())).toBe(true));
 
 const mountPalette = async () => {
   const component = await mountSuspended(AppCommandPalette, {
@@ -55,14 +61,9 @@ const mountPalette = async () => {
   });
   mounted.push(component);
   useCommandPalette().open();
-  await settle();
+  await awaitItems((labels) => labels.length > 0);
   return component;
 };
-
-const itemLabels = () =>
-  Array.from(document.querySelectorAll("[role='option']")).map((option) =>
-    option.textContent?.trim(),
-  );
 
 const groupLabels = () =>
   // Scoped to direct children: state badges inside items carry a label slot too.
@@ -74,7 +75,13 @@ const search = async (term: string) => {
   const input = document.querySelector("input")!;
   input.value = term;
   input.dispatchEvent(new Event("input", { bubbles: true }));
-  await settle();
+  await awaitItems(
+    (labels) =>
+      labels.length > 0 &&
+      labels.every((label) =>
+        label?.toLowerCase().includes(term.toLowerCase()),
+      ),
+  );
 };
 
 const pick = async (label: string) => {
@@ -84,7 +91,6 @@ const pick = async (label: string) => {
   option.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
   option.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
   option.click();
-  await settle();
 };
 
 beforeEach(() => {
@@ -145,7 +151,7 @@ describe("AppCommandPalette", () => {
     const { pushPane } = useCommandPalette();
     await mountPalette();
     pushPane({ kind: "set-state", gameId: 1 });
-    await settle();
+    await awaitItems((labels) => labels.includes("Ignored"));
 
     expect(itemLabels()).toEqual([
       "Unsorted",
@@ -173,10 +179,10 @@ describe("AppCommandPalette", () => {
     const palette = useCommandPalette();
     await mountPalette();
     palette.pushPane({ kind: "set-state", gameId: 1 });
-    await settle();
+    await awaitItems((labels) => labels.includes("Completed"));
     await pick("Completed");
+    await vi.waitFor(() => expect(palette.isOpen.value).toBe(false));
 
     expect(stateRequests).toEqual([{ state: "COMPLETED" }]);
-    expect(palette.isOpen.value).toBe(false);
   });
 });

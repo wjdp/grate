@@ -87,7 +87,7 @@ watch([columns, () => props.games], () => {
   <div ref="containerRef">
     <div
       v-if="!mounted"
-      class="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4"
+      class="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]"
     >
       <GamePoster v-for="game in ssrGames" :key="game.id" :game="game" />
     </div>

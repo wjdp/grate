@@ -753,6 +753,137 @@ describe("recordGogPlaytime", () => {
     expect(storedGame.lastPlayedAt).toStrictEqual(new Date(1700000000 * 1000));
   });
 
+  it("leaves lastPlayedAt null on a first import with no session date", async () => {
+    const playedGame = await createGogGame({ gogId: 809 });
+    const sessions = generateFakeGogPlaytimeSessions({
+      time_sum: 60,
+      last_session_date: null,
+    });
+
+    await recordGogPlaytime(
+      playedGame,
+      sessions,
+      new Date("2026-01-01T00:00:00.000Z"),
+    );
+
+    const stored = firstOrThrow(
+      db.select().from(gogGame).where(eq(gogGame.gogId, 809)).all(),
+    );
+    expect(stored.lastPlayedAt).toBeNull();
+  });
+
+  it("infers lastPlayedAt from a playtime increase, on the GogGame and the Game", async () => {
+    const playedGame = await createGogGame({ gogId: 810 });
+    const first = new Date("2026-01-01T00:00:00.000Z");
+    const second = new Date("2026-01-02T00:00:00.000Z");
+
+    await recordGogPlaytime(
+      playedGame,
+      generateFakeGogPlaytimeSessions({
+        time_sum: 60,
+        last_session_date: null,
+      }),
+      first,
+    );
+    const record = await recordGogPlaytime(
+      playedGame,
+      generateFakeGogPlaytimeSessions({
+        time_sum: 90,
+        last_session_date: null,
+      }),
+      second,
+    );
+
+    expect(record.lastPlayedAt).toBeNull();
+    const stored = firstOrThrow(
+      db.select().from(gogGame).where(eq(gogGame.gogId, 810)).all(),
+    );
+    expect(stored.lastPlayedAt).toStrictEqual(second);
+    const storedGame = firstOrThrow(
+      db.select().from(game).where(eq(game.id, playedGame.gameId)).all(),
+    );
+    expect(storedGame.lastPlayedAt).toStrictEqual(second);
+  });
+
+  it("keeps the inferred lastPlayedAt on an unchanged sync", async () => {
+    const playedGame = await createGogGame({ gogId: 811 });
+    const first = new Date("2026-01-01T00:00:00.000Z");
+    const second = new Date("2026-01-02T00:00:00.000Z");
+    const third = new Date("2026-01-03T00:00:00.000Z");
+
+    await recordGogPlaytime(
+      playedGame,
+      generateFakeGogPlaytimeSessions({
+        time_sum: 60,
+        last_session_date: null,
+      }),
+      first,
+    );
+    await recordGogPlaytime(
+      playedGame,
+      generateFakeGogPlaytimeSessions({
+        time_sum: 90,
+        last_session_date: null,
+      }),
+      second,
+    );
+    await recordGogPlaytime(
+      playedGame,
+      generateFakeGogPlaytimeSessions({
+        time_sum: 90,
+        last_session_date: null,
+      }),
+      third,
+    );
+
+    const stored = firstOrThrow(
+      db.select().from(gogGame).where(eq(gogGame.gogId, 811)).all(),
+    );
+    expect(stored.lastPlayedAt).toStrictEqual(second);
+  });
+
+  it("backfills a null lastPlayedAt from existing history", async () => {
+    const playedGame = await createGogGame({ gogId: 812 });
+    const first = new Date("2026-01-01T00:00:00.000Z");
+    const second = new Date("2026-01-02T00:00:00.000Z");
+    const third = new Date("2026-01-03T00:00:00.000Z");
+
+    await recordGogPlaytime(
+      playedGame,
+      generateFakeGogPlaytimeSessions({
+        time_sum: 60,
+        last_session_date: null,
+      }),
+      first,
+    );
+    await recordGogPlaytime(
+      playedGame,
+      generateFakeGogPlaytimeSessions({
+        time_sum: 90,
+        last_session_date: null,
+      }),
+      second,
+    );
+    db.update(gogGame)
+      .set({ lastPlayedAt: null })
+      .where(eq(gogGame.gogId, 812))
+      .run();
+
+    await recordGogPlaytime(
+      playedGame,
+      generateFakeGogPlaytimeSessions({
+        time_sum: 90,
+        last_session_date: null,
+      }),
+      third,
+    );
+
+    const stored = firstOrThrow(
+      db.select().from(gogGame).where(eq(gogGame.gogId, 812)).all(),
+    );
+    expect(stored.lastPlayedAt).toStrictEqual(second);
+  });
+
   it("stores a null lastPlayedAt when there is no session date", async () => {
     const playedGame = await createGogGame({ gogId: 804 });
     const sessions = generateFakeGogPlaytimeSessions({

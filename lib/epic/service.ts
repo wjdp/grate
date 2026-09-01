@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import tryCatch from "#shared/utils/tryCatch";
 import {
   type EpicGame,
@@ -27,6 +27,7 @@ import {
 } from "~~/lib/epic/api";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
+import { inferredLastPlayedAt } from "~~/lib/playtimeTimeline";
 import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
 
 function parseDate(value: string | null | undefined): Date | null {
@@ -411,6 +412,20 @@ export async function updateEpicGames(onProgress?: OnProgress) {
   }
 }
 
+function lastPlayedAtInferredFromHistory(epicId: number): Date | null {
+  const snapshots = db
+    .select({
+      timestampStart: epicGamePlaytime.timestampStart,
+      timestampEnd: epicGamePlaytime.timestampEnd,
+      playtimeMinutes: epicGamePlaytime.playtimeMinutes,
+    })
+    .from(epicGamePlaytime)
+    .where(eq(epicGamePlaytime.epicId, epicId))
+    .orderBy(asc(epicGamePlaytime.timestampEnd))
+    .all();
+  return inferredLastPlayedAt(snapshots);
+}
+
 export async function recordEpicPlaytime(
   playedGame: EpicGame,
   totalTimeSeconds: number,
@@ -454,7 +469,10 @@ export async function recordEpicPlaytime(
     console.log(`Recorded playtime for ${playedGame.name}`);
   }
   db.update(epicGame)
-    .set({ playtimeMinutes, ...(increased ? { lastPlayedAt } : {}) })
+    .set({
+      playtimeMinutes,
+      lastPlayedAt: lastPlayedAtInferredFromHistory(playedGame.epicId),
+    })
     .where(eq(epicGame.epicId, playedGame.epicId))
     .run();
   await refreshGameAggregates(playedGame.gameId);

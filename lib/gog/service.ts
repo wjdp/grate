@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import htmlToBareDescription from "#shared/utils/htmlToBareDescription";
 import tryCatch from "#shared/utils/tryCatch";
 import {
@@ -26,6 +26,7 @@ import {
   getGogUserPlaytimes,
   refreshGogToken,
 } from "~~/lib/gog/api";
+import { inferredLastPlayedAt } from "~~/lib/playtimeTimeline";
 import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
 
 function getTokenExpiresAt(expiresIn: number) {
@@ -324,6 +325,20 @@ function gogLastPlayedAt(sessions: GogPlaytimeSessions): Date | null {
     : null;
 }
 
+function lastPlayedAtInferredFromHistory(gogId: number): Date | null {
+  const snapshots = db
+    .select({
+      timestampStart: gogGamePlaytime.timestampStart,
+      timestampEnd: gogGamePlaytime.timestampEnd,
+      playtimeMinutes: gogGamePlaytime.playtimeMinutes,
+    })
+    .from(gogGamePlaytime)
+    .where(eq(gogGamePlaytime.gogId, gogId))
+    .orderBy(asc(gogGamePlaytime.timestampEnd))
+    .all();
+  return inferredLastPlayedAt(snapshots);
+}
+
 export async function recordGogPlaytime(
   playedGame: GogGame,
   sessions: GogPlaytimeSessions,
@@ -381,7 +396,11 @@ export async function recordGogPlaytime(
     console.log(`Recorded playtime for ${playedGame.name}`);
   }
   db.update(gogGame)
-    .set({ playtimeMinutes: sessions.time_sum, lastPlayedAt })
+    .set({
+      playtimeMinutes: sessions.time_sum,
+      lastPlayedAt:
+        lastPlayedAt ?? lastPlayedAtInferredFromHistory(playedGame.gogId),
+    })
     .where(eq(gogGame.gogId, playedGame.gogId))
     .run();
   await refreshGameAggregates(playedGame.gameId);

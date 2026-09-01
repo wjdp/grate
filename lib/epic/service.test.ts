@@ -791,6 +791,31 @@ describe("recordEpicPlaytime", () => {
     expect(storedGame.lastPlayedAt).toStrictEqual(second);
   });
 
+  it("backfills a null lastPlayedAt from existing history", async () => {
+    const playedGame = createEpicGame();
+    const first = new Date("2026-01-01T00:00:00.000Z");
+    const second = new Date("2026-01-02T00:00:00.000Z");
+    const third = new Date("2026-01-03T00:00:00.000Z");
+
+    await recordEpicPlaytime(playedGame, 3600, first);
+    await recordEpicPlaytime(playedGame, 5400, second);
+    db.update(epicGame)
+      .set({ lastPlayedAt: null })
+      .where(eq(epicGame.epicId, playedGame.epicId))
+      .run();
+
+    await recordEpicPlaytime(playedGame, 5400, third);
+
+    const stored = firstOrThrow(
+      db
+        .select()
+        .from(epicGame)
+        .where(eq(epicGame.epicId, playedGame.epicId))
+        .all(),
+    );
+    expect(stored.lastPlayedAt).toStrictEqual(second);
+  });
+
   it("keeps the previously derived lastPlayedAt on an unchanged sync", async () => {
     const playedGame = createEpicGame();
     const first = new Date("2026-01-01T00:00:00.000Z");

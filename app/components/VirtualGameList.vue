@@ -40,7 +40,6 @@ onMounted(async () => {
 watch(
   () => props.games,
   () => {
-    virtualizer.value.measure();
     nextTick(measure);
   },
 );

@@ -77,10 +77,18 @@ onBeforeUnmount(() => {
   widthObserver?.disconnect();
 });
 
-watch([columns, () => props.games], () => {
+// Column count changes the row height, so the measured sizes have to go; a
+// content change keeps them, as they are keyed by index and uniform.
+watch(columns, () => {
   virtualizer.value.measure();
-  nextTick(measure);
 });
+
+watch(
+  () => props.games,
+  () => {
+    nextTick(measure);
+  },
+);
 </script>
 
 <template>

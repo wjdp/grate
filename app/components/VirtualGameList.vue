@@ -51,7 +51,7 @@ watch(
     ref="containerRef"
     class="border-default overflow-hidden rounded-lg border"
   >
-    <div v-if="!mounted" class="divide-default divide-y">
+    <div v-if="!mounted">
       <GameRow v-for="game in ssrGames" :key="game.id" :game="game" />
     </div>
     <div
@@ -64,8 +64,7 @@ watch(
         :key="row.index"
         :ref="(el) => virtualizer.measureElement(el as Element | null)"
         :data-index="row.index"
-        class="border-default absolute top-0 left-0 w-full"
-        :class="row.index > 0 ? 'border-t' : ''"
+        class="absolute top-0 left-0 w-full"
         :style="{ transform: `translateY(${row.start - scrollMargin}px)` }"
       >
         <GameRow :game="games[row.index]" />

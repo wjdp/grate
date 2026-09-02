@@ -1,6 +1,6 @@
 import { epicAuthBodySchema } from "#shared/schemas/providers";
 import tryCatch from "#shared/utils/tryCatch";
-import { createOrUpdateEpicUser } from "~~/lib/epic/service";
+import { createOrUpdateEpicUser } from "~~/server/providers/epic/service";
 
 export default defineEventHandler(async (event) => {
   const { code } = await readValidatedBody(event, epicAuthBodySchema.parse);

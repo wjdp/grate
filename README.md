@@ -83,4 +83,4 @@ pnpm dev
 
 Useful scripts: `pnpm test` (vitest), `pnpm lint` (biome), `pnpm typecheck`, `pnpm db:studio` (drizzle-kit studio).
 
-The stack is Nuxt 4 (Vue, Nuxt UI, Tailwind) with a Nitro server, Drizzle ORM on better-sqlite3, and provider clients in `lib/`. Working docs — plans, reviews and reference material, including how providers work and how to add one — live in [`docs/`](docs/).
+The stack is Nuxt 4 (Vue, Nuxt UI, Tailwind) with a Nitro server, Drizzle ORM on better-sqlite3, and provider clients in `server/providers/`. Working docs — plans, reviews and reference material, including how providers work and how to add one — live in [`docs/`](docs/).

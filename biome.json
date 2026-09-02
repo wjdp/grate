@@ -69,9 +69,35 @@
   },
   "overrides": [
     {
-      "includes": ["**/*.test.ts", "db/scripts/**"],
+      "includes": ["**/*.test.ts"],
       "linter": {
         "rules": { "style": { "noNonNullAssertion": "off" } }
+      }
+    },
+    {
+      "includes": ["app/**", "shared/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["~~/server/**", "~/../server/**"],
+                    "message": "Client and shared code must not import server code; move what you need to shared/"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["shared/types/**", "app/**/*.test.ts"],
+      "linter": {
+        "rules": { "style": { "noRestrictedImports": "off" } }
       }
     }
   ],

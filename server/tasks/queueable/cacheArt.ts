@@ -1,14 +1,14 @@
 import mapWithConcurrency from "#shared/utils/mapWithConcurrency";
-import { epicGame, gogGame, steamGame } from "~~/db/schema";
-import { db } from "~~/lib/db";
-import type { ArtProvider } from "~~/server/art";
+import { db } from "~~/server/database/client";
+import { epicGame, gogGame, steamGame } from "~~/server/database/schema";
+import type { ArtProvider } from "~~/server/services/art";
 import {
   ART_TYPES_BY_PROVIDER,
   ArtFetchError,
   ArtNegativelyCachedError,
   ArtSourceNotFoundError,
   ensureArtCached,
-} from "~~/server/art";
+} from "~~/server/services/art";
 import type { Task } from "~~/server/tasks/queue";
 import { updateInProgressTask } from "~~/server/tasks/queue";
 

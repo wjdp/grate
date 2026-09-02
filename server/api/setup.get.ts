@@ -1,7 +1,7 @@
 // Check the setup state of the application
 
-import { user } from "~~/db/schema";
-import { db } from "~~/lib/db";
+import { db } from "~~/server/database/client";
+import { user } from "~~/server/database/schema";
 
 // e.g. user exists in the database
 export default defineEventHandler(async () => {

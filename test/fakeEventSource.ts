@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { SseTask } from "~~/lib/hooks";
+import type { SseTask } from "#shared/sse";
 
 type FakeHandler = (event: { data: string }) => void;
 

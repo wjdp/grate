@@ -7,7 +7,7 @@ status: done
 
 `SteamGame.appId`, `SteamAppInfo.appId`, `SteamGamePlaytime.steamAppId` are `BigInt`. Steam appids are 32-bit; `Number` is safe. Only `SteamUser.steamId` (64-bit SteamID) needs `BigInt`, and even that can be a `String` since it's never used arithmetically.
 
-Cost today: `server/bigint.ts` patches `BigInt.prototype.toJSON` (lossy — parses to `Number` anyway), `appid: z.number().transform(BigInt)` in `lib/steam/api.ts`, `bigint` params threaded through `populateStoreData`, `getPlaytimeRecords`, art routes, `PlayButton` props typed `number | string`.
+Cost today: `server/bigint.ts` patches `BigInt.prototype.toJSON` (lossy — parses to `Number` anyway), `appid: z.number().transform(BigInt)` in `server/providers/steam/api.ts`, `bigint` params threaded through `populateStoreData`, `getPlaytimeRecords`, art routes, `PlayButton` props typed `number | string`.
 
 ## Steps
 
@@ -18,7 +18,7 @@ Cost today: `server/bigint.ts` patches `BigInt.prototype.toJSON` (lossy — pars
 
 ## Under Drizzle (post-[02](02-Prisma-To-Drizzle-Migration.md))
 
-Step 1 is now a TypeScript-type-only change for the three appid columns: `bigint()` → `integer()` in `db/schema.ts`. SQLite storage is identical, so no migration is needed. `steamId` can stay BIGINT, or become TEXT via a real migration.
+Step 1 is now a TypeScript-type-only change for the three appid columns: `bigint()` → `integer()` in `server/database/schema.ts`. SQLite storage is identical, so no migration is needed. `steamId` can stay BIGINT, or become TEXT via a real migration.
 
 ## Outcome
 

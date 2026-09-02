@@ -16,13 +16,13 @@ Let the user hide library items they don't want to see — tooling, launchers, s
 
 ## Schema
 
-`db/schema.ts`, on `game`:
+`server/database/schema.ts`, on `game`:
 
 ```ts
 hidden: boolean().notNull().default(false),
 ```
 
-Migration `db/migrations/0009_game_hidden.sql`:
+Migration `server/database/migrations/0009_game_hidden.sql`:
 
 ```sql
 ALTER TABLE `Game` ADD `hidden` integer DEFAULT false NOT NULL;
@@ -33,11 +33,11 @@ Update `meta/` snapshot and journal as for previous migrations; add the column t
 ## API
 
 - `PATCH /api/games/:id/hidden` with body `{ hidden: boolean }`; schema in `shared/schemas/games.ts`. Returns `{ game }` like `state.patch.ts`.
-- `lib/games.ts`: `setGameHidden(id, hidden)`. No history table — a hidden flag is not a decision worth a timeline entry.
+- `server/services/games.ts`: `setGameHidden(id, hidden)`. No history table — a hidden flag is not a decision worth a timeline entry.
 - `GET /api/games` continues to return all games including hidden; the flag is on each row and the client filters. Rationale: the palette, game page and merge dialog need hidden games available, and the library is already fetched whole.
 - `GET /api/games/recent` excludes hidden.
 - `GET /api/games/duplicates`: exclude pairs where either side is hidden.
-- `lib/activity.ts` (`getDailyPlaytime`) and any other aggregate: exclude hidden games' playtime.
+- `server/services/activity.ts` (`getDailyPlaytime`) and any other aggregate: exclude hidden games' playtime.
 
 ## Merge and split
 
@@ -56,7 +56,7 @@ Update `meta/` snapshot and journal as for previous migrations; add the column t
 ## Tests
 
 - Migration tests: column present, default `0`.
-- `lib/games` tests: `setGameHidden`; merge keeps target flag; split inherits.
+- `server/services/games` tests: `setGameHidden`; merge keeps target flag; split inherits.
 - `getRecentGames`, duplicates, `getDailyPlaytime` exclude hidden.
 - `commandPalette.test.ts`: hidden games absent from search; Hide/Unhide commands present.
 - Organise: hidden games skipped; Hide action marks organised.

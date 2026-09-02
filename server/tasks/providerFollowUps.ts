@@ -1,5 +1,5 @@
 import type { ProviderId, TaskName } from "#shared/tasks";
-import type { RecordPlaytimesResult } from "~~/lib/providerJobs";
+import type { RecordPlaytimesResult } from "~~/server/providers/jobs";
 import { createTask } from "~~/server/tasks/queue";
 
 export interface PlaytimeRun {

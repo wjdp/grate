@@ -58,28 +58,28 @@ DELETE FROM EpicIgnoredItem WHERE reason = 'DLC';
 
 All in each provider's `updateGames`, after base games, so parents exist. Progress messages "… dlc n/m". Never create a child whose parent is not a top-level `Game`.
 
-### GOG (`lib/gog/service.ts`)
+### GOG (`server/providers/gog/service.ts`)
 
 1. Stop ignoring `productType === "DLC"`. `PACK` stays ignored.
 2. For each owned id whose detail is DLC: parents = `requiresGames` ids → `GogGame` rows → their `Game`s. First match wins. Create/update child `Game` + `GogGame` (`owned: true`, `productType: "DLC"`).
 3. Orphans (no owned parent): fallback match on `isIncludedInGames`, then by name after stripping a trailing `[A]`/edition suffix against existing siblings. Duplicate of an existing sibling → `gogIgnoredProduct` reason `DLC_DUPLICATE`; no match → `DLC_ORPHAN`. Both re-evaluated on the next sync (delete before sync, unlike other reasons).
 4. Unowned: for each top-level `GogGame`, `isRequiredByGames` ids not owned and not already a `GogGame` → fetch detail, create child with `owned: false`. Unfetchable → `NOT_FOUND` as today. Persisted child rows are not refetched on later syncs (same as games).
 
-### Epic (`lib/epic/service.ts`)
+### Epic (`server/providers/epic/service.ts`)
 
 1. `catalogIgnoreReason` no longer returns `DLC`. Library items with `mainGameItem` → parent = `EpicGame` with `catalogItemId === mainGameItem.id` in the same namespace; create child with `owned: true`. Parent not in library → `epicIgnoredItem` `DLC_ORPHAN`.
 2. Unowned: parent catalogue fetch already uses `includeDLCDetails=true`; `dlcItemList` entries not in the library → child with `owned: false`, `appName` from `releaseInfo[0].appId` (unique index on `appName` still holds).
 3. Release date: min `releaseInfo[].dateAdded`, else `creationDate`. Stored in the existing `releaseDate` column; no "approximate" flag, the weakness is documented here only.
 4. Playtime: `recordEpicPlaytimes` will now find rows for DLC artifacts. Record them on the child (provider truth) but children are excluded from every aggregate (below), so the duplicated Control totals never double count.
 
-### Steam (`lib/steam/service.ts`, needs doc 28)
+### Steam (`server/providers/steam/service.ts`, needs doc 28)
 
 1. Owned DLC ids = `rgOwnedApps` ∩ apps whose PICS `type === "DLC"` (also `Music`, `Video` — import as DLC, triage hides them). Parent = PICS `parent` → `SteamGame` → `Game`. Complete regardless of the 64 cap.
 2. Unowned: PICS `listofdlc` of each top-level `SteamGame`, minus owned. Accept the 64 cap for v1 (8 games affected); note in UI nothing. Follow-up: `appdetails.dlc` for capped games.
 3. Metadata: new queueable `updateSteamStoreItems` fetches `GetItems` for all DLC app ids (and later games), upserts `SteamStoreItem`; queued by `providerFollowUps` after a Steam games sync alongside PICS. PICS metadata task already covers DLC app ids once they are `SteamGame` rows — it gives `parent` and release dates.
 4. No Steam web session → skip both steps, log once.
 
-### Triage (`lib/dlcTriage.ts`)
+### Triage (`server/services/dlcTriage.ts`)
 
 Pure function `triageDlc(input): { hidden: boolean; reasons: string[] }` over a provider-neutral input `{ name, parentName, type, priceFinalPence, reviewCount, isFree, hasDescription, tagCount, provider }`. Applied at child creation; `hidden` written, `hiddenByUser` false.
 
@@ -98,7 +98,7 @@ Debug page `app/pages/debug/dlc-triage.vue` + `GET /api/debug/dlc-triage`: every
 
 - `getGames()` / `GET /api/games`: `WHERE parentId IS NULL`. Children never reach the library, palette, organise, duplicates, recent, merge candidates.
 - `getGame(id)`: adds `dlc: DlcSummary[]` — `{ id, name, state, hidden, owned, releaseDate, providers: { steam?: { owned }, gog?: { owned }, epic?: { owned } }, playtimeMinutes }`, ordered `releaseDate ASC NULLS LAST, name ASC`. For a child, adds `parent: { id, name }`.
-- `lib/activity.ts` and `refreshAllGameAggregates`, `findDuplicatePairs`, `getRecentGames`: exclude children. `refreshGameAggregates(parent)` sums only the parent's own provider rows (unchanged code; children are separate `Game`s).
+- `server/services/activity.ts` and `refreshAllGameAggregates`, `findDuplicatePairs`, `getRecentGames`: exclude children. `refreshGameAggregates(parent)` sums only the parent's own provider rows (unchanged code; children are separate `Game`s).
 - `shared/types/Game.ts` picks the new fields up via `Serialised`.
 
 ## Mutations
@@ -124,18 +124,18 @@ Debug page `app/pages/debug/dlc-triage.vue` + `GET /api/debug/dlc-triage`: every
 ## Tests
 
 - Migration: columns, defaults, `SteamStoreItem`, ignored `DLC` rows removed.
-- `lib/dlcTriage.test.ts`: table-driven over real names (Far Harbor visible via reviews; "Civilization V - Explorer's Map Pack" hidden; Temerian Armor Set hidden via empty GOG description; Phantom Liberty visible).
+- `server/services/dlcTriage.test.ts`: table-driven over real names (Far Harbor visible via reviews; "Civilization V - Explorer's Map Pack" hidden; Temerian Armor Set hidden via empty GOG description; Phantom Liberty visible).
 - GOG service: DLC becomes a child of the right `GogGame`'s game; `[A]` orphan → `DLC_ORPHAN`; unowned `isRequiredByGames` created `owned: false`; PACK still ignored.
 - Epic service: `mainGameItem` child creation; `dlcItemList` unowned; DLC playtime recorded on child; parent aggregate unaffected.
 - Steam service: no web session → no DLC rows; with session → owned ∩ type DLC parented via PICS `parent`; store items upserted.
-- `lib/games`: `getGames` hides children; `getGame` returns ordered `dlc`; `mergeGames` re-points children and merges siblings by name across providers; sibling-only merge validation; split moves single-provider children; `setGameHidden` sets `hiddenByUser`.
+- `server/services/games`: `getGames` hides children; `getGame` returns ordered `dlc`; `mergeGames` re-points children and merges siblings by name across providers; sibling-only merge validation; split moves single-provider children; `setGameHidden` sets `hiddenByUser`.
 - `activity`/`recent`/`duplicates` exclude children.
 - Game page: DLC section render, collapsed groups, provider icon owned/unowned states; child page breadcrumb.
 
 ## Steps
 
-1. Schema + migration + relations + test fixtures (`lib/fixtures/game.ts` helper `createDlc(parent, provider)`).
-2. `lib/dlcTriage.ts` + tests. Debug page + endpoint.
+1. Schema + migration + relations + test fixtures (`test/fixtures/game.ts` helper `createDlc(parent, provider)`).
+2. `server/services/dlcTriage.ts` + tests. Debug page + endpoint.
 3. GOG import + tests. Epic import + tests. (Independent.)
 4. Reads: `getGames` filter, `getGame.dlc`, aggregate/activity/recent/duplicates exclusions.
 5. Mutations: merge/split/hidden changes + `mergeSiblingDlc`.

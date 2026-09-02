@@ -20,7 +20,7 @@ Derive a session timeline from raw playtime snapshots instead of showing snapsho
 
 Record 45: +70 minutes observed in a 4.5-minute window. GOG's `time_sum` only updates when a session ends, so the session ended within that window but the play itself started ~19:33 or earlier — before the window began. Rendered naively this reads as "70 minutes of play in 4 minutes". Same shape occurs hourly-sync-wide: hours of play appearing inside one hour.
 
-Semantics of the raw rows (`recordGogPlaytime`, `lib/gog/service.ts:327`): a change record means "cumulative total became X at some unknown point in (start, end]"; a no-change record's `timestampEnd` is extended each sync; the first import writes a baseline pair (records 7/29 here — 11336 min of pre-history, not a session). Steam (`lib/steam/service.ts`) and Epic write the same shape; Steam rows also carry `rTimeLastPlayed`.
+Semantics of the raw rows (`recordGogPlaytime`, `server/providers/gog/service.ts:327`): a change record means "cumulative total became X at some unknown point in (start, end]"; a no-change record's `timestampEnd` is extended each sync; the first import writes a baseline pair (records 7/29 here — 11336 min of pre-history, not a session). Steam (`server/providers/steam/service.ts`) and Epic write the same shape; Steam rows also carry `rTimeLastPlayed`.
 
 ## Constraints
 
@@ -46,7 +46,7 @@ For each consecutive pair with `delta = curr.playtime − prev.playtime > 0`, em
 
 Inferred `lastPlayedAt` for GOG (and Epic where absent) = end bound of the latest inferred session, written to `GogGame.lastPlayedAt` and flowed through `refreshGameAggregates` — canonical store, so all-games filtering/sorting keeps working with no special cases.
 
-Compute on read first (`lib/playtimeTimeline.ts` or similar, unit-tested against fixtures like the Cyberpunk rows above); materialise later only if it's slow. Expose via `getGamePlaytimes` or a new `/api/games/[id]/timeline`.
+Compute on read first (`server/services/playtimeTimeline.ts` or similar, unit-tested against fixtures like the Cyberpunk rows above); materialise later only if it's slow. Expose via `getGamePlaytimes` or a new `/api/games/[id]/timeline`.
 
 ## Decisions
 
@@ -87,15 +87,15 @@ Cheapest first; a+d likely the starting point, b/c candidates once data accumula
 - `/etc/localtime` mounts happen to work (glibc reads it when `TZ` unset) but are not the documented path — prefer `TZ`.
 - Default when unset: UTC (container default). Fine, just means the 06:00 boundary is UTC-relative until configured.
 - Precedence: per-user setting > server `TZ`. Day bucketing computes in that zone; timestamps stay stored as UTC epoch ms.
-- User settings (timezone override, day-boundary hour) live on the existing `User` table (`db/schema.ts:24`) when built — editable in the web UI, not more env vars.
+- User settings (timezone override, day-boundary hour) live on the existing `User` table (`server/database/schema.ts:24`) when built — editable in the web UI, not more env vars.
 
 ## Landed
 
-- **Derivation**: `deriveSessions`/`inferredLastPlayedAt` (`lib/playtimeTimeline.ts`). Grounding pair needs no special case — its delta is 0, so it's skipped like any zero delta. Steam anchors a session's *end* on `rTimeLastPlayed` (the last flush time) whenever it changed, with `estimatedStart = end − minutes`; continuation deltas (unchanged anchor) fall back to window bounds. Consecutive anchored deltas whose gap is within `CONTIGUOUS_ANCHOR_TOLERANCE_MINUTES` (5) are merged into one session, so a long Steam sitting reads as one row rather than a dozen "1h" ones. `uncertaintyMinutes = max(windowMinutes, minutes)` when unanchored, 0 when anchored.
-- **API**: `getGameTimeline` (`lib/games.ts`) + `GET /api/games/[id]/timeline`, sharing the per-provider snapshot loader with `getGamePlaytimes`.
-- **GOG/Epic `lastPlayedAt`**: inferred via `inferredLastPlayedAt` in `lib/gog/service.ts` and `lib/epic/service.ts` when the provider gives none. Backfills on next sync; no data migration.
+- **Derivation**: `deriveSessions`/`inferredLastPlayedAt` (`server/services/playtimeTimeline.ts`). Grounding pair needs no special case — its delta is 0, so it's skipped like any zero delta. Steam anchors a session's *end* on `rTimeLastPlayed` (the last flush time) whenever it changed, with `estimatedStart = end − minutes`; continuation deltas (unchanged anchor) fall back to window bounds. Consecutive anchored deltas whose gap is within `CONTIGUOUS_ANCHOR_TOLERANCE_MINUTES` (5) are merged into one session, so a long Steam sitting reads as one row rather than a dozen "1h" ones. `uncertaintyMinutes = max(windowMinutes, minutes)` when unanchored, 0 when anchored.
+- **API**: `getGameTimeline` (`server/services/games.ts`) + `GET /api/games/[id]/timeline`, sharing the per-provider snapshot loader with `getGamePlaytimes`.
+- **GOG/Epic `lastPlayedAt`**: inferred via `inferredLastPlayedAt` in `server/providers/gog/service.ts` and `server/providers/epic/service.ts` when the provider gives none. Backfills on next sync; no data migration.
 - **UI**: game page renders `PlaytimeSessionList` (options a + d) grouped by day, replacing the raw table. Wording rules in `app/utils/formatSessionWindow.ts` (an anchored session renders as a range, `11 Jul 18:53 – 20:11`); a session is low-confidence when `uncertaintyMinutes > 2 × minutes` or the observation window exceeds 24h. Raw cumulative rows moved behind `PlaytimeRawHistoryModal` ("Raw sync data").
-- **Play day**: `User.timezone`/`dayBoundaryHour` (migration `0008_user_settings.sql`, default boundary 06:00) + `shared/playDay.ts` (`playDayOf`) + `/api/settings` (GET/PATCH) + a Settings page. `getDailyPlaytime` (`lib/activity.ts`) and the game-page day grouping both bucket by play day, not calendar day.
+- **Play day**: `User.timezone`/`dayBoundaryHour` (migration `0008_user_settings.sql`, default boundary 06:00) + `shared/playDay.ts` (`playDayOf`) + `/api/settings` (GET/PATCH) + a Settings page. `getDailyPlaytime` (`server/services/activity.ts`) and the game-page day grouping both bucket by play day, not calendar day.
 
 Open follow-ups: UI options b (horizontal day timeline) and c (day-bucketed activity chart) not built. Materialising the timeline (vs computing on read) not needed yet — revisit if slow. Debug modal is still just raw rows, not the fuller sync-debug surface sketched in decision 6's second half.
 

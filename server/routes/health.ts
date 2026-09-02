@@ -1,4 +1,4 @@
-import { sqlite } from "~~/lib/db";
+import { sqlite } from "~~/server/database/client";
 
 async function checkDatabase() {
   try {

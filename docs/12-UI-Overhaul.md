@@ -159,4 +159,4 @@ Decisions taken along the way:
 - Re-enable `noUncheckedIndexedAccess` (45 errors at the time of writing, carried from [13](13-Nuxt-4-Upgrade.md)).
 - The state filter trigger on `/games` shows the state name but no colour dot; the dot only appears in the open menu.
 - `test/api/routes.e2e.test.ts` spawns its own `nuxt dev`, which is fragile alongside a dev server already running.
-- Remaining items in [04](04-Server-Only-Provider-Code.md): ESLint `no-restricted-imports` for `lib/` from client code, `debug/steam-art.vue` still importing `lib/steam/art.ts`, and secrets via `runtimeConfig`.
+- Remaining items in [04](04-Server-Only-Provider-Code.md): ESLint `no-restricted-imports` for `server/` from client code, `debug/steam-art.vue` still importing `server/providers/steam/art.ts`, and secrets via `runtimeConfig`.

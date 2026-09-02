@@ -7,7 +7,7 @@ import {
   ArtSourceNotFoundError,
   contentTypeForPath,
   ensureArtCached,
-} from "~~/server/art";
+} from "~~/server/services/art";
 
 const ProviderAndIdSchema = z.object({
   provider: z.enum(ART_PROVIDERS),

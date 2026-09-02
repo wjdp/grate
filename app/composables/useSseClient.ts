@@ -1,4 +1,4 @@
-import type { SseMessageMap, SseMessageType } from "~~/lib/hooks";
+import type { SseMessageMap, SseMessageType } from "#shared/sse";
 
 type SseListener = (data: never) => void;
 

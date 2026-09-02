@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderId } from "#shared/tasks";
-import type { ProviderJobs, RecordPlaytimesResult } from "~~/lib/providerJobs";
+import type {
+  ProviderJobs,
+  RecordPlaytimesResult,
+} from "~~/server/providers/jobs";
 import type { Task } from "~~/server/tasks/queue";
 import { createTask } from "~~/server/tasks/queue";
 import recordPlaytimes from "./recordPlaytimes";
@@ -10,7 +13,7 @@ import updateUsers from "./updateUsers";
 
 const { registry } = vi.hoisted(() => ({ registry: [] as ProviderJobs[] }));
 
-vi.mock("~~/lib/providerJobs", () => ({ PROVIDER_JOBS: registry }));
+vi.mock("~~/server/providers/jobs", () => ({ PROVIDER_JOBS: registry }));
 
 vi.mock("~~/server/tasks/queue", () => ({
   createTask: vi.fn(),

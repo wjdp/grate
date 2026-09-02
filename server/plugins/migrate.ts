@@ -1,5 +1,5 @@
-import { runMigrations } from "~~/db/migrate";
-import { db, sqlite } from "~~/lib/db";
+import { db, sqlite } from "~~/server/database/client";
+import { runMigrations } from "~~/server/database/migrate";
 
 export default defineNitroPlugin(() => {
   if (import.meta.dev) return;

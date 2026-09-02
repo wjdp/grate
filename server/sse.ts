@@ -1,6 +1,6 @@
 import { createEventStream, type H3Event } from "h3";
 import { createHooks } from "hookable";
-import type { SseMessageMap, SseMessageType } from "~~/lib/hooks";
+import type { SseMessageMap, SseMessageType } from "#shared/sse";
 
 const defaultBusName = "default";
 

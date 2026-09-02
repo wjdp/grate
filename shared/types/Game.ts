@@ -1,5 +1,8 @@
-import type { findDuplicatePairs, getDistinctPairs } from "~~/lib/duplicates";
-import type { getGame, getGames } from "~~/lib/games";
+import type {
+  findDuplicatePairs,
+  getDistinctPairs,
+} from "~~/server/services/duplicates";
+import type { getGame, getGames } from "~~/server/services/games";
 
 // Routes hand games to the client as JSON, so every Date arrives as an ISO string.
 type Serialised<T> = T extends Date

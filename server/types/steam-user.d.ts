@@ -1,16 +1,17 @@
-// steam-user ships no types. Only the surface lib/steam/pics.ts uses is
-// declared; extend as more of the client is needed.
+// steam-user ships no types; only the anonymous PICS surface used by server/providers/steam/pics.ts is declared.
 declare module "steam-user" {
-  interface PicsApp {
-    changenumber?: number;
-    appinfo?: { common?: unknown };
+  interface ProductInfoResult {
+    apps?: Record<
+      string,
+      | {
+          changenumber?: number;
+          appinfo?: { common?: unknown };
+        }
+      | undefined
+    >;
   }
 
-  interface PicsProductInfo {
-    apps?: Record<string, PicsApp | undefined>;
-  }
-
-  export default class SteamUser {
+  class SteamUser {
     on(event: "loggedOn", listener: () => void): this;
     on(event: "error", listener: (error: Error) => void): this;
     logOn(details: { anonymous: true }): void;
@@ -19,6 +20,8 @@ declare module "steam-user" {
       apps: number[],
       packages: number[],
       inclTokens?: boolean,
-    ): Promise<PicsProductInfo>;
+    ): Promise<ProductInfoResult>;
   }
+
+  export = SteamUser;
 }

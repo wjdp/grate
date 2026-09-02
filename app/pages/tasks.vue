@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import type { SseTask } from "#shared/sse";
 import type { TaskName } from "#shared/tasks";
 import { TASK_NAMES } from "#shared/tasks";
 import { getPageTitle } from "#shared/title";
-import type { SseTask } from "~~/lib/hooks";
 
 useSeoMeta({ title: getPageTitle("Tasks") });
 

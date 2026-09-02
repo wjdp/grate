@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import { steamSessionState } from "#shared/providers/steamSession";
 import { getPageTitle } from "#shared/title";
 
 const AUTHORISED_DEVICES_URL =
   "https://store.steampowered.com/account/authorizeddevices";
-const EXPIRY_WARNING_DAYS = 14;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 useSeoMeta({ title: getPageTitle("Steam") });
 
@@ -23,18 +22,13 @@ const toast = useToast();
 const sessionExpiresAt = computed(() =>
   status.value?.sessionExpiresAt ? new Date(status.value.sessionExpiresAt) : null,
 );
-const hasExpired = computed(
-  () => sessionExpiresAt.value !== null && sessionExpiresAt.value <= new Date(),
+const sessionState = computed(() =>
+  status.value ? steamSessionState(status.value.sessionExpiresAt) : null,
 );
+const hasExpired = computed(() => sessionState.value === "expired");
+const isExpiringSoon = computed(() => sessionState.value === "expiring");
 const isConnected = computed(
-  () => sessionExpiresAt.value !== null && !hasExpired.value,
-);
-const isExpiringSoon = computed(
-  () =>
-    sessionExpiresAt.value !== null &&
-    !hasExpired.value &&
-    sessionExpiresAt.value.getTime() - Date.now() <
-      EXPIRY_WARNING_DAYS * DAY_MS,
+  () => sessionState.value === "connected" || sessionState.value === "expiring",
 );
 
 const formatDateTime = (date: Date) =>

@@ -1,5 +1,24 @@
 <script setup lang="ts">
+import { steamSessionState } from "#shared/providers/steamSession";
 import { getPageTitle } from "#shared/title";
+
+type ProviderState =
+  | "connected"
+  | "expiring"
+  | "expired"
+  | "removed"
+  | "disconnected";
+
+const BADGE_BY_STATE: Record<
+  ProviderState,
+  { color: "success" | "warning" | "error" | "neutral"; icon?: string }
+> = {
+  connected: { color: "success", icon: "i-lucide-check" },
+  expiring: { color: "warning", icon: "i-lucide-clock" },
+  expired: { color: "error", icon: "i-lucide-triangle-alert" },
+  removed: { color: "warning", icon: "i-lucide-unplug" },
+  disconnected: { color: "neutral" },
+};
 
 useSeoMeta({ title: getPageTitle("Providers") });
 
@@ -14,18 +33,51 @@ const providers = computed(() => [
     provider: "steam" as const,
     name: "Steam",
     connectedAs: steam.value?.personaName ?? null,
+    state: steam.value
+      ? steamSessionState(steam.value.sessionExpiresAt)
+      : ("disconnected" as const),
   },
   {
     provider: "gog" as const,
     name: "GOG",
     connectedAs: gog.value?.username ?? null,
+    state: gog.value ? ("connected" as const) : ("disconnected" as const),
   },
   {
     provider: "epic" as const,
     name: "Epic Games",
     connectedAs: epic.value?.displayName ?? null,
+    state: epic.value ? ("connected" as const) : ("disconnected" as const),
   },
 ]);
+
+const badgeLabel = (state: ProviderState, connectedAs: string | null) => {
+  switch (state) {
+    case "connected":
+      return `Connected as ${connectedAs}`;
+    case "expiring":
+      return `${connectedAs} — session expiring`;
+    case "expired":
+      return `${connectedAs} — session expired`;
+    case "removed":
+      return `${connectedAs} — session removed`;
+    default:
+      return "Not connected";
+  }
+};
+
+const manageButtonLabel = (state: ProviderState) => {
+  switch (state) {
+    case "connected":
+    case "expiring":
+      return "Manage";
+    case "expired":
+    case "removed":
+      return "Reconnect";
+    default:
+      return "Connect";
+  }
+};
 </script>
 
 <template>
@@ -53,20 +105,16 @@ const providers = computed(() => [
           </div>
 
           <UBadge
-            v-if="entry.connectedAs"
-            color="success"
+            :color="BADGE_BY_STATE[entry.state].color"
             variant="soft"
-            icon="i-lucide-check"
+            :icon="BADGE_BY_STATE[entry.state].icon"
             class="self-start"
           >
-            Connected as {{ entry.connectedAs }}
-          </UBadge>
-          <UBadge v-else color="neutral" variant="soft" class="self-start">
-            Not connected
+            {{ badgeLabel(entry.state, entry.connectedAs) }}
           </UBadge>
 
           <ProviderSyncButton
-            v-if="entry.connectedAs"
+            v-if="entry.state === 'connected' || entry.state === 'expiring'"
             :provider="entry.provider"
             block
           />
@@ -77,7 +125,7 @@ const providers = computed(() => [
             variant="subtle"
             block
           >
-            {{ entry.connectedAs ? "Manage" : "Connect" }}
+            {{ manageButtonLabel(entry.state) }}
           </UButton>
         </div>
       </UCard>

@@ -107,7 +107,14 @@ export async function getAccessToken(): Promise<string | null> {
   const stored = await storedSession();
   if (!stored) return null;
   const session = sessionWithStoredToken(stored);
-  await session.refreshAccessToken();
+  try {
+    await session.refreshAccessToken();
+  } catch (error) {
+    if (isDeadTokenError(error)) {
+      clearStoredSession(stored.steamId);
+    }
+    throw error;
+  }
   return cacheAccessToken(session.accessToken);
 }
 

@@ -30,6 +30,7 @@ const DAY_MS = 24 * HOUR_MS;
 const steamSession = vi.hoisted(() => {
   const state: {
     accessToken: string | null;
+    refreshError: Error | null;
     renewedRefreshToken: string | null;
     renewResult: boolean;
     renewError: Error | null;
@@ -38,6 +39,7 @@ const steamSession = vi.hoisted(() => {
     renewCalls: number;
   } = {
     accessToken: null,
+    refreshError: null,
     renewedRefreshToken: null,
     renewResult: false,
     renewError: null,
@@ -61,6 +63,7 @@ const steamSession = vi.hoisted(() => {
 
     async refreshAccessToken() {
       state.refreshAccessTokenCalls += 1;
+      if (state.refreshError) throw state.refreshError;
       this.accessToken = state.accessToken ?? "";
     }
 
@@ -97,6 +100,7 @@ beforeEach(async () => {
   resetWebSessionState();
   fetchMocker.resetMocks();
   state.accessToken = jwt(new Date(Date.now() + HOUR_MS));
+  state.refreshError = null;
   state.renewedRefreshToken = null;
   state.renewResult = false;
   state.renewError = null;
@@ -162,6 +166,21 @@ describe("getAccessToken", () => {
     state.accessToken = jwt(new Date(Date.now() + HOUR_MS));
     expect(await getAccessToken()).toBe(state.accessToken);
     expect(state.refreshAccessTokenCalls).toBe(2);
+  });
+
+  it("clears the stored session when steam rejects the token", async () => {
+    const linked = createSteamUser();
+    state.refreshError = Object.assign(new Error("AccessDenied"), {
+      eresult: 15,
+    });
+
+    await expect(getAccessToken()).rejects.toThrow("AccessDenied");
+
+    const row = await db.query.steamUser.findFirst({
+      where: eq(steamUser.steamId, linked.steamId),
+    });
+    expect(row?.refreshToken).toBeNull();
+    expect(row?.refreshTokenExpiresAt).toBeNull();
   });
 });
 

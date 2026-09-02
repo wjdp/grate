@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { getDailyPlaytime } from "~~/lib/activity";
 import {
   createEpicGame,
   createGame,
@@ -13,6 +12,7 @@ import {
   steamGamePlaytime as steamGamePlaytimeTable,
   user,
 } from "~~/server/database/schema";
+import { getDailyPlaytime } from "~~/server/services/activity";
 import { flushDb } from "~~/test/db";
 
 function recordSteam(appId: number, timestampEnd: string, minutes: number) {

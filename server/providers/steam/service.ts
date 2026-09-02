@@ -1,5 +1,4 @@
 import { desc, eq } from "drizzle-orm";
-import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { db } from "~~/server/database/client";
 import {
   game,
@@ -18,6 +17,7 @@ import type {
   RecordPlaytimesResult,
 } from "~~/server/providers/jobs";
 import { countProviderRows } from "~~/server/providers/rows";
+import { refreshGameAggregates } from "~~/server/services/gameAggregates";
 import {
   type CommunityProfile,
   getCommunityProfile,

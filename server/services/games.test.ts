@@ -9,17 +9,6 @@ import {
   createGogGame,
   createSteamGame,
 } from "~~/lib/fixtures/game";
-import {
-  getGame,
-  getGamePlaytimes,
-  getGames,
-  getGameTimeline,
-  getRecentGames,
-  mergeGames,
-  setGameHidden,
-  setGameState,
-  splitGame,
-} from "~~/lib/games";
 import { db } from "~~/server/database/client";
 import {
   epicGamePlaytime as epicGamePlaytimeTable,
@@ -31,6 +20,17 @@ import {
   steamAppInfo as steamAppInfoTable,
   steamGamePlaytime as steamGamePlaytimeTable,
 } from "~~/server/database/schema";
+import {
+  getGame,
+  getGamePlaytimes,
+  getGames,
+  getGameTimeline,
+  getRecentGames,
+  mergeGames,
+  setGameHidden,
+  setGameState,
+  splitGame,
+} from "~~/server/services/games";
 import { flushDb } from "~~/test/db";
 
 function stateChangesFor(gameId: number) {

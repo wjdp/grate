@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  findDuplicatePairs,
-  getDistinctPairs,
-  markDistinct,
-  unmarkDistinct,
-} from "~~/lib/duplicates";
-import {
   createEpicGame,
   createGame,
   createGameDistinctPair,
@@ -14,6 +8,12 @@ import {
 } from "~~/lib/fixtures/game";
 import { db } from "~~/server/database/client";
 import { steamAppInfo as steamAppInfoTable } from "~~/server/database/schema";
+import {
+  findDuplicatePairs,
+  getDistinctPairs,
+  markDistinct,
+  unmarkDistinct,
+} from "~~/server/services/duplicates";
 import { flushDb } from "~~/test/db";
 
 function createSteamAppInfo(appId: number, releaseDate: Date) {

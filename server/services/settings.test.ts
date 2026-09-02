@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { db } from "~~/server/database/client";
+import { user } from "~~/server/database/schema";
 import {
   DEFAULT_DAY_BOUNDARY_HOUR,
   getPlayDaySettings,
   getSettings,
   serverTimezone,
   updateSettings,
-} from "~~/lib/settings";
-import { db } from "~~/server/database/client";
-import { user } from "~~/server/database/schema";
+} from "~~/server/services/settings";
 import { flushDb } from "~~/test/db";
 
 const originalTz = process.env.TZ;

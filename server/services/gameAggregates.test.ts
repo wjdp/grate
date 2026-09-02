@@ -5,7 +5,7 @@ import {
   createGogGame,
   createSteamGame,
 } from "~~/lib/fixtures/game";
-import { refreshGameAggregates } from "~~/lib/gameAggregates";
+import { refreshGameAggregates } from "~~/server/services/gameAggregates";
 import { flushDb } from "~~/test/db";
 
 describe("refreshGameAggregates", () => {

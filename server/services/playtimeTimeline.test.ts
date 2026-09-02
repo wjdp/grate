@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import type {
   PlaytimeProviderRow,
   PlaytimeSnapshot,
-} from "~~/lib/playtimeTimeline";
-import { deriveSessions, inferredLastPlayedAt } from "~~/lib/playtimeTimeline";
+} from "~~/server/services/playtimeTimeline";
+import {
+  deriveSessions,
+  inferredLastPlayedAt,
+} from "~~/server/services/playtimeTimeline";
 
 const cyberpunkRow: PlaytimeProviderRow = {
   provider: "gog",

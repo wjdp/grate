@@ -1,5 +1,5 @@
 import { recentGamesQuerySchema } from "#shared/schemas/games";
-import { getRecentGames } from "~~/lib/games";
+import { getRecentGames } from "~~/server/services/games";
 
 export default defineEventHandler(async (event) => {
   const { limit } = await getValidatedQuery(

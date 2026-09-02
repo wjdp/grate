@@ -1,6 +1,5 @@
 import { asc, eq } from "drizzle-orm";
 import { type PlayDaySettings, playDayOf } from "#shared/playDay";
-import { getPlayDaySettings } from "~~/lib/settings";
 import { db } from "~~/server/database/client";
 import {
   epicGamePlaytime,
@@ -8,6 +7,7 @@ import {
   gogGamePlaytime,
   steamGamePlaytime,
 } from "~~/server/database/schema";
+import { getPlayDaySettings } from "~~/server/services/settings";
 
 export interface DailyPlaytime {
   date: string;

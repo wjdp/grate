@@ -1,7 +1,5 @@
 import { asc, desc, eq } from "drizzle-orm";
 import tryCatch from "#shared/utils/tryCatch";
-import { refreshGameAggregates } from "~~/lib/gameAggregates";
-import { inferredLastPlayedAt } from "~~/lib/playtimeTimeline";
 import { db } from "~~/server/database/client";
 import {
   type EpicGame,
@@ -32,6 +30,8 @@ import type {
   RecordPlaytimesResult,
 } from "~~/server/providers/jobs";
 import { countProviderRows } from "~~/server/providers/rows";
+import { refreshGameAggregates } from "~~/server/services/gameAggregates";
+import { inferredLastPlayedAt } from "~~/server/services/playtimeTimeline";
 
 function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null;

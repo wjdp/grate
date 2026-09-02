@@ -1,8 +1,6 @@
 import { asc, desc, eq } from "drizzle-orm";
 import htmlToBareDescription from "#shared/utils/htmlToBareDescription";
 import tryCatch from "#shared/utils/tryCatch";
-import { refreshGameAggregates } from "~~/lib/gameAggregates";
-import { inferredLastPlayedAt } from "~~/lib/playtimeTimeline";
 import { db } from "~~/server/database/client";
 import {
   type Game,
@@ -31,6 +29,8 @@ import type {
   RecordPlaytimesResult,
 } from "~~/server/providers/jobs";
 import { countProviderRows } from "~~/server/providers/rows";
+import { refreshGameAggregates } from "~~/server/services/gameAggregates";
+import { inferredLastPlayedAt } from "~~/server/services/playtimeTimeline";
 
 function getTokenExpiresAt(expiresIn: number) {
   return new Date(Date.now() + expiresIn * 1000);

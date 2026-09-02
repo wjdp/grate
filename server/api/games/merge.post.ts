@@ -1,5 +1,5 @@
 import { mergeGamesBodySchema } from "#shared/schemas/games";
-import { mergeGames } from "~~/lib/games";
+import { mergeGames } from "~~/server/services/games";
 
 export default defineEventHandler(async (event) => {
   const { targetId, sourceIds } = await readValidatedBody(

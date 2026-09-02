@@ -69,7 +69,7 @@ Full raw output in `tmp/steam-qr/FINDINGS.md`. No token strings recorded anywher
 
 ### Storage
 
-Migration (`db/migrations/`; latest applied is `0009_game_hidden.sql`, and doc 27 plans `0010_dlc.sql` — whichever lands first takes `0010`, the other `0011`; do not clash):
+Migration (`server/database/migrations/`; latest applied is `0009_game_hidden.sql`, and doc 27 plans `0010_dlc.sql` — whichever lands first takes `0010`, the other `0011`; do not clash):
 
 ```sql
 ALTER TABLE SteamUser DROP COLUMN apiKey;
@@ -93,7 +93,7 @@ ALTER TABLE SteamUser ADD refreshTokenExpiresAt integer;
 - Single-account guard: if a `SteamUser` row exists and the scanned SteamID differs, reject with the existing message shape ("grate only supports a single Steam account"), discard the token, do not write.
 - `DELETE /api/providers/steam/qr/:id` cancels (`cancelLoginAttempt()`), used when the modal closes.
 
-### Token use — `lib/steam/webSession.ts`
+### Token use — `server/providers/steam/webSession.ts`
 
 New module, the only place `steam-session` is imported:
 
@@ -103,7 +103,7 @@ New module, the only place `steam-session` is imported:
 - `getOwnedAppIds(): Promise<Set<number> | null>` — cookies + `dynamicstore/userdata?_=<ts>` with the store `Referer`; returns `rgOwnedApps`. Null when no session. Consumed by doc 27's Steam DLC import; once per games sync is plenty.
 - Rejected/invalid token (Steam says the refresh token is dead before its `exp`): clear `refreshToken`/`refreshTokenExpiresAt` so the UI shows disconnected rather than looping.
 
-### `lib/steam/api.ts`
+### `server/providers/steam/api.ts`
 
 - `SteamCredentials` becomes `{ accessToken: string; steamId: string }`.
 - `getUserGames` sends `access_token` instead of `key`, same other parameters. Query parameter only.
@@ -112,7 +112,7 @@ New module, the only place `steam-session` is imported:
 - XML parsing: add `fast-xml-parser` (small, no native deps, already a common transitive) and validate the parsed object with zod as elsewhere. A regex over five fields would avoid the dependency but breaks on CDATA (`steamID` and `realname` are wrapped) — not worth the cleverness.
 - `getServerInfo` and `getTagList` are unaffected (keyless already).
 
-### `lib/steam/service.ts`
+### `server/providers/steam/service.ts`
 
 - `steamCredentialsOf` → `steamCredentials()`: reads the row, gets an access token from `webSession`, throws `SteamServiceError("Steam account not connected")` when null.
 - Delete `resolveSteamId`, `SteamProfileCredentials`, `relinkLegacySteamUser` (the pre-text-steamId migration path — dead, and the column it keyed on is going).
@@ -120,7 +120,7 @@ New module, the only place `steam-session` is imported:
 - `updateUser` re-fetches the community profile; no token needed.
 - `unlinkSteamAccount()` nulls `refreshToken`/`refreshTokenExpiresAt`.
 
-### `lib/providerJobs.ts`
+### `server/providers/jobs.ts`
 
 - `isActive()` → `!!user?.refreshToken && user.refreshTokenExpiresAt > now`. Doc 19's line ("`steamUser` row with non-null `apiKey`") needs updating.
 
@@ -145,22 +145,22 @@ Delete:
 - `shared/steam-profile.ts` and `shared/steam-profile.test.ts`.
 - `steamAuthBodySchema` in `shared/schemas/providers.ts`.
 - `server/api/providers/steam/auth.post.ts`.
-- `resolveVanityUrl`, `getUserInfo`, `userInfoSchema` in `lib/steam/api.ts`.
-- `resolveSteamId`, `relinkLegacySteamUser`, `SteamProfileCredentials` in `lib/steam/service.ts`.
+- `resolveVanityUrl`, `getUserInfo`, `userInfoSchema` in `server/providers/steam/api.ts`.
+- `resolveSteamId`, `relinkLegacySteamUser`, `SteamProfileCredentials` in `server/providers/steam/service.ts`.
 - `bruno/steam/resolve-vanity-url.bru`, `get-user-summaries.bru`, `get-user-info.bru`; `STEAM_API_KEY` and `STEAM_VANITY_URL` in `bruno/.env.example` (`get-games.bru` also needs the key → switch to `access_token`).
 
 Add:
 
-- `lib/steam/webSession.ts` (+ test), `lib/steam/qrRegistry.ts` (or keep the map in the endpoint module — one place either way).
+- `server/providers/steam/webSession.ts` (+ test), `server/providers/steam/qrRegistry.ts` (or keep the map in the endpoint module — one place either way).
 - `server/api/providers/steam/qr.post.ts`, `qr/[id].get.ts`, `qr/[id].delete.ts`.
 - Migration + Drizzle schema edit + snapshot/journal; migration test count bump, `refreshTokenExpiresAt` into the datetime-column checks.
 - Dependencies: `steam-session` (direct pin), `qrcode`, `fast-xml-parser`.
 
 Change:
 
-- `lib/steam/api.ts` (`SteamCredentials`, `access_token=`, community profile fetch), `lib/steam/service.ts`, `lib/providerJobs.ts`, `server/api/providers/steam/index.get.ts` (`hasApiKey` → `expiresAt`), `app/pages/providers/steam/index.vue`.
-- `lib/steam/service.test.ts` — the whole `createOrUpdateSteamUser` block (lines ~280–520) is keyed on `apiKey`; rewrite around `linkSteamAccount`.
-- `lib/fixtures/game.ts` — `createSteamUser` generates a fake `apiKey` (line ~135); swap for a refresh token + expiry.
+- `server/providers/steam/api.ts` (`SteamCredentials`, `access_token=`, community profile fetch), `server/providers/steam/service.ts`, `server/providers/jobs.ts`, `server/api/providers/steam/index.get.ts` (`hasApiKey` → `expiresAt`), `app/pages/providers/steam/index.vue`.
+- `server/providers/steam/service.test.ts` — the whole `createOrUpdateSteamUser` block (lines ~280–520) is keyed on `apiKey`; rewrite around `linkSteamAccount`.
+- `test/fixtures/game.ts` — `createSteamUser` generates a fake `apiKey` (line ~135); swap for a refresh token + expiry.
 
 Docs to update:
 

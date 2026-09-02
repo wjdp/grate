@@ -6,6 +6,8 @@ priority: high
 
 # Prisma → Drizzle migration
 
+> The adoption path described below (`db/adopt/`, `db/migrate.ts`'s Prisma-adoption branch, `db/scripts/buildFixture.ts`) was removed on 2026-09-02 (doc 04): every install is on Drizzle now, so adopting a pre-Drizzle database is no longer supported.
+
 ## Goal
 
 Replace Prisma with Drizzle ORM + `better-sqlite3`, keeping the existing production database file and all rows intact. No data export/import step for users; the app must boot on an existing `data/db.sqlite` and keep working.

@@ -17,7 +17,7 @@ Separately, most long-running tasks report no progress: only `cacheArt`, `update
 
 ## Design
 
-### 1. Provider job registry — `lib/providerJobs.ts`
+### 1. Provider job registry — `server/providers/jobs.ts`
 
 ```ts
 export type ProviderId = "steam" | "gog" | "epic";
@@ -45,11 +45,11 @@ export const PROVIDER_JOBS: ProviderJobs[];
 
 - `isActive`: steam → `steamUser` row with a non-null, unexpired `refreshToken`; gog → `gogUser` row exists; epic → `epicUser` row exists.
 - Wraps the existing service functions, behaviour unchanged except playtime unknown-game handling (§2). GOG/Epic services keep their internal no-op-when-unlinked guards; steam's throw-when-unlinked is fine because the registry gates on `isActive` first.
-- Lives in `lib/` so it cannot import server task machinery — progress and follow-up needs flow out through the callback / return value (pattern already established by `updatePicsMetadata`).
+- Lives in `server/providers/` so it cannot import server task machinery — progress and follow-up needs flow out through the callback / return value (pattern already established by `updatePicsMetadata`).
 
 ### 2. Playtime recording must never crash on an unknown game
 
-`lib/steam/service.ts recordPlaytimes` currently throws when an owned game has no `steamGame` row (`service.ts:448`), losing the whole run. New purchase + immediate play is the normal case, so:
+`server/providers/steam/service.ts recordPlaytimes` currently throws when an owned game has no `steamGame` row (`service.ts:448`), losing the whole run. New purchase + immediate play is the normal case, so:
 
 - **Steam** — the `getUserGames` response contains everything `updateOrCreateGame` needs. On a missing appid: create the game inline via `updateOrCreateGame(userGame)` (game row, steamGame row, aggregates), then record the playtime as normal. Count it in `gamesCreated`. Playtime is captured on the very first tick after purchase; nothing lost.
 - **GOG/Epic** — their recorders iterate DB rows, so unknown games are silently invisible rather than crashing, and their playtime feeds lack the detail needed to create a game. Instead: diff the playtime feed's ids against DB rows and report the count as `unknownGames`. (Their playtime totals are cumulative, so nothing is lost once the game lands via a games sync.)
@@ -113,9 +113,9 @@ Bottom of `AppSidebar.vue`: a compact live indicator of the currently running ta
 Rule: a queueable that loops over per-item network work reports per-item progress; DB-only loops report milestone messages. Services gain optional `onProgress` params (lib never imports server):
 
 - `populateStoreData` — worst offender (1.5s+ per game, can run for many minutes): per-game `fraction` + message. The loop is already in the queueable, so no service change needed.
-- `lib/gog/service.ts updateGogGames` — per-game detail fetch loop: per-game progress.
-- `lib/epic/service.ts updateEpicGames` — per-record loop: per-record progress.
-- `lib/steam/service.ts updateGames` — one API call then DB upserts: milestone messages (fetched / upserted counts) are enough.
+- `server/providers/gog/service.ts updateGogGames` — per-game detail fetch loop: per-game progress.
+- `server/providers/epic/service.ts updateEpicGames` — per-record loop: per-record progress.
+- `server/providers/steam/service.ts updateGames` — one API call then DB upserts: milestone messages (fetched / upserted counts) are enough.
 - Playtime recorders (all three) — one API call (or none) then DB loops: milestone messages, including created/unknown game counts from §2.
 - Existing `console.log` lines in those loops stay; progress supplements, it doesn't replace logging.
 
@@ -130,7 +130,7 @@ Rule: a queueable that loops over per-item network work reports per-item progres
 
 ## Migration notes
 
-- Files deleted: 9 queueables, 6 scheduled files. Files added: 4 queueables (`updateUsers`, `updateGames`, `recordPlaytimes`, `sync`), 3 scheduled files, `lib/providerJobs.ts`, `ProviderSyncButton.vue`.
+- Files deleted: 9 queueables, 6 scheduled files. Files added: 4 queueables (`updateUsers`, `updateGames`, `recordPlaytimes`, `sync`), 3 scheduled files, `server/providers/jobs.ts`, `ProviderSyncButton.vue`.
 - `shared/tasks.ts`, `server/tasks/router.ts`, `server/tasks/queue.ts` (payloads), `server/api/tasks/index.post.ts` (accept payload), `nuxt.config.ts`, `AppSidebar.vue`, providers pages updated in step.
 - `recordPlaytimes` keeps its name but changes meaning (steam-only → all providers); any queued-task history rows referring to old names are just display strings, no migration needed.
 

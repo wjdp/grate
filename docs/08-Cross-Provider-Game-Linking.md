@@ -32,7 +32,7 @@ No match-suggestion or auto-merge in this task; manual only. Suggestion pass (no
 
 Migration: drizzle generate → one SQL file (index drop/recreate). No data migration.
 
-## `lib/games.ts`
+## `server/services/games.ts`
 
 ```ts
 mergeGames(targetId: number, sourceIds: number[]): Promise<Game>
@@ -64,11 +64,11 @@ Both exported through `server/trpc/routers/games.ts` as `mergeGames`, `splitGame
 
 ## Consumers to update (1:N)
 
-- `lib/games.ts getGamePlaytimes`: iterate all rows; add `providerId` (appId/gogId) and provider row `name` to `GamePlaytimeRecord` so the table distinguishes 617 from 628.
-- `lib/gameAggregates.ts` as above.
+- `server/services/games.ts getGamePlaytimes`: iterate all rows; add `providerId` (appId/gogId) and provider row `name` to `GamePlaytimeRecord` so the table distinguishes 617 from 628.
+- `server/services/gameAggregates.ts` as above.
 - `shared/art.ts getGameArtUrls`, `components/GameIcon.vue`, `pages/game/[id].vue` description, `pages/organise.vue`: first Steam row, else first GOG row. Deterministic order: `orderBy` primary key in the `with` clauses.
 - `pages/game/[id].vue` play buttons: one "Open in"/"Play" pair per provider row, labelled with the provider row name when a `Game` has >1 row.
-- `lib/fixtures/game.ts`, `test/db.ts`: no schema constraint change needed; add a fixture helper to attach a second provider row to an existing `Game`.
+- `test/fixtures/game.ts`, `test/db.ts`: no schema constraint change needed; add a fixture helper to attach a second provider row to an existing `Game`.
 - Anything else `tsc` flags on `steamGame`/`gogGame` rename.
 
 ## UI
@@ -83,7 +83,7 @@ No suggestions UI in this task.
 
 ## Tests
 
-`lib/games.test.ts`:
+`server/services/games.test.ts`:
 
 - merge steam+gog → one `Game`, two rows, playtime summed, lastPlayed max, state/history moved, source deleted.
 - merge gog+gog (Witcher case) → both `GogGame` rows on target, `getGamePlaytimes` returns both with distinct `providerId`.

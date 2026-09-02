@@ -15,7 +15,7 @@ One art cache covering Steam, GOG and Epic, serving images at sizes close to wha
 
 ### Steam (cached)
 
-- `lib/steam/art.ts` `getSteamArtUrls(appId)` derives 7 CDN URLs by convention. `server/steam/art.ts` fetches them to `data/art/steam/<appId>/<type>.jpg`; `server/routes/art/steam/[appId]/[type].ts` streams them with `Cache-Control: public, max-age=3600`. Icon is separate (`server/steam/icon.ts`, needs `imgIconUrl` hash from DB).
+- `server/providers/steam/art.ts` `getSteamArtUrls(appId)` derives 7 CDN URLs by convention. `server/steam/art.ts` fetches them to `data/art/steam/<appId>/<type>.jpg`; `server/routes/art/steam/[appId]/[type].ts` streams them with `Cache-Control: public, max-age=3600`. Icon is separate (`server/steam/icon.ts`, needs `imgIconUrl` hash from DB).
 - Trigger: manual `cacheSteamArt` task only (tasks page button); not scheduled, not fired after sync.
 - On disk: 615 games × 8 files ≈ 415 MB (~675 KB/game). `hero.jpg` (~390 KB) and `poster.jpg` (`library_600x900_2x`, 1200×1800, ~260 KB) dominate; neither is ever shown near full size.
 
@@ -27,13 +27,13 @@ Defects in the existing cache:
 
 ### GOG (hotlinked, resize broken)
 
-- 6 URL columns on `GogGame` (`db/schema.ts:178-183`), from `_links` in the detail API.
+- 6 URL columns on `GogGame` (`server/database/schema.ts:178-183`), from `_links` in the detail API.
 - `shared/art.ts` `resolveGogImageUrl` expects templated `…_{formatter}.{ext}` URLs and substitutes presets (`glx_logo_2x` etc). **All 22 stored rows are plain `https://images.gog-statics.com/<hash>.png|jpg` — no template, so the formatter never applies and full-size originals are served.** Already flagged unverified in [09](09-GOG-Playtime.md).
 - The CDN does support presets on hash URLs via suffix (`<hash>_<preset>.<ext>`); the URL must be reconstructed, not string-replaced.
 
 ### Epic (hotlinked, grossly oversized)
 
-- 3 URL columns (`db/schema.ts:240-242`) picked from `keyImages[]`. Typical: tall 860×1148–1200×1600, wide 2560×1440 (one at 4267×2400). Multi-hundred-KB JPEGs.
+- 3 URL columns (`server/database/schema.ts:240-242`) picked from `keyImages[]`. Typical: tall 860×1148–1200×1600, wide 2560×1440 (one at 4267×2400). Multi-hundred-KB JPEGs.
 - `getEpicIconUrl` returns `boxArtTallUrl` unmodified → a 1200×1600 JPEG rendered at 32×32 in every `GameRow`. Worst offender in the app.
 - `cdn1.epicgames.com` honours `?w=&h=&resize=1` (Heroic/Legendary use this); we never append it.
 

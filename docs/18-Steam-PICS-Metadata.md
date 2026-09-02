@@ -30,7 +30,7 @@ Docker: outbound CM connections (TCP 27017–27050, WebSocket 443 fallback) — 
 
 ## Design
 
-### 1. PICS wrapper — `lib/steam/pics.ts`
+### 1. PICS wrapper — `server/providers/steam/pics.ts`
 
 Only file importing `steam-user`. One function:
 

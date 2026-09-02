@@ -38,7 +38,7 @@ Existing `/api/setup`, `/api/sse`, `/api/push`, `/health`, `/art/steam/**` uncha
 
 ## Steps
 
-1. Add routes above, each a thin handler calling `lib/*` (no logic in handlers). Shared zod schemas for inputs in `shared/schemas/*.ts` so pages can reuse `GameState` enum etc.
+1. Add routes above, each a thin handler calling `server/services/*`/`server/providers/*` (no logic in handlers). Shared zod schemas for inputs in `shared/schemas/*.ts` so pages can reuse `GameState` enum etc.
 2. Error mapping: `lib` errors → `createError({ statusCode, statusMessage })`; replace `utils/createErrorFromSteamApiError.ts`/`createUnknownError.ts` usage accordingly.
 3. Client: replace `$client.x.useQuery()` with `useFetch`, `$client.x.mutate()` with `$fetch(..., { method })`. Delete `composables/useGames.ts`, `useGame.ts`, `useRecentGames.ts` (fixed `useAsyncData` keys; `useFetch` keys on URL). Pages: `index`, `games`, `organise`, `game/[id]`, `debug/tasks`, `providers/gog/index`.
 4. Remove `server/trpc/**`, `server/api/trpc/[trpc].ts`, `plugins/trpc.ts`, `build.transpile` in `nuxt.config.ts`, the three packages.
@@ -62,7 +62,7 @@ Deviations:
 - `GET /api/games/:id` lives at `server/api/games/[id]/index.get.ts` so it sits
   alongside `playtimes.get.ts` and `state.patch.ts` in one directory.
 - `shared/types/Game.ts` exports `GameWithProviders` and `GameDetail` derived
-  from `lib/games` return types, mapped through a local `Serialised<T>` so the
+  from `server/services/games` return types, mapped through a local `Serialised<T>` so the
   Date fields read as the ISO strings the client actually receives. The tRPC
   types lied about this.
 - The provider pages use `try`/`catch` rather than `tryCatch`. Passing a

@@ -5,7 +5,7 @@ status: todo
 
 # Provider sync robustness
 
-Applies to `lib/steam/service.ts` and `lib/gog/service.ts`.
+Applies to `server/providers/steam/service.ts` and `server/providers/gog/service.ts`.
 
 ## Problems
 
@@ -19,8 +19,8 @@ Applies to `lib/steam/service.ts` and `lib/gog/service.ts`.
 
 ## Steps
 
-1. Shared `fetchWithRetry` in `lib/http.ts`: exponential backoff on 429/5xx/network, honour `Retry-After`, small concurrency limit (e.g. 3) via `p-limit`.
-2. Distinguish error classes as `lib/steam/store.ts` already does (`retriable`); apply to GOG API.
+1. Shared `fetchWithRetry` in `server/providers/http.ts`: exponential backoff on 429/5xx/network, honour `Retry-After`, small concurrency limit (e.g. 3) via `p-limit`.
+2. Distinguish error classes as `server/providers/steam/store.ts` already does (`retriable`); apply to GOG API.
 3. GOG: consult `GogIgnoredProduct` before fetching; insert `NOT_FOUND` on 404, `DLC`/`PACK` on product type; replace hardcoded `GOG_IGNORED_PRODUCT_IDS` with `MANUAL` rows.
 4. Use `checksumGames` to short-circuit `updateGogGames`.
 5. Per-game try/catch around create/update with a summary of failures reported through the task's progress/state rather than console.

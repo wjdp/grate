@@ -1,6 +1,6 @@
+import type { ArtKey } from "#shared/art/types";
 import { ART_DIR } from "~~/server/constants";
 import { checkFileExists } from "~~/server/files";
-import type { ArtKey } from "./types";
 
 // The extension a cached file gets is whatever its content type said at write
 // time, so serving has to probe. Legacy Steam files are all `.jpg`.

@@ -1,3 +1,4 @@
+import type { ArtKey } from "#shared/art/types";
 import { deriveEpicIcon } from "./epicIcon";
 import {
   ArtFetchError,
@@ -11,11 +12,10 @@ import { hasFreshMissingMarker, writeMissingMarker } from "./missing";
 import { findCachedArtFile } from "./paths";
 import { waitForArtFetchSlot } from "./rateLimit";
 import { resolveArtSources } from "./sources";
-import type { ArtKey } from "./types";
 
+export * from "#shared/art/types";
 export { deleteCachedArt } from "./invalidate";
 export { contentTypeForPath, findCachedArtFile } from "./paths";
-export * from "./types";
 export { ArtFetchError, ArtNegativelyCachedError, ArtSourceNotFoundError };
 
 const inFlightFetches = new Map<string, Promise<string>>();

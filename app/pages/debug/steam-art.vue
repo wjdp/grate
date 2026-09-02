@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { STEAM_ART_TYPES } from "~~/server/art/types";
-import type { SteamPicsMetadata } from "~~/server/database/schema";
-
-type SerialisedPicsMetadata = {
-  [K in keyof SteamPicsMetadata]: SteamPicsMetadata[K] extends Date | null
-    ? string | null
-    : SteamPicsMetadata[K];
-};
+import { STEAM_ART_TYPES } from "#shared/art/types";
+import {
+  STEAM_PICS_ART_COLUMNS,
+  type SteamPicsArtMetadata,
+} from "#shared/types/SteamArt";
 
 const STORE_ITEM_ASSETS_BASE =
   "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps";
@@ -15,26 +12,11 @@ const COMMUNITY_ICON_BASE =
 
 const appId = ref("");
 const fetchedAppId = ref<number>();
-const picsMetadata = ref<SerialisedPicsMetadata | null>();
+const picsMetadata = ref<SteamPicsArtMetadata | null>();
 const brokenArt = ref<Set<string>>(new Set());
 
-// Path/hash columns are what feeds resolveSteamArtSources; the rest of the
-// row (review scores, tags, etc.) isn't art-relevant here.
-const PICS_PATH_COLUMNS: Array<keyof SerialisedPicsMetadata> = [
-  "capsulePath",
-  "capsule2xPath",
-  "heroPath",
-  "hero2xPath",
-  "heroBlurPath",
-  "logoPath",
-  "logo2xPath",
-  "headerPath",
-  "header2xPath",
-  "iconHash",
-];
-
 const picsThumbnailUrl = (
-  column: (typeof PICS_PATH_COLUMNS)[number],
+  column: (typeof STEAM_PICS_ART_COLUMNS)[number],
   value: string,
 ) =>
   column === "iconHash"
@@ -104,7 +86,7 @@ const fetchArt = async () => {
         </p>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div
-            v-for="column in PICS_PATH_COLUMNS"
+            v-for="column in STEAM_PICS_ART_COLUMNS"
             :key="column"
             class="space-y-2"
           >

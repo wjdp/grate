@@ -1,6 +1,6 @@
 import fs from "node:fs";
+import type { ArtKey } from "#shared/art/types";
 import { artDirectory, artMissingMarkerPath } from "./paths";
-import type { ArtKey } from "./types";
 
 export const MISSING_MARKER_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 

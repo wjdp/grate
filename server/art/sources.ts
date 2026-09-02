@@ -1,5 +1,11 @@
 import { eq } from "drizzle-orm";
 import { resolveGogImageUrl } from "#shared/art";
+import type {
+  ArtKey,
+  EpicArtType,
+  GogArtType,
+  SteamArtType,
+} from "#shared/art/types";
 import { db } from "~~/server/database/client";
 import {
   epicGame,
@@ -9,7 +15,6 @@ import {
   steamPicsMetadata,
 } from "~~/server/database/schema";
 import { getSteamArtUrls } from "~~/server/providers/steam/art";
-import type { ArtKey, EpicArtType, GogArtType, SteamArtType } from "./types";
 
 const GOG_ICON_FORMATTER = "glx_square_icon_v2";
 const GOG_LOGO_FORMATTER = "glx_logo_2x";

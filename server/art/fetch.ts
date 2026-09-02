@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import type { ArtKey } from "#shared/art/types";
 import { clearMissingMarker } from "./missing";
 import {
   artDirectory,
@@ -6,7 +7,6 @@ import {
   CACHED_ART_EXTENSIONS,
   extensionForContentType,
 } from "./paths";
-import type { ArtKey } from "./types";
 
 export class ArtSourceNotFoundError extends Error {}
 // A miss already recorded on disk: no network call was made for it.

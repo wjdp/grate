@@ -20,7 +20,7 @@ Coverage in `dev.db` today: 561 of 614 Steam games have `heroPath`; every game p
 
 Resolve the fallback **server-side** as a new Steam art type, `backdrop`. The client keeps emitting a URL by convention (`/art/steam/<appId>/backdrop`), the art route tries candidates in order and caches the first hit under `backdrop.jpg`, exactly as `poster` already falls through `capsule2x → capsule → header`.
 
-Why a new type rather than changing `background`: type names are load bearing (`server/art/types.ts`). Every `background.jpg` already on disk holds `page_bg_generated`; repurposing the name would serve stale tinted images until each cache entry was deleted by hand. A fresh name has no cached files, so the first render after deploy fetches the right image.
+Why a new type rather than changing `background`: type names are load bearing (`shared/art/types.ts`). Every `background.jpg` already on disk holds `page_bg_generated`; repurposing the name would serve stale tinted images until each cache entry was deleted by hand. A fresh name has no cached files, so the first render after deploy fetches the right image.
 
 Why not client-side: the client does not receive PICS rows (`getGame` loads `appInfo` only), so it cannot know whether a hero exists, and a client `@error` chain re-implements what `resolveArtSources` already does.
 
@@ -28,7 +28,7 @@ Cost: for the ~560 games with a hero, `backdrop.jpg` duplicates the bytes of `he
 
 ## Changes
 
-`server/art/types.ts`
+`shared/art/types.ts`
 
 ```ts
 export const STEAM_ART_TYPES = [

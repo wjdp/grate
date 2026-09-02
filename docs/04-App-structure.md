@@ -34,7 +34,6 @@ shared/                    isomorphic: types, schemas, pure helpers, client-safe
   art/types.ts             ART_PROVIDERS, *_ART_TYPES (from server/art/types.ts)
 server/
   api/ routes/ plugins/ tasks/ sse.ts …   Nitro-registered (unchanged)
-  art/                     unchanged
   database/                was db/: schema.ts, migrations/, migrate.ts, migrate-cli.ts
     client.ts              was lib/db.ts
   providers/               server half of each provider; mirrors shared/providers/
@@ -43,6 +42,7 @@ server/
     rows.ts                was lib/gameProviders.ts
   services/                domain logic over the DB
     games.ts gameAggregates.ts duplicates.ts activity.ts playtimeTimeline.ts settings.ts
+    art/                   was server/art/, unchanged otherwise
 test/
   fixtures/game.ts         was lib/fixtures/game.ts
 ```
@@ -85,4 +85,3 @@ Steps 1–3 and 5 are mechanical (`git mv` + sed, ~80 files); do them as one com
 ## Open questions
 
 - `server/database/migrate-cli.ts` is run with `tsx` outside Nitro. Confirm it needs nothing from the Nitro tsconfig after the move (it should not, it is plain Node).
-- `server/art/` is arguably a service too. Leave it; it is already inside `server/` and cohesive.

@@ -12,8 +12,7 @@ Nuxt 4 (Vue, Nuxt UI, Tailwind) with a Nitro server, Drizzle ORM on better-sqlit
 - `server/` — Nitro API routes, scheduled tasks, SSE
   - `database/` — Drizzle schema, hand-written migrations, DB client
   - `providers/` — server-side provider logic and clients (`steam/`, `gog/`, `epic/`)
-  - `services/` — domain logic over the DB (games, aggregates, duplicates, activity, playtime timeline, settings)
-  - `art/` — art fetching and caching
+  - `services/` — domain logic over the DB (games, aggregates, duplicates, activity, playtime timeline, settings); includes `art/` — art fetching and caching
 - `shared/` — code shared between app and server (game states in `shared/game-state.ts`)
 - `test/` — shared test fixtures and factories
 - `docs/` — working docs: numbered `NN-Title.md`, never renumbered; frontmatter `type: reference|review|task`. Start with `docs/00-Docs.md`; `docs/21-Providers.md` explains how providers work and how to add one

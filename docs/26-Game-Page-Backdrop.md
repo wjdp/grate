@@ -39,7 +39,7 @@ export const STEAM_ART_TYPES = [
 ] as const;
 ```
 
-`server/art/sources.ts`, in `resolveSteamArtSources`, alongside the other PICS-backed cases:
+`server/services/art/sources.ts`, in `resolveSteamArtSources`, alongside the other PICS-backed cases:
 
 ```ts
 case "backdrop": {
@@ -74,7 +74,7 @@ background: artUrl("steam", appId, "backdrop"),
 
 ## Tests
 
-`server/art/sources.test.ts`:
+`server/services/art/sources.test.ts`:
 
 - `backdrop` with a PICS row that has `heroPath` and an app info row: candidates are `[pics hero, legacy hero, backgroundRaw, page_bg_generated, page_bg_generated_v6b]`.
 - `backdrop` with no PICS row and no app info row: `[legacy hero, page_bg_generated, page_bg_generated_v6b]`.

@@ -15,7 +15,7 @@ A provider supplies some subset of: account identity, an owned-games library, pl
 - `updateGames(onProgress?)` — sync the library into `game` + provider-specific rows.
 - `recordPlaytimes(onProgress?)` — capture playtime; returns `{ gamesCreated, unknownGames }` so the task layer can queue enrichment or a games sync. A provider with no playtime source returns zeroes.
 
-A provider has two halves: a server half in `server/providers/<name>/` (api + service + tests — secrets and network calls live here) and a client-safe half in `shared/providers/<name>.ts` (public client ids, login URI builders, launch/store URLs). Adding a provider means both halves, a `PROVIDER_JOBS` entry, a DB table for its rows, link/auth pages under `app/pages/providers/<provider>/`, and art sources in `server/art/`. The task, scheduling and sync-UI layers pick it up automatically.
+A provider has two halves: a server half in `server/providers/<name>/` (api + service + tests — secrets and network calls live here) and a client-safe half in `shared/providers/<name>.ts` (public client ids, login URI builders, launch/store URLs). Adding a provider means both halves, a `PROVIDER_JOBS` entry, a DB table for its rows, link/auth pages under `app/pages/providers/<provider>/`, and art sources in `server/services/art/`. The task, scheduling and sync-UI layers pick it up automatically.
 
 ## Supported
 

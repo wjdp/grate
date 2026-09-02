@@ -22,7 +22,7 @@ Already done from the earlier version of this task: `shared/providers/{gog,epic,
 
 ## Non-issues
 
-- **Secrets in `process.env`.** Only `DATA_DIR`, `DATABASE_URL`, `TZ` are read. Steam API key lives in DB settings; GOG/Epic client secrets are the public launcher constants. No `runtimeConfig` migration needed, and the DB client runs outside Nitro (drizzle-kit, migrate CLI) so `useRuntimeConfig` would not fit anyway.
+- **Secrets in `process.env`.** Only `DATA_DIR`, `DATABASE_URL`, `TZ` are read. Steam session refresh token lives in the `SteamUser` row; GOG/Epic client secrets are the public launcher constants. No `runtimeConfig` migration needed, and the DB client runs outside Nitro (drizzle-kit, migrate CLI) so `useRuntimeConfig` would not fit anyway.
 - **ESLint.** Not used; Biome 2.5 has `style/noRestrictedImports` and lints `.vue`.
 
 ## Target layout

@@ -65,7 +65,7 @@ In simple terms: use it on your home network, don't open it up to the internet. 
 
 In the app, go to **Providers** and link each store:
 
-- **Steam** — needs a [Steam Web API key](https://steamcommunity.com/dev/apikey) and your profile URL or id. No OAuth; the key doesn't expire.
+- **Steam** — scan a QR code with the Steam mobile app (Steam Guard → scan QR). grate keeps a refresh token that renews itself while the instance runs; the token grants full account access, revoke it from Steam's [Authorised Devices page](https://store.steampowered.com/account/authorizeddevices).
 - **GOG** and **Epic** — sign in via each store's website to obtain an authorisation code, which grate exchanges for tokens and refreshes automatically.
 
 Once linked, grate syncs on a schedule: profile refresh every 15 minutes, playtime capture hourly, a full library sync daily. You can also trigger syncs manually from the UI.

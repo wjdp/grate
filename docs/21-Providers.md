@@ -21,7 +21,7 @@ Adding a provider means `lib/<provider>/` (api + service + tests), a `PROVIDER_J
 
 ### Steam
 
-- **Auth**: user-supplied Web API key + profile URL/id. No OAuth, key never expires.
+- **Auth**: QR login via `steam-session` (MobileApp platform), refresh token stored in `SteamUser`, no API key.
 - **Library**: `GetOwnedGames` — full library in one call, with per-platform playtime totals.
 - **Playtime**: cumulative totals per game; recorder derives sessions from deltas between hourly ticks, and creates unknown games inline (new purchase played immediately).
 - **Extras**: PICS metadata (library assets, tags), store API descriptions (`populateStoreData`), rich art.

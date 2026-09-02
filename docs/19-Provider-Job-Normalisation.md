@@ -43,7 +43,7 @@ export type OnProgress = (update: {
 export const PROVIDER_JOBS: ProviderJobs[];
 ```
 
-- `isActive`: steam → `steamUser` row with non-null `apiKey`; gog → `gogUser` row exists; epic → `epicUser` row exists.
+- `isActive`: steam → `steamUser` row with a non-null, unexpired `refreshToken`; gog → `gogUser` row exists; epic → `epicUser` row exists.
 - Wraps the existing service functions, behaviour unchanged except playtime unknown-game handling (§2). GOG/Epic services keep their internal no-op-when-unlinked guards; steam's throw-when-unlinked is fine because the registry gates on `isActive` first.
 - Lives in `lib/` so it cannot import server task machinery — progress and follow-up needs flow out through the callback / return value (pattern already established by `updatePicsMetadata`).
 

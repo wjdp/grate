@@ -1,10 +1,9 @@
 import { faker } from "@faker-js/faker";
 import type { SteamGame } from "~~/db/schema";
 import {
+  type CommunityProfile,
   type UserGame,
-  type UserInfo,
   userGameSchema,
-  userInfoSchema,
 } from "~~/lib/steam/api";
 
 function generateRTimeLastPlayed() {
@@ -76,29 +75,17 @@ export function generateUnownedFakeUserGame(
   } as SteamGame);
 }
 
-export function generateFakeUserInfo(
-  overrides: Partial<UserInfo> = {},
-): UserInfo {
-  return userInfoSchema.parse({
-    ...{
-      steamid: faker.string.numeric(17),
-      personaname: faker.internet.username(),
-      profileurl: faker.internet.url(),
-      communityvisibilitystate: 3,
-      profilestate: 1,
-      avatar: faker.internet.url(),
-      avatarmedium: faker.internet.url(),
-      avatarfull: faker.internet.url(),
-      avatarhash: faker.string.alphanumeric(40),
-      lastlogoff: faker.number.int({ min: 0, max: 2_000_000_000 }),
-      personastate: 1,
-      realname: faker.person.fullName(),
-      primaryclanid: null,
-      timecreated: faker.number.int({ min: 0, max: 2_000_000_000 }),
-      personastateflags: 0,
-      loccountrycode: "GB",
-      locstatecode: null,
-    },
+export function generateFakeCommunityProfile(
+  overrides: Partial<CommunityProfile> = {},
+): CommunityProfile {
+  return {
+    steamID64: faker.string.numeric(17),
+    steamID: faker.internet.username(),
+    avatarIcon: faker.internet.url(),
+    avatarMedium: faker.internet.url(),
+    avatarFull: faker.internet.url(),
+    realname: faker.person.fullName(),
+    customURL: faker.internet.username(),
     ...filterUndefinedKeys(overrides),
-  });
+  };
 }

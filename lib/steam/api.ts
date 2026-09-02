@@ -1,3 +1,4 @@
+import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 
 export class SteamApiError extends Error {
@@ -40,81 +41,53 @@ export async function getServerInfo(): Promise<ServerInfo> {
   return serverInfoSchema.parse(data);
 }
 
-export async function resolveVanityUrl(
-  apiKey: string,
-  vanityName: string,
-): Promise<string> {
-  const parameters = new URLSearchParams({
-    key: apiKey,
-    vanityurl: vanityName,
-  });
-  const response = await fetch(
-    `${BASE_URL}/ISteamUser/ResolveVanityURL/v1/?${parameters}`,
-  );
-  if (!response.ok) {
-    throw createSteamApiError(response);
-  }
-  const data = await response.json();
-  if (data.response?.success !== 1) {
-    throw new SteamApiError({
-      message: `No Steam profile found for "${vanityName}"`,
-      statusCode: 404,
-    });
-  }
-  return z.string().parse(data.response.steamid);
-}
-
-export const userInfoSchema = z.object({
-  // 64-bit SteamID: keep it a string, it is never used arithmetically
-  steamid: z.string(),
-  personaname: z.string(),
-  profileurl: z.string(),
-  communityvisibilitystate: z.number(),
-  profilestate: z.number(),
-  avatar: z.string(),
-  avatarmedium: z.string(),
-  avatarfull: z.string(),
-  avatarhash: z.string(),
-  lastlogoff: z.number(),
-  personastate: z.number(),
-  realname: z.string().nullable(),
-  primaryclanid: z.string().nullable(),
-  timecreated: z.number(),
-  personastateflags: z.number(),
-  loccountrycode: z.string().nullable(),
-  locstatecode: z.string().nullable(),
-});
-
-export type UserInfo = z.infer<typeof userInfoSchema>;
-
 export interface SteamCredentials {
-  apiKey: string;
+  accessToken: string;
   steamId: string;
 }
 
-export async function getUserInfo({
-  apiKey,
-  steamId,
-}: SteamCredentials): Promise<UserInfo> {
-  const parameters = new URLSearchParams({
-    key: apiKey,
-    steamids: steamId,
-  });
+const COMMUNITY_BASE_URL = "https://steamcommunity.com";
+
+const communityProfileSchema = z.object({
+  // 64-bit SteamID: keep it a string, it is never used arithmetically
+  steamID64: z.string(),
+  steamID: z.string(),
+  avatarIcon: z.string(),
+  avatarMedium: z.string(),
+  avatarFull: z.string(),
+  realname: z.string().nullish().transform(emptyToNull),
+  customURL: z.string().nullish().transform(emptyToNull),
+});
+
+export type CommunityProfile = z.infer<typeof communityProfileSchema>;
+
+function emptyToNull(value: string | null | undefined): string | null {
+  return value ? value : null;
+}
+
+// parseTagValue keeps every value a string, so the 64-bit SteamID survives.
+const xmlParser = new XMLParser({ parseTagValue: false, trimValues: true });
+
+export async function getCommunityProfile(
+  steamId: string,
+): Promise<CommunityProfile> {
   const response = await fetch(
-    `${BASE_URL}/ISteamUser/GetPlayerSummaries/v2/?${parameters}`,
+    `${COMMUNITY_BASE_URL}/profiles/${steamId}/?xml=1`,
   );
   if (!response.ok) {
     throw createSteamApiError(response);
   }
-  const data = await response.json();
-  const player = data.response?.players?.[0];
-  if (!player) {
+  const document = xmlParser.parse(await response.text());
+  if (!document.profile) {
     throw new SteamApiError({
-      message: `Steam returned no player for SteamID ${steamId}`,
+      message:
+        typeof document.response?.error === "string"
+          ? document.response.error
+          : `Steam returned no profile for SteamID ${steamId}`,
       statusCode: 404,
     });
   }
-  return userInfoSchema.parse(player);
+  return communityProfileSchema.parse(document.profile);
 }
 
 export const userGameSchema = z.object({
@@ -156,11 +129,11 @@ export const userGameSchema = z.object({
 export type UserGame = z.infer<typeof userGameSchema>;
 
 export async function getUserGames({
-  apiKey,
+  accessToken,
   steamId,
 }: SteamCredentials): Promise<UserGame[]> {
   const parameters = new URLSearchParams({
-    key: apiKey,
+    access_token: accessToken,
     steamid: steamId,
     include_appinfo: "1",
     include_played_free_games: "1",

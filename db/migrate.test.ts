@@ -55,6 +55,7 @@ const DATETIME_COLUMNS: [table: string, column: string][] = [
   ["GogIgnoredProduct", "createdAt"],
   ["EpicUser", "accessTokenExpiresAt"],
   ["EpicUser", "refreshTokenExpiresAt"],
+  ["SteamUser", "refreshTokenExpiresAt"],
   ["EpicGame", "releaseDate"],
   ["EpicGame", "acquisitionDate"],
   ["EpicGame", "lastPlayedAt"],
@@ -295,7 +296,7 @@ describe("runMigrations", () => {
     for (const table of TABLES) expect(tables).toContain(table);
     expect(
       sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([10]);
+    ).toEqual([11]);
     expect(tables).not.toContain("_prisma_migrations");
   });
 
@@ -319,7 +320,7 @@ describe("runMigrations", () => {
       FINAL_PRISMA_MIGRATION,
       createHash("sha256").update(FINAL_PRISMA_MIGRATION_SQL).digest("hex"),
     ]);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 10 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 11 });
 
     const backfilled = sqlite
       .prepare(
@@ -366,7 +367,7 @@ describe("runMigrations", () => {
     const { db, sqlite } = open(path);
     runMigrations(sqlite, db);
 
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 10 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 11 });
     expect(rowCounts(path)).toEqual({
       ...before,
       SteamGamePlaytime: 4,
@@ -439,7 +440,7 @@ describe("runMigrations", () => {
 
     expect(schemaOf(path)).toEqual(schema);
     expect(rowCounts(path)).toEqual(counts);
-    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 10 });
+    expect(migrationCounts(path)).toEqual({ prisma: 12, drizzle: 11 });
     expectNativeStorage(path);
   });
 });

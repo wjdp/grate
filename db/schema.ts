@@ -43,9 +43,8 @@ export const steamUser = sqliteTable(
     avatar: text().notNull(),
     avatarMedium: text().notNull(),
     avatarFull: text().notNull(),
-    avatarHash: text().notNull(),
-    lastLogoff: integer().notNull(),
-    apiKey: text(),
+    refreshToken: text(),
+    refreshTokenExpiresAt: datetime(),
   },
   (table) => [uniqueIndex("SteamUser_userId_key").on(table.userId)],
 );

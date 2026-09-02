@@ -115,6 +115,8 @@ export function createEpicGame(overrides: Partial<NewEpicGame> = {}): EpicGame {
     .get();
 }
 
+const REFRESH_TOKEN_LIFETIME_MS = 200 * 24 * 60 * 60 * 1000;
+
 export function createSteamUser(
   overrides: Partial<NewSteamUser> = {},
 ): SteamUser {
@@ -130,13 +132,8 @@ export function createSteamUser(
       avatar: faker.internet.url(),
       avatarMedium: faker.internet.url(),
       avatarFull: faker.internet.url(),
-      avatarHash: faker.string.alphanumeric(40),
-      lastLogoff: faker.number.int({ min: 0, max: 2_000_000_000 }),
-      apiKey: faker.string.hexadecimal({
-        length: 32,
-        casing: "upper",
-        prefix: "",
-      }),
+      refreshToken: `fixture-refresh-token-${faker.string.alphanumeric(16)}`,
+      refreshTokenExpiresAt: new Date(Date.now() + REFRESH_TOKEN_LIFETIME_MS),
       ...overrides,
     })
     .returning()

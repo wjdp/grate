@@ -15,6 +15,7 @@
     "db:migrate": "tsx db/migrate-cli.ts",
     "db:studio": "drizzle-kit studio"
   },
+  "//": "steam-session is pinned exactly: lib/steam/webSession.ts patches its private _handler and reads the debug event payload",
   "dependencies": {
     "@tanstack/vue-virtual": "^3.13.36",
     "better-sqlite3": "^13.0.3",

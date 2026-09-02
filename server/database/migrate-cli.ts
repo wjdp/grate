@@ -1,4 +1,4 @@
-import { databasePath, db, sqlite } from "../lib/db";
+import { databasePath, db, sqlite } from "./client";
 import { runMigrations } from "./migrate";
 
 runMigrations(sqlite, db);

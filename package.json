@@ -12,7 +12,7 @@
     "lint:ci": "biome ci",
     "typecheck": "nuxt typecheck",
     "test": "vitest",
-    "db:migrate": "tsx db/migrate-cli.ts",
+    "db:migrate": "tsx server/database/migrate-cli.ts",
     "db:studio": "drizzle-kit studio"
   },
   "//": "steam-session is pinned exactly: lib/steam/webSession.ts patches its private _handler and reads the debug event payload",

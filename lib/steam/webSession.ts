@@ -2,8 +2,8 @@ import { hostname } from "node:os";
 import { eq } from "drizzle-orm";
 import { EAuthTokenPlatformType, LoginSession } from "steam-session";
 import { z } from "zod";
-import { steamUser } from "~~/db/schema";
-import { db } from "~~/lib/db";
+import { db } from "~~/server/database/client";
+import { steamUser } from "~~/server/database/schema";
 
 const ACCESS_TOKEN_EXPIRY_BUFFER_MS = 60 * 1000;
 const RENEW_ATTEMPT_INTERVAL_MS = 20 * 60 * 60 * 1000;

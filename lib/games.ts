@@ -2,6 +2,15 @@ import { and, asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import type { GameState } from "#shared/game-state";
 import { playDayOf } from "#shared/playDay";
 import type { PlaytimeSession } from "#shared/types/PlaytimeSession";
+import { refreshGameAggregates } from "~~/lib/gameAggregates";
+import { countProviderRows } from "~~/lib/gameProviders";
+import {
+  deriveSessions,
+  type PlaytimeProviderRow,
+  type PlaytimeSnapshot,
+} from "~~/lib/playtimeTimeline";
+import { getPlayDaySettings } from "~~/lib/settings";
+import { db } from "~~/server/database/client";
 import {
   epicGame,
   epicGamePlaytime,
@@ -13,16 +22,7 @@ import {
   gogGamePlaytime,
   steamGame,
   steamGamePlaytime,
-} from "~~/db/schema";
-import { db } from "~~/lib/db";
-import { refreshGameAggregates } from "~~/lib/gameAggregates";
-import { countProviderRows } from "~~/lib/gameProviders";
-import {
-  deriveSessions,
-  type PlaytimeProviderRow,
-  type PlaytimeSnapshot,
-} from "~~/lib/playtimeTimeline";
-import { getPlayDaySettings } from "~~/lib/settings";
+} from "~~/server/database/schema";
 
 export type PlaytimeProvider = "steam" | "gog" | "epic";
 

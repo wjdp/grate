@@ -6,7 +6,7 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import { GAME_STATES } from "../shared/game-state";
+import { GAME_STATES } from "../../shared/game-state";
 
 const autoIncrementId = () => integer().primaryKey({ autoIncrement: true });
 const datetime = () => integer({ mode: "timestamp_ms" });

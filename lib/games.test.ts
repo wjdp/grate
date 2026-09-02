@@ -3,17 +3,6 @@ process.env.TZ = "UTC";
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  epicGamePlaytime as epicGamePlaytimeTable,
-  gameDistinctPair as gameDistinctPairTable,
-  gameStateChange as gameStateChangeTable,
-  game as gameTable,
-  gogGamePlaytime as gogGamePlaytimeTable,
-  gogGame as gogGameTable,
-  steamAppInfo as steamAppInfoTable,
-  steamGamePlaytime as steamGamePlaytimeTable,
-} from "~~/db/schema";
-import { db } from "~~/lib/db";
-import {
   createEpicGame,
   createGame,
   createGameDistinctPair,
@@ -31,6 +20,17 @@ import {
   setGameState,
   splitGame,
 } from "~~/lib/games";
+import { db } from "~~/server/database/client";
+import {
+  epicGamePlaytime as epicGamePlaytimeTable,
+  gameDistinctPair as gameDistinctPairTable,
+  gameStateChange as gameStateChangeTable,
+  game as gameTable,
+  gogGamePlaytime as gogGamePlaytimeTable,
+  gogGame as gogGameTable,
+  steamAppInfo as steamAppInfoTable,
+  steamGamePlaytime as steamGamePlaytimeTable,
+} from "~~/server/database/schema";
 import { flushDb } from "~~/test/db";
 
 function stateChangesFor(gameId: number) {

@@ -1,6 +1,4 @@
 import { faker } from "@faker-js/faker";
-import { type EpicUser, epicUser, type NewEpicUser } from "~~/db/schema";
-import { db } from "~~/lib/db";
 import {
   type EpicCatalogItem,
   EpicCatalogItemSchema,
@@ -11,6 +9,12 @@ import {
   type EpicToken,
   EpicTokenSchema,
 } from "~~/lib/epic/api";
+import { db } from "~~/server/database/client";
+import {
+  type EpicUser,
+  epicUser,
+  type NewEpicUser,
+} from "~~/server/database/schema";
 
 export function generateFakeEpicToken(
   overrides: Partial<EpicToken> = {},

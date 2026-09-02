@@ -2,9 +2,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { $fetch, fetch, setup } from "@nuxt/test-utils/e2e";
 import { afterAll, describe, expect, it } from "vitest";
-import { runMigrations } from "~~/db/migrate";
-import { game, gogGame } from "~~/db/schema";
-import { createDb } from "~~/lib/db";
+import { createDb } from "~~/server/database/client";
+import { runMigrations } from "~~/server/database/migrate";
+import { game, gogGame } from "~~/server/database/schema";
 import {
   createTestDatabaseFile,
   createTestDataDir,

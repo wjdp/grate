@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
-import { runMigrations } from "~~/db/migrate";
-import { createDb } from "~~/lib/db";
+import { createDb } from "~~/server/database/client";
+import { runMigrations } from "~~/server/database/migrate";
 
 const TABLES = [
   "User",

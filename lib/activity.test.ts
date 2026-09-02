@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  epicGamePlaytime as epicGamePlaytimeTable,
-  gogGamePlaytime as gogGamePlaytimeTable,
-  steamGamePlaytime as steamGamePlaytimeTable,
-  user,
-} from "~~/db/schema";
 import { getDailyPlaytime } from "~~/lib/activity";
-import { db } from "~~/lib/db";
 import {
   createEpicGame,
   createGame,
   createGogGame,
   createSteamGame,
 } from "~~/lib/fixtures/game";
+import { db } from "~~/server/database/client";
+import {
+  epicGamePlaytime as epicGamePlaytimeTable,
+  gogGamePlaytime as gogGamePlaytimeTable,
+  steamGamePlaytime as steamGamePlaytimeTable,
+  user,
+} from "~~/server/database/schema";
 import { flushDb } from "~~/test/db";
 
 function recordSteam(appId: number, timestampEnd: string, minutes: number) {

@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { steamAppInfo as steamAppInfoTable } from "~~/db/schema";
-import { db } from "~~/lib/db";
 import {
   findDuplicatePairs,
   getDistinctPairs,
@@ -14,6 +12,8 @@ import {
   createGogGame,
   createSteamGame,
 } from "~~/lib/fixtures/game";
+import { db } from "~~/server/database/client";
+import { steamAppInfo as steamAppInfoTable } from "~~/server/database/schema";
 import { flushDb } from "~~/test/db";
 
 function createSteamAppInfo(appId: number, releaseDate: Date) {

@@ -1,8 +1,12 @@
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
-import { steamAppInfo, steamGame, steamPicsMetadata } from "~~/db/schema";
-import { db } from "~~/lib/db";
 import { createSteamGame } from "~~/lib/fixtures/game";
+import { db } from "~~/server/database/client";
+import {
+  steamAppInfo,
+  steamGame,
+  steamPicsMetadata,
+} from "~~/server/database/schema";
 import { flushDb } from "~~/test/db";
 import { resolveArtSources } from "./sources";
 

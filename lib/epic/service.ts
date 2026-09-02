@@ -1,17 +1,6 @@
 import { asc, desc, eq } from "drizzle-orm";
 import tryCatch from "#shared/utils/tryCatch";
 import {
-  type EpicGame,
-  type EpicGamePlaytime,
-  type EpicUser,
-  epicGame,
-  epicGamePlaytime,
-  epicIgnoredItem,
-  epicUser,
-  game,
-} from "~~/db/schema";
-import { db } from "~~/lib/db";
-import {
   EpicApiError,
   type EpicCatalogItem,
   type EpicLibraryRecord,
@@ -29,6 +18,17 @@ import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
 import { inferredLastPlayedAt } from "~~/lib/playtimeTimeline";
 import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
+import { db } from "~~/server/database/client";
+import {
+  type EpicGame,
+  type EpicGamePlaytime,
+  type EpicUser,
+  epicGame,
+  epicGamePlaytime,
+  epicIgnoredItem,
+  epicUser,
+  game,
+} from "~~/server/database/schema";
 
 function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null;

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import { epicGame, gogGame, steamGame } from "~~/db/schema";
-import { type Db, db } from "~~/lib/db";
+import { type Db, db } from "~~/server/database/client";
+import { epicGame, gogGame, steamGame } from "~~/server/database/schema";
 
 type Transaction = Parameters<Parameters<Db["transaction"]>[0]>[0];
 

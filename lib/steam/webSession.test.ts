@@ -1,8 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import createFetchMock from "vitest-fetch-mock";
-import { steamUser } from "~~/db/schema";
-import { db } from "~~/lib/db";
 import { createSteamUser } from "~~/lib/fixtures/game";
 import userData from "~~/lib/steam/fixtures/userdata.json";
 import {
@@ -14,6 +12,8 @@ import {
   resetWebSessionState,
   tryRenewRefreshToken,
 } from "~~/lib/steam/webSession";
+import { db } from "~~/server/database/client";
+import { steamUser } from "~~/server/database/schema";
 import { flushDb } from "~~/test/db";
 
 function jwt(expiresAt: Date): string {

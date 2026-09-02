@@ -1,18 +1,6 @@
 import { asc, desc, eq } from "drizzle-orm";
 import htmlToBareDescription from "#shared/utils/htmlToBareDescription";
 import tryCatch from "#shared/utils/tryCatch";
-import {
-  type Game,
-  type GogGame,
-  type GogGamePlaytime,
-  type GogUser,
-  game,
-  gogGame,
-  gogGamePlaytime,
-  gogIgnoredProduct,
-  gogUser,
-} from "~~/db/schema";
-import { db } from "~~/lib/db";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
 import {
@@ -28,6 +16,18 @@ import {
 } from "~~/lib/gog/api";
 import { inferredLastPlayedAt } from "~~/lib/playtimeTimeline";
 import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
+import { db } from "~~/server/database/client";
+import {
+  type Game,
+  type GogGame,
+  type GogGamePlaytime,
+  type GogUser,
+  game,
+  gogGame,
+  gogGamePlaytime,
+  gogIgnoredProduct,
+  gogUser,
+} from "~~/server/database/schema";
 
 function getTokenExpiresAt(expiresIn: number) {
   return new Date(Date.now() + expiresIn * 1000);

@@ -3,7 +3,7 @@ import type {
   NewSteamPicsMetadata,
   SteamAssociation,
   SteamLogoPosition,
-} from "~~/db/schema";
+} from "~~/server/database/schema";
 import { SteamServiceError } from "./service";
 
 // The only module importing steam-user: PICS needs a full Steam client session,

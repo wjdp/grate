@@ -2,8 +2,8 @@ import { eq } from "drizzle-orm";
 import { IANAZone } from "luxon";
 import type { PlayDaySettings } from "#shared/playDay";
 import type { SettingsPatch } from "#shared/schemas/settings";
-import { user } from "~~/db/schema";
-import { db } from "~~/lib/db";
+import { db } from "~~/server/database/client";
+import { user } from "~~/server/database/schema";
 
 export const DEFAULT_DAY_BOUNDARY_HOUR = 6;
 

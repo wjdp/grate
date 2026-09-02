@@ -7,7 +7,7 @@ import type * as schema from "./schema";
 type DrizzleDb = BetterSQLite3Database<typeof schema>;
 
 export function migrationsFolder() {
-  return join(process.cwd(), "db", "migrations");
+  return join(process.cwd(), "server", "database", "migrations");
 }
 
 // SQLite cannot alter a column's type, so drizzle-kit emits table rebuilds:

@@ -1,12 +1,12 @@
 import { faker } from "@faker-js/faker";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { NewSteamGame } from "~~/db/schema";
-import { steamPicsMetadata, steamTag } from "~~/db/schema";
-import { db } from "~~/lib/db";
 import { createSteamGame as createSteamGameFixture } from "~~/lib/fixtures/game";
 import { getTagList } from "~~/lib/steam/api";
 import { getPicsMetadata, type PicsAppData } from "~~/lib/steam/pics";
 import { updatePicsMetadata } from "~~/lib/steam/picsMetadata";
+import { db } from "~~/server/database/client";
+import type { NewSteamGame } from "~~/server/database/schema";
+import { steamPicsMetadata, steamTag } from "~~/server/database/schema";
 import { flushDb } from "~~/test/db";
 
 vi.mock("~~/lib/steam/api", async (importOriginal) => ({

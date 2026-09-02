@@ -1,8 +1,8 @@
 import { $fetch, fetch, setup } from "@nuxt/test-utils/e2e";
 import { afterAll, describe, expect, it } from "vitest";
-import { runMigrations } from "~~/db/migrate";
-import { game } from "~~/db/schema";
-import { createDb } from "~~/lib/db";
+import { createDb } from "~~/server/database/client";
+import { runMigrations } from "~~/server/database/migrate";
+import { game } from "~~/server/database/schema";
 import { createTestDatabaseFile, startNuxtServer } from "./devServer";
 
 const databaseFile = createTestDatabaseFile();

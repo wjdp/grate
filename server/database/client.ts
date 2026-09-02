@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import * as schema from "../db/schema";
+import * as schema from "./schema";
 
 export function databasePath(url = process.env.DATABASE_URL): string {
   if (!url) return "./dev.db";

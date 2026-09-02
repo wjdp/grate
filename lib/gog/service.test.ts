@@ -1,7 +1,5 @@
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { game, gogGame, gogIgnoredProduct, gogUser } from "~~/db/schema";
-import { db } from "~~/lib/db";
 import { createGogGame } from "~~/lib/fixtures/game";
 import {
   GogApiError,
@@ -29,6 +27,13 @@ import {
   updateGogGames,
   updateGogUser,
 } from "~~/lib/gog/service";
+import { db } from "~~/server/database/client";
+import {
+  game,
+  gogGame,
+  gogIgnoredProduct,
+  gogUser,
+} from "~~/server/database/schema";
 import { flushDb } from "~~/test/db";
 
 function withoutReleaseDates(detail: GogGameDetail): GogGameDetail {

@@ -1,21 +1,24 @@
 import { faker } from "@faker-js/faker";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSteamGame as createSteamGameFixture } from "~~/lib/fixtures/game";
-import { getTagList } from "~~/lib/steam/api";
-import { getPicsMetadata, type PicsAppData } from "~~/lib/steam/pics";
-import { updatePicsMetadata } from "~~/lib/steam/picsMetadata";
 import { db } from "~~/server/database/client";
 import type { NewSteamGame } from "~~/server/database/schema";
 import { steamPicsMetadata, steamTag } from "~~/server/database/schema";
+import { getTagList } from "~~/server/providers/steam/api";
+import {
+  getPicsMetadata,
+  type PicsAppData,
+} from "~~/server/providers/steam/pics";
+import { updatePicsMetadata } from "~~/server/providers/steam/picsMetadata";
 import { flushDb } from "~~/test/db";
 
-vi.mock("~~/lib/steam/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("~~/lib/steam/api")>()),
+vi.mock("~~/server/providers/steam/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/server/providers/steam/api")>()),
   getTagList: vi.fn(),
 }));
 
-vi.mock("~~/lib/steam/pics", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("~~/lib/steam/pics")>()),
+vi.mock("~~/server/providers/steam/pics", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/server/providers/steam/pics")>()),
   getPicsMetadata: vi.fn(),
 }));
 

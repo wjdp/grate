@@ -4,7 +4,7 @@ import {
   getQrLogin,
   resetQrRegistry,
   startQrLogin,
-} from "~~/lib/steam/qrRegistry";
+} from "~~/server/providers/steam/qrRegistry";
 
 const STEAM_ID = "76561198000000001";
 const CHALLENGE_URL = "https://s.team/q/1/first";
@@ -74,7 +74,7 @@ vi.mock("steam-session", () => ({
   EAuthTokenPlatformType: { MobileApp: 2 },
 }));
 
-vi.mock("~~/lib/steam/service", () => ({
+vi.mock("~~/server/providers/steam/service", () => ({
   linkSteamAccount: service.linkSteamAccount,
 }));
 

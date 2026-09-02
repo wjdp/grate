@@ -1,7 +1,5 @@
 import { desc, eq } from "drizzle-orm";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
-import { countProviderRows } from "~~/lib/gameProviders";
-import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
 import { db } from "~~/server/database/client";
 import {
   game,
@@ -15,6 +13,11 @@ import {
   steamUser,
   user,
 } from "~~/server/database/schema";
+import type {
+  OnProgress,
+  RecordPlaytimesResult,
+} from "~~/server/providers/jobs";
+import { countProviderRows } from "~~/server/providers/rows";
 import {
   type CommunityProfile,
   getCommunityProfile,

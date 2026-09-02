@@ -1,6 +1,13 @@
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createGogGame } from "~~/lib/fixtures/game";
+import { db } from "~~/server/database/client";
+import {
+  game,
+  gogGame,
+  gogIgnoredProduct,
+  gogUser,
+} from "~~/server/database/schema";
 import {
   GogApiError,
   type GogGameDetail,
@@ -10,14 +17,14 @@ import {
   getGogUserGames,
   getGogUserPlaytimes,
   refreshGogToken,
-} from "~~/lib/gog/api";
+} from "~~/server/providers/gog/api";
 import {
   createGogUser,
   generateFakeGogGameDetail,
   generateFakeGogPlaytimeSessions,
   generateFakeGogToken,
   generateFakeGogUser,
-} from "~~/lib/gog/fixtures/fake";
+} from "~~/server/providers/gog/fixtures/fake";
 import {
   createOrUpdateGogUser,
   getGogPlaytimeRecords,
@@ -26,14 +33,7 @@ import {
   recordGogPlaytimes,
   updateGogGames,
   updateGogUser,
-} from "~~/lib/gog/service";
-import { db } from "~~/server/database/client";
-import {
-  game,
-  gogGame,
-  gogIgnoredProduct,
-  gogUser,
-} from "~~/server/database/schema";
+} from "~~/server/providers/gog/service";
 import { flushDb } from "~~/test/db";
 
 function withoutReleaseDates(detail: GogGameDetail): GogGameDetail {
@@ -51,8 +51,8 @@ function firstOrThrow<T>(rows: T[]): T {
   return row;
 }
 
-vi.mock("~~/lib/gog/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("~~/lib/gog/api")>()),
+vi.mock("~~/server/providers/gog/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/server/providers/gog/api")>()),
   getGogGameDetail: vi.fn(),
   getGogToken: vi.fn(),
   getGogUserData: vi.fn(),

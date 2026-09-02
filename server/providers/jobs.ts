@@ -1,7 +1,7 @@
 import type { ProviderId } from "#shared/tasks";
-import * as epic from "~~/lib/epic/service";
-import * as gog from "~~/lib/gog/service";
-import * as steam from "~~/lib/steam/service";
+import * as epic from "~~/server/providers/epic/service";
+import * as gog from "~~/server/providers/gog/service";
+import * as steam from "~~/server/providers/steam/service";
 
 export type { ProviderId };
 

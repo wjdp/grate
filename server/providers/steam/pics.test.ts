@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Common2950790 from "~~/lib/steam/fixtures/pics/2950790.json";
-import { getPicsMetadata } from "~~/lib/steam/pics";
-import { SteamServiceError } from "~~/lib/steam/service";
+import Common2950790 from "~~/server/providers/steam/fixtures/pics/2950790.json";
+import { getPicsMetadata } from "~~/server/providers/steam/pics";
+import { SteamServiceError } from "~~/server/providers/steam/service";
 
 const steamUser = vi.hoisted(() => {
   const session: {

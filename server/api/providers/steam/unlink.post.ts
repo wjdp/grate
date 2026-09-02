@@ -1,4 +1,4 @@
-import { unlinkSteamAccount } from "~~/lib/steam/service";
+import { unlinkSteamAccount } from "~~/server/providers/steam/service";
 
 export default defineEventHandler(async () => {
   await unlinkSteamAccount();

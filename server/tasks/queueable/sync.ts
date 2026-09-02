@@ -1,4 +1,4 @@
-import type { RecordPlaytimesResult } from "~~/lib/providerJobs";
+import type { RecordPlaytimesResult } from "~~/server/providers/jobs";
 import { queueProviderFollowUps } from "~~/server/tasks/providerFollowUps";
 import {
   runProviderJobs,

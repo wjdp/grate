@@ -7,14 +7,20 @@ import {
   createSteamGame as createSteamGameFixture,
   createSteamUser,
 } from "~~/lib/fixtures/game";
-import { getCommunityProfile, getUserGames } from "~~/lib/steam/api";
+import { db } from "~~/server/database/client";
+import type { NewSteamGame } from "~~/server/database/schema";
+import { steamGame, steamUser, user } from "~~/server/database/schema";
+import {
+  getCommunityProfile,
+  getUserGames,
+} from "~~/server/providers/steam/api";
 import {
   type FakeUserGameOverrides,
   generateFakeCommunityProfile,
   generateFakeUserGame,
   generateUnownedFakeUserGame,
-} from "~~/lib/steam/fixtures/fake";
-import Response7670 from "~~/lib/steam/fixtures/store/7670.json";
+} from "~~/server/providers/steam/fixtures/fake";
+import Response7670 from "~~/server/providers/steam/fixtures/store/7670.json";
 import {
   findGamesNeedingStoreData,
   getPlaytimeRecords,
@@ -25,28 +31,31 @@ import {
   SteamServiceError,
   updateGames,
   updateUser,
-} from "~~/lib/steam/service";
-import { getAppDetails, SteamStoreError } from "~~/lib/steam/store";
-import { getAccessToken, tryRenewRefreshToken } from "~~/lib/steam/webSession";
-import { db } from "~~/server/database/client";
-import type { NewSteamGame } from "~~/server/database/schema";
-import { steamGame, steamUser, user } from "~~/server/database/schema";
+} from "~~/server/providers/steam/service";
+import {
+  getAppDetails,
+  SteamStoreError,
+} from "~~/server/providers/steam/store";
+import {
+  getAccessToken,
+  tryRenewRefreshToken,
+} from "~~/server/providers/steam/webSession";
 import { flushDb } from "~~/test/db";
 
-vi.mock("~~/lib/steam/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("~~/lib/steam/api")>()),
+vi.mock("~~/server/providers/steam/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/server/providers/steam/api")>()),
   getUserGames: vi.fn(),
   getCommunityProfile: vi.fn(),
 }));
 
-vi.mock("~~/lib/steam/webSession", () => ({
+vi.mock("~~/server/providers/steam/webSession", () => ({
   getAccessToken: vi.fn(async () => "ACCESS-TOKEN"),
   tryRenewRefreshToken: vi.fn(async () => false),
   clearAccessTokenCache: vi.fn(),
 }));
 
-vi.mock("~~/lib/steam/store", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("~~/lib/steam/store")>()),
+vi.mock("~~/server/providers/steam/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/server/providers/steam/store")>()),
   getAppDetails: vi.fn(),
 }));
 

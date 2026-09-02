@@ -1,4 +1,4 @@
-import { getEpicUser } from "~~/lib/epic/service";
+import { getEpicUser } from "~~/server/providers/epic/service";
 
 export default defineEventHandler(async () => {
   const epicUser = await getEpicUser();

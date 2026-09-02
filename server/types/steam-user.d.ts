@@ -1,4 +1,4 @@
-// steam-user ships no types. Only the surface lib/steam/pics.ts uses is
+// steam-user ships no types. Only the surface server/providers/steam/pics.ts uses is
 // declared; extend as more of the client is needed.
 declare module "steam-user" {
   interface PicsApp {

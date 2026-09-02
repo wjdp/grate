@@ -1,5 +1,5 @@
 // steam-user ships no type declarations; this covers only the anonymous
-// appinfo flow lib/steam/pics.ts uses.
+// appinfo flow server/providers/steam/pics.ts uses.
 declare module "steam-user" {
   interface ProductInfoResult {
     apps: Record<

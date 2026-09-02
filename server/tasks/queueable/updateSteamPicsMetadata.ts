@@ -1,5 +1,5 @@
-import { updatePicsMetadata } from "~~/lib/steam/picsMetadata";
 import { deleteCachedArt } from "~~/server/art";
+import { updatePicsMetadata } from "~~/server/providers/steam/picsMetadata";
 import type { Task } from "~~/server/tasks/queue";
 import { updateInProgressTask } from "~~/server/tasks/queue";
 

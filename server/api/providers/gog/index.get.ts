@@ -1,4 +1,4 @@
-import { getGogUser } from "~~/lib/gog/service";
+import { getGogUser } from "~~/server/providers/gog/service";
 
 export default defineEventHandler(async () => {
   const gogUser = await getGogUser();

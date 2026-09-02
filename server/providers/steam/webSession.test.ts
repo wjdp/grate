@@ -2,7 +2,9 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import createFetchMock from "vitest-fetch-mock";
 import { createSteamUser } from "~~/lib/fixtures/game";
-import userData from "~~/lib/steam/fixtures/userdata.json";
+import { db } from "~~/server/database/client";
+import { steamUser } from "~~/server/database/schema";
+import userData from "~~/server/providers/steam/fixtures/userdata.json";
 import {
   createSession,
   decodeJwtExpiry,
@@ -11,9 +13,7 @@ import {
   getSessionRenewal,
   resetWebSessionState,
   tryRenewRefreshToken,
-} from "~~/lib/steam/webSession";
-import { db } from "~~/server/database/client";
-import { steamUser } from "~~/server/database/schema";
+} from "~~/server/providers/steam/webSession";
 import { flushDb } from "~~/test/db";
 
 function jwt(expiresAt: Date): string {

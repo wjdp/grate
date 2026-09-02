@@ -3,7 +3,6 @@ import type { GameState } from "#shared/game-state";
 import { playDayOf } from "#shared/playDay";
 import type { PlaytimeSession } from "#shared/types/PlaytimeSession";
 import { refreshGameAggregates } from "~~/lib/gameAggregates";
-import { countProviderRows } from "~~/lib/gameProviders";
 import {
   deriveSessions,
   type PlaytimeProviderRow,
@@ -23,6 +22,7 @@ import {
   steamGame,
   steamGamePlaytime,
 } from "~~/server/database/schema";
+import { countProviderRows } from "~~/server/providers/rows";
 
 export type PlaytimeProvider = "steam" | "gog" | "epic";
 

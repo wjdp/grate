@@ -1,5 +1,13 @@
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createEpicGame } from "~~/lib/fixtures/game";
+import { db } from "~~/server/database/client";
+import {
+  epicGame,
+  epicIgnoredItem,
+  epicUser,
+  game,
+} from "~~/server/database/schema";
 import {
   EpicApiError,
   type EpicCatalogItem,
@@ -11,14 +19,14 @@ import {
   getEpicStoreSlug,
   getEpicToken,
   refreshEpicToken,
-} from "~~/lib/epic/api";
+} from "~~/server/providers/epic/api";
 import {
   createEpicUser,
   generateFakeEpicCatalogItem,
   generateFakeEpicLibraryRecord,
   generateFakeEpicPlaytime,
   generateFakeEpicToken,
-} from "~~/lib/epic/fixtures/fake";
+} from "~~/server/providers/epic/fixtures/fake";
 import {
   createOrUpdateEpicUser,
   getEpicPlaytimeRecords,
@@ -27,19 +35,11 @@ import {
   recordEpicPlaytimes,
   updateEpicGames,
   updateEpicUser,
-} from "~~/lib/epic/service";
-import { createEpicGame } from "~~/lib/fixtures/game";
-import { db } from "~~/server/database/client";
-import {
-  epicGame,
-  epicIgnoredItem,
-  epicUser,
-  game,
-} from "~~/server/database/schema";
+} from "~~/server/providers/epic/service";
 import { flushDb } from "~~/test/db";
 
-vi.mock("~~/lib/epic/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("~~/lib/epic/api")>()),
+vi.mock("~~/server/providers/epic/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/server/providers/epic/api")>()),
   getEpicAccount: vi.fn(),
   getEpicCatalogItems: vi.fn(),
   getEpicLibraryItems: vi.fn(),

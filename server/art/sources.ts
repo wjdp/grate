@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm";
 import { resolveGogImageUrl } from "#shared/art";
-import { getSteamArtUrls } from "~~/lib/steam/art";
 import { db } from "~~/server/database/client";
 import {
   epicGame,
@@ -9,6 +8,7 @@ import {
   steamGame,
   steamPicsMetadata,
 } from "~~/server/database/schema";
+import { getSteamArtUrls } from "~~/server/providers/steam/art";
 import type { ArtKey, EpicArtType, GogArtType, SteamArtType } from "./types";
 
 const GOG_ICON_FORMATTER = "glx_square_icon_v2";

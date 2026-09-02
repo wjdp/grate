@@ -1,5 +1,5 @@
-import { getSteamUser } from "~~/lib/steam/service";
-import { getSessionRenewal } from "~~/lib/steam/webSession";
+import { getSteamUser } from "~~/server/providers/steam/service";
+import { getSessionRenewal } from "~~/server/providers/steam/webSession";
 
 export default defineEventHandler(async () => {
   const steamUser = await getSteamUser();

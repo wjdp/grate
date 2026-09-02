@@ -4,7 +4,7 @@ import {
   type OnProgress,
   PROVIDER_JOBS,
   type ProviderJobs,
-} from "~~/lib/providerJobs";
+} from "~~/server/providers/jobs";
 import type { Task } from "~~/server/tasks/queue";
 import { updateInProgressTask } from "~~/server/tasks/queue";
 

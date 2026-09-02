@@ -1,4 +1,4 @@
-import { getQrLogin } from "~~/lib/steam/qrRegistry";
+import { getQrLogin } from "~~/server/providers/steam/qrRegistry";
 
 export default defineEventHandler((event) => {
   const login = getQrLogin(getRouterParam(event, "id") ?? "");

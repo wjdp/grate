@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { LoginSession } from "steam-session";
-import { linkSteamAccount } from "~~/lib/steam/service";
-import { createSession, decodeJwtExpiry } from "~~/lib/steam/webSession";
+import { linkSteamAccount } from "~~/server/providers/steam/service";
+import {
+  createSession,
+  decodeJwtExpiry,
+} from "~~/server/providers/steam/webSession";
 
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
 const SWEEP_GRACE_MS = 30 * 1000;

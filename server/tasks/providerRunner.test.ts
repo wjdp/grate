@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderId } from "#shared/tasks";
-import type { ProviderJobs } from "~~/lib/providerJobs";
+import type { ProviderJobs } from "~~/server/providers/jobs";
 import {
   runProviderJobs,
   throwOnProviderFailures,

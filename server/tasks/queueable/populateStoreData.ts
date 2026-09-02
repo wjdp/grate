@@ -2,7 +2,7 @@ import sleep from "#shared/utils/sleep";
 import {
   findGamesNeedingStoreData,
   populateStoreData,
-} from "~~/lib/steam/service";
+} from "~~/server/providers/steam/service";
 import type { Task } from "~~/server/tasks/queue";
 import { updateInProgressTask } from "~~/server/tasks/queue";
 

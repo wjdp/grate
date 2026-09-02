@@ -2,11 +2,6 @@ import { faker } from "@faker-js/faker";
 import { eq } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  createGogGame as createGogGameFixture,
-  createSteamGame as createSteamGameFixture,
-  createSteamUser,
-} from "~~/lib/fixtures/game";
 import { db } from "~~/server/database/client";
 import type { NewSteamGame } from "~~/server/database/schema";
 import { steamGame, steamUser, user } from "~~/server/database/schema";
@@ -41,6 +36,11 @@ import {
   tryRenewRefreshToken,
 } from "~~/server/providers/steam/webSession";
 import { flushDb } from "~~/test/db";
+import {
+  createGogGame as createGogGameFixture,
+  createSteamGame as createSteamGameFixture,
+  createSteamUser,
+} from "~~/test/fixtures/game";
 
 vi.mock("~~/server/providers/steam/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~~/server/providers/steam/api")>()),

@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { refreshGameAggregates } from "~~/server/services/gameAggregates";
+import { flushDb } from "~~/test/db";
 import {
   createEpicGame,
   createGame,
   createGogGame,
   createSteamGame,
-} from "~~/lib/fixtures/game";
-import { refreshGameAggregates } from "~~/server/services/gameAggregates";
-import { flushDb } from "~~/test/db";
+} from "~~/test/fixtures/game";
 
 describe("refreshGameAggregates", () => {
   beforeEach(async () => {

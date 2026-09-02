@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { GAME_STATES, type GameState } from "#shared/game-state";
 import type { ProviderFilter } from "#shared/providers";
-import type { SseTask } from "~~/lib/hooks";
+import type { SseTask } from "#shared/sse";
 
 const taskStates: SseTask["state"][] = [
   "pending",

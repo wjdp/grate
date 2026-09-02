@@ -1,10 +1,4 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  createEpicGame,
-  createGame,
-  createGogGame,
-  createSteamGame,
-} from "~~/lib/fixtures/game";
 import { db } from "~~/server/database/client";
 import {
   epicGamePlaytime as epicGamePlaytimeTable,
@@ -14,6 +8,12 @@ import {
 } from "~~/server/database/schema";
 import { getDailyPlaytime } from "~~/server/services/activity";
 import { flushDb } from "~~/test/db";
+import {
+  createEpicGame,
+  createGame,
+  createGogGame,
+  createSteamGame,
+} from "~~/test/fixtures/game";
 
 function recordSteam(appId: number, timestampEnd: string, minutes: number) {
   db.insert(steamGamePlaytimeTable)

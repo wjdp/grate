@@ -2,13 +2,6 @@ process.env.TZ = "UTC";
 
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  createEpicGame,
-  createGame,
-  createGameDistinctPair,
-  createGogGame,
-  createSteamGame,
-} from "~~/lib/fixtures/game";
 import { db } from "~~/server/database/client";
 import {
   epicGamePlaytime as epicGamePlaytimeTable,
@@ -32,6 +25,13 @@ import {
   splitGame,
 } from "~~/server/services/games";
 import { flushDb } from "~~/test/db";
+import {
+  createEpicGame,
+  createGame,
+  createGameDistinctPair,
+  createGogGame,
+  createSteamGame,
+} from "~~/test/fixtures/game";
 
 function stateChangesFor(gameId: number) {
   return db

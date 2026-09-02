@@ -1,11 +1,4 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  createEpicGame,
-  createGame,
-  createGameDistinctPair,
-  createGogGame,
-  createSteamGame,
-} from "~~/lib/fixtures/game";
 import { db } from "~~/server/database/client";
 import { steamAppInfo as steamAppInfoTable } from "~~/server/database/schema";
 import {
@@ -15,6 +8,13 @@ import {
   unmarkDistinct,
 } from "~~/server/services/duplicates";
 import { flushDb } from "~~/test/db";
+import {
+  createEpicGame,
+  createGame,
+  createGameDistinctPair,
+  createGogGame,
+  createSteamGame,
+} from "~~/test/fixtures/game";
 
 function createSteamAppInfo(appId: number, releaseDate: Date) {
   db.insert(steamAppInfoTable)

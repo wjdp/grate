@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createSteamGame } from "~~/lib/fixtures/game";
 import { db } from "~~/server/database/client";
 import {
   steamAppInfo,
@@ -8,6 +7,7 @@ import {
   steamPicsMetadata,
 } from "~~/server/database/schema";
 import { flushDb } from "~~/test/db";
+import { createSteamGame } from "~~/test/fixtures/game";
 import { resolveArtSources } from "./sources";
 
 const PICS_BASE_URL =

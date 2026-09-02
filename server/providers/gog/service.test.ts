@@ -1,6 +1,5 @@
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createGogGame } from "~~/lib/fixtures/game";
 import { db } from "~~/server/database/client";
 import {
   game,
@@ -35,6 +34,7 @@ import {
   updateGogUser,
 } from "~~/server/providers/gog/service";
 import { flushDb } from "~~/test/db";
+import { createGogGame } from "~~/test/fixtures/game";
 
 function withoutReleaseDates(detail: GogGameDetail): GogGameDetail {
   const {

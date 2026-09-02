@@ -1,6 +1,5 @@
 import { faker } from "@faker-js/faker";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createSteamGame as createSteamGameFixture } from "~~/lib/fixtures/game";
 import { db } from "~~/server/database/client";
 import type { NewSteamGame } from "~~/server/database/schema";
 import { steamPicsMetadata, steamTag } from "~~/server/database/schema";
@@ -11,6 +10,7 @@ import {
 } from "~~/server/providers/steam/pics";
 import { updatePicsMetadata } from "~~/server/providers/steam/picsMetadata";
 import { flushDb } from "~~/test/db";
+import { createSteamGame as createSteamGameFixture } from "~~/test/fixtures/game";
 
 vi.mock("~~/server/providers/steam/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~~/server/providers/steam/api")>()),

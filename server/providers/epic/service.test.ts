@@ -1,6 +1,5 @@
 import { asc, eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createEpicGame } from "~~/lib/fixtures/game";
 import { db } from "~~/server/database/client";
 import {
   epicGame,
@@ -37,6 +36,7 @@ import {
   updateEpicUser,
 } from "~~/server/providers/epic/service";
 import { flushDb } from "~~/test/db";
+import { createEpicGame } from "~~/test/fixtures/game";
 
 vi.mock("~~/server/providers/epic/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~~/server/providers/epic/api")>()),

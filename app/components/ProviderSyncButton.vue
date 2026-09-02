@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import type { SseTask } from "#shared/sse";
 import type { ProviderId } from "#shared/tasks";
-import type { SseTask } from "~~/lib/hooks";
 
 const { provider, block = false } = defineProps<{
   provider?: ProviderId;

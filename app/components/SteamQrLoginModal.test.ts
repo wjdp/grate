@@ -30,9 +30,17 @@ registerEndpoint(`/api/providers/steam/qr/${ATTEMPT_ID}`, (event) => {
 
 let modal: Awaited<ReturnType<typeof mountSuspended>> | null = null;
 
+const qrWrapper = () =>
+  document.querySelector<HTMLElement>('[data-testid="steam-qr"] > div');
+
 const openModal = async () => {
   modal = await mountSuspended(SteamQrLoginModal, { props: { open: true } });
-  await vi.waitFor(() => expect(document.body.innerHTML).toContain("<svg"));
+  await vi.waitFor(() => {
+    const wrapper = qrWrapper();
+    expect(wrapper).not.toBeNull();
+    expect(wrapper!.className).not.toContain("opacity-40");
+    expect(wrapper!.innerHTML).toContain("<svg");
+  });
   return modal;
 };
 
@@ -55,7 +63,7 @@ describe("SteamQrLoginModal", () => {
     expect(document.body.textContent).toContain("Steam Guard");
     expect(document.body.textContent).toContain("Waiting for scan");
     expect(document.body.textContent).toContain(
-      "This grants grate full access to your Steam account",
+      "Full account access, including purchases",
     );
     expect(document.body.innerHTML).toContain(
       "https://store.steampowered.com/account/authorizeddevices",
@@ -64,10 +72,10 @@ describe("SteamQrLoginModal", () => {
 
   it("re-renders the code when steam rotates the challenge", async () => {
     await openModal();
-    const original = document.body.innerHTML;
+    const original = qrWrapper()!.innerHTML;
     pollResponses = [{ state: "pending", qrChallengeUrl: ROTATED_URL }];
 
-    await vi.waitFor(() => expect(document.body.innerHTML).not.toBe(original), {
+    await vi.waitFor(() => expect(qrWrapper()!.innerHTML).not.toBe(original), {
       timeout: 8000,
     });
 

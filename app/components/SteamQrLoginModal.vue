@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 const AUTHORISED_DEVICES_URL =
   "https://store.steampowered.com/account/authorizeddevices";
 const POLL_INTERVAL_MS = 2000;
+const PLACEHOLDER_QR_TEXT = "https://s.team/q/1/placeholder";
 
 const open = defineModel<boolean>("open", { default: false });
 const emit = defineEmits<{ connected: [] }>();
@@ -13,6 +14,7 @@ type Phase = "starting" | "pending" | "expired" | "error";
 const phase = ref<Phase>("starting");
 const message = ref("");
 const qrSvg = ref("");
+const placeholderSvg = ref("");
 const attemptId = ref<string | null>(null);
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -67,12 +69,22 @@ const poll = async () => {
   message.value = login.message ?? "";
 };
 
+const renderPlaceholder = async () => {
+  if (placeholderSvg.value) return;
+  placeholderSvg.value = await QRCode.toString(PLACEHOLDER_QR_TEXT, {
+    type: "svg",
+    errorCorrectionLevel: "M",
+    margin: 1,
+  });
+};
+
 const startAttempt = async () => {
   stopPolling();
   phase.value = "starting";
   message.value = "";
   qrSvg.value = "";
   renderedChallengeUrl.value = "";
+  await renderPlaceholder();
   try {
     const { id, qrChallengeUrl } = await $fetch("/api/providers/steam/qr", {
       method: "POST",
@@ -108,11 +120,21 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <UModal v-model:open="open" title="Connect Steam account">
+  <UModal v-model:open="open">
+    <template #title>
+      <span class="flex items-center gap-2">
+        <ProviderIcon provider="steam" class="size-5" />
+        Connect Steam account
+      </span>
+    </template>
     <template #body>
       <div class="flex flex-col gap-4">
-        <p class="text-muted text-sm">
-          Open the Steam mobile app → Steam Guard → Scan QR code
+        <p class="text-muted text-sm text-center">
+          Open the Steam mobile app
+          <UIcon name="i-lucide-arrow-right" class="relative top-0.75" />
+          Steam Guard
+          <UIcon name="i-lucide-arrow-right" class="relative top-0.75" />
+          Scan QR code
         </p>
 
         <div
@@ -122,8 +144,13 @@ onBeforeUnmount(() => {
           <div
             class="size-64 rounded-lg bg-white p-2 [&>svg]:size-full"
             data-testid="steam-qr"
-            v-html="qrSvg"
-          />
+          >
+            <div
+              class="transition-[filter,opacity] duration-100 ease-out [&>svg]:size-full"
+              :class="{ 'blur-sm opacity-40': !qrSvg }"
+              v-html="qrSvg || placeholderSvg"
+            />
+          </div>
           <p class="text-muted flex items-center gap-2 text-sm">
             <UIcon name="i-lucide-loader-circle" class="animate-spin" />
             Waiting for scan…
@@ -151,23 +178,24 @@ onBeforeUnmount(() => {
         </div>
 
         <UAlert
+          v-if="phase === 'starting' || phase === 'pending'"
           color="warning"
           variant="subtle"
           icon="i-lucide-shield-alert"
-          title="This grants grate full access to your Steam account"
+          title="Full account access, including purchases"
         >
           <template #description>
-            Scanning gives grate the same session the Steam mobile app holds,
-            including the ability to make purchases. Revoke it any time by
-            removing the device named “grate” on Steam's
-            <ULink
-              :to="AUTHORISED_DEVICES_URL"
-              target="_blank"
-              class="underline"
-            >
-              Authorised Devices
-            </ULink>
-            page.
+            <p>
+              Same session the Steam app holds. grate only reads your
+              library, but anyone with access to its database could do more,
+              so keep the install private. Revoke at any time under Steam's
+              <ULink
+                :to="AUTHORISED_DEVICES_URL"
+                target="_blank"
+                class="underline text-amber-300"
+                >Authorised Devices</ULink
+              >.
+            </p>
           </template>
         </UAlert>
       </div>

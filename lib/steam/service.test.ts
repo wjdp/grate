@@ -10,18 +10,18 @@ import {
   createSteamGame as createSteamGameFixture,
   createSteamUser,
 } from "~~/lib/fixtures/game";
-import { getUserGames, getUserInfo, resolveVanityUrl } from "~~/lib/steam/api";
+import { getCommunityProfile, getUserGames } from "~~/lib/steam/api";
 import {
   type FakeUserGameOverrides,
+  generateFakeCommunityProfile,
   generateFakeUserGame,
-  generateFakeUserInfo,
   generateUnownedFakeUserGame,
 } from "~~/lib/steam/fixtures/fake";
 import Response7670 from "~~/lib/steam/fixtures/store/7670.json";
 import {
-  createOrUpdateSteamUser,
   findGamesNeedingStoreData,
   getPlaytimeRecords,
+  linkSteamAccount,
   populateStoreData,
   recordPlaytime,
   recordPlaytimes,
@@ -30,13 +30,19 @@ import {
   updateUser,
 } from "~~/lib/steam/service";
 import { getAppDetails, SteamStoreError } from "~~/lib/steam/store";
+import { getAccessToken, tryRenewRefreshToken } from "~~/lib/steam/webSession";
 import { flushDb } from "~~/test/db";
 
 vi.mock("~~/lib/steam/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~~/lib/steam/api")>()),
   getUserGames: vi.fn(),
-  getUserInfo: vi.fn(),
-  resolveVanityUrl: vi.fn(),
+  getCommunityProfile: vi.fn(),
+}));
+
+vi.mock("~~/lib/steam/webSession", () => ({
+  getAccessToken: vi.fn(async () => "ACCESS-TOKEN"),
+  tryRenewRefreshToken: vi.fn(async () => false),
+  clearAccessTokenCache: vi.fn(),
 }));
 
 vi.mock("~~/lib/steam/store", async (importOriginal) => ({
@@ -262,47 +268,44 @@ describe("updateUser", () => {
   });
 
   it("throws when there is no steam user", async () => {
-    vi.mocked(getUserInfo).mockResolvedValue(generateFakeUserInfo());
+    vi.mocked(getCommunityProfile).mockResolvedValue(
+      generateFakeCommunityProfile(),
+    );
     await expect(updateUser()).rejects.toThrow("User not found");
   });
 
-  it("updates the stored user from the steam api", async () => {
+  it("updates the stored user from the community profile", async () => {
     const steamUser = createSteamUser();
-    const userInfo = generateFakeUserInfo({
-      personaname: "New Persona",
+    const profile = generateFakeCommunityProfile({
+      steamID: "New Persona",
       realname: "New Real Name",
-      lastlogoff: 1700000000,
+      customURL: "new-vanity",
     });
-    vi.mocked(getUserInfo).mockResolvedValue(userInfo);
+    vi.mocked(getCommunityProfile).mockResolvedValue(profile);
     const updatedUser = await updateUser();
     expect(updatedUser.steamId).toBe(steamUser.steamId);
     expect(updatedUser.personaName).toBe("New Persona");
     expect(updatedUser.realName).toBe("New Real Name");
-    expect(updatedUser.lastLogoff).toBe(1700000000);
-    expect(updatedUser.profileUrl).toBe(userInfo.profileurl);
-    expect(updatedUser.avatarHash).toBe(userInfo.avatarhash);
+    expect(updatedUser.profileUrl).toBe(
+      "https://steamcommunity.com/id/new-vanity",
+    );
+    expect(updatedUser.avatarFull).toBe(profile.avatarFull);
   });
 
-  it("calls the steam api with the stored credentials", async () => {
-    const storedUser = createSteamUser({ apiKey: "STORED-KEY" });
-    vi.mocked(getUserInfo).mockResolvedValue(generateFakeUserInfo());
+  it("fetches the profile for the stored steam id", async () => {
+    const storedUser = createSteamUser();
+    vi.mocked(getCommunityProfile).mockResolvedValue(
+      generateFakeCommunityProfile(),
+    );
     await updateUser();
-    expect(getUserInfo).toHaveBeenCalledWith({
-      apiKey: "STORED-KEY",
-      steamId: storedUser.steamId,
-    });
-  });
-
-  it("throws when the stored user has no api key", async () => {
-    createSteamUser({ apiKey: null });
-    await expect(updateUser()).rejects.toThrow("Steam API key not configured");
-    expect(getUserInfo).not.toHaveBeenCalled();
+    expect(getCommunityProfile).toHaveBeenCalledWith(storedUser.steamId);
+    expect(tryRenewRefreshToken).toHaveBeenCalled();
   });
 
   it("does not adopt the steam id returned by the api", async () => {
     const steamUser = createSteamUser();
-    vi.mocked(getUserInfo).mockResolvedValue(
-      generateFakeUserInfo({ steamid: "999" }),
+    vi.mocked(getCommunityProfile).mockResolvedValue(
+      generateFakeCommunityProfile({ steamID64: "999" }),
     );
     const updatedUser = await updateUser();
     expect(updatedUser.steamId).toBe(steamUser.steamId);
@@ -406,148 +409,110 @@ describe("updateGames", () => {
     expect(await updateGames()).toStrictEqual(userGames);
   });
 
-  it("calls the steam api with the stored credentials", async () => {
-    const storedUser = createSteamUser({ apiKey: "STORED-KEY" });
+  it("calls the steam api with a session access token", async () => {
+    const storedUser = createSteamUser();
+    vi.mocked(getAccessToken).mockResolvedValue("ACCESS-TOKEN");
     vi.mocked(getUserGames).mockResolvedValue([]);
     await updateGames();
     expect(getUserGames).toHaveBeenCalledWith({
-      apiKey: "STORED-KEY",
+      accessToken: "ACCESS-TOKEN",
       steamId: storedUser.steamId,
     });
+    expect(tryRenewRefreshToken).toHaveBeenCalled();
+  });
+
+  it("throws when there is no usable session", async () => {
+    createSteamUser();
+    vi.mocked(getAccessToken).mockResolvedValue(null);
+    await expect(updateGames()).rejects.toThrow("Steam account not connected");
+    expect(getUserGames).not.toHaveBeenCalled();
   });
 });
 
-describe("createOrUpdateSteamUser", () => {
+describe("linkSteamAccount", () => {
   beforeEach(async () => {
     await flushDb();
     vi.resetAllMocks();
   });
 
+  function sessionLink(steamId: string) {
+    return {
+      steamId,
+      refreshToken: "SCANNED-TOKEN",
+      refreshTokenExpiresAt: new Date(Date.now() + 200 * 86_400_000),
+    };
+  }
+
   it("creates a user and steam user", async () => {
-    const userInfo = generateFakeUserInfo({ personaname: "Fresh Persona" });
-    vi.mocked(getUserInfo).mockResolvedValue(userInfo);
-    const created = await createOrUpdateSteamUser({
-      apiKey: "NEW-KEY",
-      profile: userInfo.steamid,
-    });
-    expect(getUserInfo).toHaveBeenCalledWith({
-      apiKey: "NEW-KEY",
-      steamId: userInfo.steamid,
-    });
-    expect(created.steamId).toBe(userInfo.steamid);
+    const profile = generateFakeCommunityProfile({ steamID: "Fresh Persona" });
+    vi.mocked(getCommunityProfile).mockResolvedValue(profile);
+    const link = sessionLink(profile.steamID64);
+    const created = await linkSteamAccount(link);
+    expect(getCommunityProfile).toHaveBeenCalledWith(profile.steamID64);
+    expect(created.steamId).toBe(profile.steamID64);
     expect(created.personaName).toBe("Fresh Persona");
-    expect(created.apiKey).toBe("NEW-KEY");
+    expect(created.refreshToken).toBe("SCANNED-TOKEN");
+    expect(created.refreshTokenExpiresAt).toStrictEqual(
+      link.refreshTokenExpiresAt,
+    );
     expect(db.select().from(user).all()).toHaveLength(1);
     expect(db.select().from(steamUser).all()).toHaveLength(1);
   });
 
-  it("updates the existing user and its api key", async () => {
-    const existing = createSteamUser({ apiKey: "OLD-KEY" });
-    vi.mocked(getUserInfo).mockResolvedValue(
-      generateFakeUserInfo({
-        steamid: existing.steamId,
-        personaname: "Renamed Persona",
+  it("updates the existing row with the new session", async () => {
+    const existing = createSteamUser();
+    vi.mocked(getCommunityProfile).mockResolvedValue(
+      generateFakeCommunityProfile({
+        steamID64: existing.steamId,
+        steamID: "Renamed Persona",
       }),
     );
-    const updated = await createOrUpdateSteamUser({
-      apiKey: "REPLACEMENT-KEY",
-      profile: existing.steamId,
-    });
-    expect(updated.apiKey).toBe("REPLACEMENT-KEY");
+    const updated = await linkSteamAccount(sessionLink(existing.steamId));
+    expect(updated.refreshToken).toBe("SCANNED-TOKEN");
     expect(updated.personaName).toBe("Renamed Persona");
     expect(updated.userId).toBe(existing.userId);
     expect(db.select().from(user).all()).toHaveLength(1);
     expect(db.select().from(steamUser).all()).toHaveLength(1);
   });
 
-  it("rejects a different steam account", async () => {
-    const existing = createSteamUser({ apiKey: "LINKED-KEY" });
+  it("rejects a different steam account without writing", async () => {
+    const existing = createSteamUser();
     const otherSteamId = faker.string.numeric(17);
-    vi.mocked(getUserInfo).mockResolvedValue(
-      generateFakeUserInfo({ steamid: otherSteamId }),
+    await expect(linkSteamAccount(sessionLink(otherSteamId))).rejects.toThrow(
+      `grate only supports a single Steam account (linked: ${existing.steamId}, scanned: ${otherSteamId})`,
     );
-    await expect(
-      createOrUpdateSteamUser({ apiKey: "KEY", profile: otherSteamId }),
-    ).rejects.toThrow(
-      `grate only supports a single Steam account (linked: ${existing.steamId}, entered: ${otherSteamId})`,
-    );
+    expect(getCommunityProfile).not.toHaveBeenCalled();
     const rows = db.select().from(steamUser).all();
     expect(rows).toHaveLength(1);
     expect(rows[0].steamId).toBe(existing.steamId);
-    expect(rows[0].apiKey).toBe("LINKED-KEY");
+    expect(rows[0].refreshToken).toBe(existing.refreshToken);
   });
 
-  it("corrects the steam id of a legacy row with no api key", async () => {
-    const legacy = createSteamUser({
-      steamId: "76561198032111170",
-      apiKey: null,
-    });
-    vi.mocked(getUserInfo).mockResolvedValue(
-      generateFakeUserInfo({
-        steamid: "76561198032111175",
-        personaname: "Relinked Persona",
-      }),
+  it("derives the profile url from the custom url", async () => {
+    const profile = generateFakeCommunityProfile({ customURL: "robinwalker" });
+    vi.mocked(getCommunityProfile).mockResolvedValue(profile);
+    const created = await linkSteamAccount(sessionLink(profile.steamID64));
+    expect(created.profileUrl).toBe(
+      "https://steamcommunity.com/id/robinwalker",
     );
-    const relinked = await createOrUpdateSteamUser({
-      apiKey: "NEW-KEY",
-      profile: "76561198032111175",
-    });
-    expect(relinked.steamId).toBe("76561198032111175");
-    expect(relinked.apiKey).toBe("NEW-KEY");
-    expect(relinked.personaName).toBe("Relinked Persona");
-    expect(relinked.userId).toBe(legacy.userId);
-    expect(db.select().from(user).all()).toHaveLength(1);
-    expect(db.select().from(steamUser).all()).toHaveLength(1);
+  });
+
+  it("falls back to the profiles url without a custom url", async () => {
+    const profile = generateFakeCommunityProfile({ customURL: null });
+    vi.mocked(getCommunityProfile).mockResolvedValue(profile);
+    const created = await linkSteamAccount(sessionLink(profile.steamID64));
+    expect(created.profileUrl).toBe(
+      `https://steamcommunity.com/profiles/${profile.steamID64}`,
+    );
   });
 
   it("propagates an api failure without writing", async () => {
-    vi.mocked(getUserInfo).mockRejectedValue(new Error("Forbidden"));
+    vi.mocked(getCommunityProfile).mockRejectedValue(new Error("Forbidden"));
     await expect(
-      createOrUpdateSteamUser({
-        apiKey: "BAD-KEY",
-        profile: faker.string.numeric(17),
-      }),
+      linkSteamAccount(sessionLink(faker.string.numeric(17))),
     ).rejects.toThrow("Forbidden");
     expect(db.select().from(user).all()).toHaveLength(0);
     expect(db.select().from(steamUser).all()).toHaveLength(0);
-  });
-
-  it("resolves a vanity name to a steam id", async () => {
-    const userInfo = generateFakeUserInfo();
-    vi.mocked(resolveVanityUrl).mockResolvedValue(userInfo.steamid);
-    vi.mocked(getUserInfo).mockResolvedValue(userInfo);
-    const created = await createOrUpdateSteamUser({
-      apiKey: "NEW-KEY",
-      profile: "https://steamcommunity.com/id/robinwalker",
-    });
-    expect(resolveVanityUrl).toHaveBeenCalledWith("NEW-KEY", "robinwalker");
-    expect(getUserInfo).toHaveBeenCalledWith({
-      apiKey: "NEW-KEY",
-      steamId: userInfo.steamid,
-    });
-    expect(created.steamId).toBe(userInfo.steamid);
-  });
-
-  it("does not resolve a profiles url", async () => {
-    const userInfo = generateFakeUserInfo();
-    vi.mocked(getUserInfo).mockResolvedValue(userInfo);
-    await createOrUpdateSteamUser({
-      apiKey: "NEW-KEY",
-      profile: `https://steamcommunity.com/profiles/${userInfo.steamid}/`,
-    });
-    expect(resolveVanityUrl).not.toHaveBeenCalled();
-    expect(getUserInfo).toHaveBeenCalledWith({
-      apiKey: "NEW-KEY",
-      steamId: userInfo.steamid,
-    });
-  });
-
-  it("rejects unparseable input before calling the steam api", async () => {
-    await expect(
-      createOrUpdateSteamUser({ apiKey: "KEY", profile: "not a profile" }),
-    ).rejects.toThrow("Enter a Steam profile URL, vanity name or SteamID64");
-    expect(resolveVanityUrl).not.toHaveBeenCalled();
-    expect(getUserInfo).not.toHaveBeenCalled();
   });
 });
 

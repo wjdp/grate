@@ -1,5 +1,4 @@
 import { desc, eq } from "drizzle-orm";
-import { parseSteamProfileInput } from "#shared/steam-profile";
 import {
   game,
   type NewSteamAppInfo,
@@ -17,12 +16,11 @@ import { refreshGameAggregates } from "~~/lib/gameAggregates";
 import { countProviderRows } from "~~/lib/gameProviders";
 import type { OnProgress, RecordPlaytimesResult } from "~~/lib/providerJobs";
 import {
+  type CommunityProfile,
+  getCommunityProfile,
   getUserGames,
-  getUserInfo,
-  resolveVanityUrl,
   type SteamCredentials,
   type UserGame,
-  type UserInfo,
 } from "./api";
 import {
   getAppDetails,
@@ -30,6 +28,11 @@ import {
   type SteamStoreAppInfo,
   SteamStoreError,
 } from "./store";
+import {
+  clearAccessTokenCache,
+  getAccessToken,
+  tryRenewRefreshToken,
+} from "./webSession";
 
 export class SteamServiceError extends Error {
   constructor(message: string) {
@@ -42,107 +45,75 @@ export async function getSteamUser(): Promise<SteamUser | null> {
   return (await db.query.steamUser.findFirst()) ?? null;
 }
 
-export function steamCredentialsOf(steamUserRow: SteamUser): SteamCredentials {
-  if (!steamUserRow.apiKey) {
-    throw new SteamServiceError("Steam API key not configured");
+export async function steamCredentials(): Promise<SteamCredentials> {
+  const currentUser = await getSteamUser();
+  const accessToken = await getAccessToken();
+  if (!currentUser || !accessToken) {
+    throw new SteamServiceError("Steam account not connected");
   }
-  return { apiKey: steamUserRow.apiKey, steamId: steamUserRow.steamId };
+  return { accessToken, steamId: currentUser.steamId };
 }
 
-function steamUserProfileFields(steamUserInfo: UserInfo) {
+function profileFieldsOf(profile: CommunityProfile) {
   return {
-    personaName: steamUserInfo.personaname,
-    realName: steamUserInfo.realname,
-    profileUrl: steamUserInfo.profileurl,
-    avatar: steamUserInfo.avatar,
-    avatarMedium: steamUserInfo.avatarmedium,
-    avatarFull: steamUserInfo.avatarfull,
-    avatarHash: steamUserInfo.avatarhash,
-    lastLogoff: steamUserInfo.lastlogoff,
+    personaName: profile.steamID,
+    realName: profile.realname,
+    profileUrl: profile.customURL
+      ? `https://steamcommunity.com/id/${profile.customURL}`
+      : `https://steamcommunity.com/profiles/${profile.steamID64}`,
+    avatar: profile.avatarIcon,
+    avatarMedium: profile.avatarMedium,
+    avatarFull: profile.avatarFull,
   };
 }
 
-export async function resolveSteamId(
-  apiKey: string,
-  profileInput: string,
-): Promise<string> {
-  const parsed = parseSteamProfileInput(profileInput);
-  if (!parsed) {
-    throw new SteamServiceError(
-      "Enter a Steam profile URL, vanity name or SteamID64",
-    );
-  }
-  if ("steamId" in parsed) {
-    return parsed.steamId;
-  }
-  return resolveVanityUrl(apiKey, parsed.vanityName);
+export interface SteamSessionLink {
+  steamId: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: Date;
 }
 
-export interface SteamProfileCredentials {
-  apiKey: string;
-  profile: string;
-}
-
-type SteamUserProfileFields = ReturnType<typeof steamUserProfileFields>;
-
-// Databases created before the steam id was stored as text hold an id that
-// lost precision passing through a JS number, and have no api key because the
-// column was added at the same time. Re-linking such a row corrects its id.
-function relinkLegacySteamUser(
-  legacyUser: SteamUser,
-  steamId: string,
-  apiKey: string,
-  profileFields: SteamUserProfileFields,
-): SteamUser {
-  console.log(`Corrected Steam id ${legacyUser.steamId} → ${steamId}`);
-  return db
-    .update(steamUser)
-    .set({ steamId, apiKey, ...profileFields })
-    .where(eq(steamUser.steamId, legacyUser.steamId))
-    .returning()
-    .get();
-}
-
-export async function createOrUpdateSteamUser({
-  apiKey,
-  profile,
-}: SteamProfileCredentials): Promise<SteamUser> {
-  const steamId = await resolveSteamId(apiKey, profile);
-  const steamUserInfo = await getUserInfo({ apiKey, steamId });
+export async function linkSteamAccount({
+  steamId,
+  refreshToken,
+  refreshTokenExpiresAt,
+}: SteamSessionLink): Promise<SteamUser> {
   const currentUser = await getSteamUser();
-  const profileFields = steamUserProfileFields(steamUserInfo);
-  if (currentUser && currentUser.steamId !== steamUserInfo.steamid) {
-    if (currentUser.apiKey) {
-      throw new SteamServiceError(
-        `grate only supports a single Steam account (linked: ${currentUser.steamId}, entered: ${steamUserInfo.steamid})`,
-      );
-    }
-    return relinkLegacySteamUser(
-      currentUser,
-      steamUserInfo.steamid,
-      apiKey,
-      profileFields,
+  if (currentUser && currentUser.steamId !== steamId) {
+    throw new SteamServiceError(
+      `grate only supports a single Steam account (linked: ${currentUser.steamId}, scanned: ${steamId})`,
     );
   }
-  return db.transaction((tx) => {
+  const profileFields = profileFieldsOf(await getCommunityProfile(steamId));
+  const linkedUser = db.transaction((tx) => {
     const owner =
       tx.select().from(user).limit(1).get() ??
       tx.insert(user).values({}).returning().get();
     return tx
       .insert(steamUser)
       .values({
-        steamId: steamUserInfo.steamid,
+        steamId,
         userId: owner.id,
-        apiKey,
+        refreshToken,
+        refreshTokenExpiresAt,
         ...profileFields,
       })
       .onConflictDoUpdate({
         target: steamUser.steamId,
-        set: { apiKey, ...profileFields },
+        set: { refreshToken, refreshTokenExpiresAt, ...profileFields },
       })
       .returning()
       .get();
   });
+  clearAccessTokenCache();
+  return linkedUser;
+}
+
+export async function unlinkSteamAccount(): Promise<void> {
+  db.update(steamUser)
+    .set({ refreshToken: null, refreshTokenExpiresAt: null })
+    .run();
+  clearAccessTokenCache();
 }
 
 export async function updateUser() {
@@ -150,10 +121,11 @@ export async function updateUser() {
   if (!currentUser) {
     throw new Error("User not found");
   }
-  const steamUserInfo = await getUserInfo(steamCredentialsOf(currentUser));
+  await tryRenewRefreshToken();
+  const profile = await getCommunityProfile(currentUser.steamId);
   const updateUser = db
     .update(steamUser)
-    .set(steamUserProfileFields(steamUserInfo))
+    .set(profileFieldsOf(profile))
     .where(eq(steamUser.steamId, currentUser.steamId))
     .returning()
     .get();
@@ -255,7 +227,8 @@ export async function updateGames(onProgress?: OnProgress) {
   if (!currentUser) {
     throw new Error("User not found");
   }
-  const games = await getUserGames(steamCredentialsOf(currentUser));
+  await tryRenewRefreshToken();
+  const games = await getUserGames(await steamCredentials());
   await onProgress?.({ fraction: 0, message: `fetched ${games.length} games` });
   for (const [index, userGame] of games.entries()) {
     await updateOrCreateGame(userGame);
@@ -471,7 +444,8 @@ export async function recordPlaytimes(
       .all()
       .map((row) => row.appId),
   );
-  const userOwnedGames = await getUserGames(steamCredentialsOf(currentUser));
+  await tryRenewRefreshToken();
+  const userOwnedGames = await getUserGames(await steamCredentials());
   await onProgress?.({
     fraction: 0,
     message: `fetched ${userOwnedGames.length} owned games`,

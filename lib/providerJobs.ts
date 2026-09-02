@@ -23,11 +23,24 @@ export interface ProviderJobs {
   recordPlaytimes(onProgress?: OnProgress): Promise<RecordPlaytimesResult>;
 }
 
+let hasWarnedSteamSessionExpired = false;
+
+function warnSteamSessionExpiredOnce() {
+  if (hasWarnedSteamSessionExpired) return;
+  hasWarnedSteamSessionExpired = true;
+  console.warn(
+    "Steam session expired, re-scan the QR code on the providers page",
+  );
+}
+
 const steamJobs: ProviderJobs = {
   provider: "steam",
   async isActive() {
     const user = await steam.getSteamUser();
-    return !!user?.apiKey;
+    if (!user?.refreshToken || !user.refreshTokenExpiresAt) return false;
+    if (user.refreshTokenExpiresAt > new Date()) return true;
+    warnSteamSessionExpiredOnce();
+    return false;
   },
   async updateUser() {
     await steam.updateUser();

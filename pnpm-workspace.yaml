@@ -1,3 +1,17 @@
+overrides:
+  # steam-user 5.3.0 pins steam-appticket ^1.0.x wanting protobufjs ^6 (critical RCE + high/moderate alerts).
+  # Remove when steam-user depends on steam-appticket >=2 (uses protobufjs 7).
+  protobufjs: ^7.6.6
+  # steam-user 5.3.0 pins adm-zip ^0.5 (GHSA-xcpc-8h2w-3j85, 4GB allocation).
+  # Remove when steam-user requires adm-zip >=0.6.
+  adm-zip: ^0.6.0
+  # drizzle-kit 0.31.10 depends on deprecated @esbuild-kit/esm-loader pinning esbuild ~0.18
+  # (GHSA-67mh-4wv8-2f99, dev server CORS). Remove when drizzle-kit drops @esbuild-kit.
+  "@esbuild-kit/core-utils>esbuild": ^0.25.12
+  # @nuxt/fonts 0.14.0 pins fontless 0.2.1 with esbuild 0.27 (low, Windows-only dev server file read).
+  # Remove when @nuxt/fonts uses fontless >=0.4, which dropped esbuild.
+  fontless>esbuild: ^0.28.2
+
 allowBuilds:
   # Pulled in transitively via drizzle-orm's optional peer @prisma/client;
   # none of their build/generate steps are wanted

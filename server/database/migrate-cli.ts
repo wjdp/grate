@@ -1,5 +1,5 @@
 import { databasePath, db, sqlite } from "./client";
-import { runMigrations } from "./migrate";
+import { describeMigrations, runMigrations } from "./migrate";
 
-runMigrations(sqlite, db);
-console.log(`Database migrated (${databasePath()})`);
+const report = runMigrations(sqlite, db);
+console.log(describeMigrations(report, databasePath()));

@@ -69,7 +69,7 @@
   },
   "overrides": [
     {
-      "includes": ["**/*.test.ts", "db/scripts/**"],
+      "includes": ["**/*.test.ts"],
       "linter": {
         "rules": { "style": { "noNonNullAssertion": "off" } }
       }

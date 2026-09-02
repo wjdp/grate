@@ -35,7 +35,6 @@ RUN apt-get update -y && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 COPY --from=runtime /app/node_modules /app/node_modules
 COPY --from=build /app/package.json /app/package.json
 COPY --from=build /app/db/migrations /app/db/migrations
-COPY --from=build /app/db/adopt /app/db/adopt
 COPY --from=build /app/run.sh /app/run.sh
 COPY --from=build /app/.output /app/.output
 

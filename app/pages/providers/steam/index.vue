@@ -23,9 +23,11 @@ const toast = useToast();
 const sessionExpiresAt = computed(() =>
   status.value?.sessionExpiresAt ? new Date(status.value.sessionExpiresAt) : null,
 );
-const isConnected = computed(() => sessionExpiresAt.value !== null);
 const hasExpired = computed(
   () => sessionExpiresAt.value !== null && sessionExpiresAt.value <= new Date(),
+);
+const isConnected = computed(
+  () => sessionExpiresAt.value !== null && !hasExpired.value,
 );
 const isExpiringSoon = computed(
   () =>
@@ -103,6 +105,15 @@ const disconnect = async () => {
           Connected as {{ status.personaName }}
         </UBadge>
         <UBadge
+          v-else-if="status && hasExpired"
+          color="error"
+          variant="soft"
+          icon="i-lucide-triangle-alert"
+          class="self-start"
+        >
+          {{ status.personaName }} — session expired
+        </UBadge>
+        <UBadge
           v-else-if="status"
           color="warning"
           variant="soft"
@@ -136,7 +147,7 @@ const disconnect = async () => {
         <div class="flex flex-wrap items-center gap-2">
           <ProviderSyncButton v-if="isConnected" provider="steam" />
           <UButton
-            v-if="!isConnected || hasExpired"
+            v-if="!isConnected"
             color="primary"
             icon="i-lucide-qr-code"
             @click="isLoginModalOpen = true"

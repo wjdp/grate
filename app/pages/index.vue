@@ -49,12 +49,13 @@ const unsortedPlayedCount = computed(
       >
         Continue playing
       </h2>
-      <div
-        v-if="recentGames.length"
-        class="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]"
-      >
-        <GamePoster v-for="game in recentGames" :key="game.id" :game="game" />
-      </div>
+      <GameContextMenu v-if="recentGames.length" :games="recentGames">
+        <div
+          class="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]"
+        >
+          <GamePoster v-for="game in recentGames" :key="game.id" :game="game" />
+        </div>
+      </GameContextMenu>
       <p v-else class="text-muted text-sm">
         Nothing played yet — play something and it shows up here.
       </p>

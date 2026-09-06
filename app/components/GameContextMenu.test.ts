@@ -54,18 +54,37 @@ const itemsOf = (root: ParentNode) =>
 const findItem = (label: string) =>
   itemsOf(document).find((item) => item.textContent?.trim() === label);
 
-const openMenu = async (game = makeGame()) => {
+const mountMenu = async (games: GameWithProviders[]) => {
   const component = await mountSuspended(GameContextMenu, {
-    props: { game },
-    slots: { default: () => h("a", { href: "/game/1" }, game.name) },
+    props: { games },
+    slots: {
+      default: () =>
+        h(
+          "div",
+          { class: "wall" },
+          games.map((game) =>
+            h(
+              "a",
+              { href: `/game/${game.id}`, "data-game-id": game.id },
+              game.name,
+            ),
+          ),
+        ),
+    },
     attachTo: document.body,
   });
   mounted.push(component);
-  component
-    .get("a")
-    .element.dispatchEvent(
-      new MouseEvent("contextmenu", { bubbles: true, button: 2 }),
-    );
+  return component;
+};
+
+const rightClick = (element: Element) =>
+  element.dispatchEvent(
+    new MouseEvent("contextmenu", { bubbles: true, button: 2 }),
+  );
+
+const openMenu = async (game = makeGame()) => {
+  const component = await mountMenu([game]);
+  rightClick(component.get("a").element);
   await vi.waitFor(() => expect(findItem("Set state")).toBeTruthy());
   return component;
 };
@@ -100,10 +119,34 @@ afterEach(() => {
 });
 
 describe("GameContextMenu", () => {
+  it("opens for the right-clicked game rather than the container", async () => {
+    const games = [makeGame(), makeGame({ id: 2, name: "Half-Life 2" })];
+    const component = await mountMenu(games);
+
+    rightClick(component.findAll("a")[1]!.element);
+    await vi.waitFor(() => expect(findItem("Set state")).toBeTruthy());
+
+    const menu = document.querySelector("[role='menu']");
+    expect(menu?.textContent).toContain("Half-Life 2");
+    expect(menu?.textContent).not.toContain("Portal 2");
+  });
+
+  it("opens nothing when the right-click misses every game", async () => {
+    const component = await mountMenu([makeGame()]);
+
+    rightClick(component.get(".wall").element);
+    await nextTick();
+    await nextTick();
+
+    expect(findItem("Set state")).toBeUndefined();
+  });
+
   it("names the game and offers the state submenu", async () => {
     await openMenu();
 
-    expect(document.body.textContent).toContain("Portal 2");
+    expect(document.querySelector("[role='menu']")?.textContent).toContain(
+      "Portal 2",
+    );
     expect(findItem("Set state")).toBeTruthy();
   });
 

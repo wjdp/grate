@@ -6,7 +6,7 @@ const props = defineProps<{ games: GameWithProviders[] }>();
 
 const SSR_ROWS = 24;
 const ROW_HEIGHT = 48;
-const OVERSCAN = 5;
+const OVERSCAN = 6;
 
 const containerRef = ref<HTMLElement | null>(null);
 const mounted = ref(false);
@@ -46,28 +46,30 @@ watch(
 </script>
 
 <template>
-  <div
-    ref="containerRef"
-    class="border-default overflow-hidden rounded-lg border"
-  >
-    <div v-if="!mounted">
-      <GameRow v-for="game in ssrGames" :key="game.id" :game="game" />
-    </div>
+  <GameContextMenu :games="games">
     <div
-      v-else
-      class="relative w-full"
-      :style="{ height: `${virtualizer.getTotalSize()}px` }"
+      ref="containerRef"
+      class="border-default overflow-hidden rounded-lg border"
     >
+      <div v-if="!mounted">
+        <GameRow v-for="game in ssrGames" :key="game.id" :game="game" />
+      </div>
       <div
-        v-for="row in virtualRows"
-        :key="row.index"
-        :ref="(el) => virtualizer.measureElement(el as Element | null)"
-        :data-index="row.index"
-        class="absolute top-0 left-0 w-full"
-        :style="{ transform: `translateY(${row.start - scrollMargin}px)` }"
+        v-else
+        class="relative w-full"
+        :style="{ height: `${virtualizer.getTotalSize()}px` }"
       >
-        <GameRow :game="games[row.index]" />
+        <div
+          v-for="row in virtualRows"
+          :key="row.index"
+          :ref="(el) => virtualizer.measureElement(el as Element | null)"
+          :data-index="row.index"
+          class="absolute top-0 left-0 w-full"
+          :style="{ transform: `translateY(${row.start - scrollMargin}px)` }"
+        >
+          <GameRow :game="games[row.index]" />
+        </div>
       </div>
     </div>
-  </div>
+  </GameContextMenu>
 </template>

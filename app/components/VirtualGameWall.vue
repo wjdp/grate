@@ -7,7 +7,7 @@ const props = defineProps<{ games: GameWithProviders[] }>();
 const SSR_ROWS = 4;
 const SSR_COLUMNS = 8;
 const GAP = 16;
-const OVERSCAN = 5;
+const OVERSCAN = 6;
 const POSTER_ASPECT = 4 / 3;
 const TEXT_BLOCK = 72;
 // Keep in step with the `minmax(11rem, …)` in the pre-mount fallback grid.
@@ -49,8 +49,16 @@ const virtualizer = useVirtualizer(
 
 const virtualRows = computed(() => virtualizer.value.getVirtualItems());
 
-const rowGames = (index: number) =>
-  props.games.slice(index * columns.value, (index + 1) * columns.value);
+// Slicing per row on every scroll-driven render is the hot path in a wall of
+// hundreds of games, so the rows are cut once per games/columns change.
+const rows = computed(() => {
+  const size = columns.value;
+  const result: GameWithProviders[][] = [];
+  for (let start = 0; start < props.games.length; start += size) {
+    result.push(props.games.slice(start, start + size));
+  }
+  return result;
+});
 
 const ssrGames = computed(() => props.games.slice(0, SSR_ROWS * SSR_COLUMNS));
 
@@ -92,35 +100,37 @@ watch(
 </script>
 
 <template>
-  <div ref="containerRef">
-    <div
-      v-if="!mounted"
-      class="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]"
-    >
-      <GamePoster v-for="game in ssrGames" :key="game.id" :game="game" />
-    </div>
-    <div
-      v-else
-      class="relative w-full"
-      :style="{ height: `${virtualizer.getTotalSize()}px` }"
-    >
+  <GameContextMenu :games="games">
+    <div ref="containerRef">
       <div
-        v-for="row in virtualRows"
-        :key="row.index"
-        :ref="(el) => virtualizer.measureElement(el as Element | null)"
-        :data-index="row.index"
-        class="absolute top-0 left-0 grid w-full gap-4 pb-4"
-        :style="{
-          transform: `translateY(${row.start - scrollMargin}px)`,
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        }"
+        v-if="!mounted"
+        class="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]"
       >
-        <GamePoster
-          v-for="game in rowGames(row.index)"
-          :key="game.id"
-          :game="game"
-        />
+        <GamePoster v-for="game in ssrGames" :key="game.id" :game="game" />
+      </div>
+      <div
+        v-else
+        class="relative w-full"
+        :style="{ height: `${virtualizer.getTotalSize()}px` }"
+      >
+        <div
+          v-for="row in virtualRows"
+          :key="row.index"
+          :ref="(el) => virtualizer.measureElement(el as Element | null)"
+          :data-index="row.index"
+          class="absolute top-0 left-0 grid w-full gap-4 pb-4"
+          :style="{
+            transform: `translateY(${row.start - scrollMargin}px)`,
+            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          }"
+        >
+          <GamePoster
+            v-for="game in rows[row.index]"
+            :key="game.id"
+            :game="game"
+          />
+        </div>
       </div>
     </div>
-  </div>
+  </GameContextMenu>
 </template>

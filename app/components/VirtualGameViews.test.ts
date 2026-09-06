@@ -92,6 +92,34 @@ describe("virtualised game views", () => {
   });
 });
 
+describe("game context menu", () => {
+  beforeEach(stubLayout);
+
+  it("wraps the list in one context menu serving every row", async () => {
+    const component = await mountSuspended(VirtualGameList, {
+      props: { games: makeGames(20) },
+    });
+    await nextTick();
+
+    expect(
+      component.findAllComponents({ name: "GameContextMenu" }),
+    ).toHaveLength(1);
+    expect(component.findAll("[data-game-id]").length).toBeGreaterThan(1);
+  });
+
+  it("wraps the wall in one context menu serving every poster", async () => {
+    const component = await mountSuspended(VirtualGameWall, {
+      props: { games: makeGames(20) },
+    });
+    await nextTick();
+
+    expect(
+      component.findAllComponents({ name: "GameContextMenu" }),
+    ).toHaveLength(1);
+    expect(component.findAll("[data-game-id]").length).toBeGreaterThan(1);
+  });
+});
+
 describe("hidden game marker", () => {
   beforeEach(stubLayout);
 

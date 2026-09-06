@@ -23,7 +23,12 @@ describe("GamePoster", () => {
     });
 
     const image = component.get("img");
-    expect(image.attributes("src")).toBe("/art/steam/620/poster");
+    expect(image.attributes("src")).toBe("/art/steam/620/poster?w=240");
+    expect(image.attributes("srcset")).toBe(
+      "/art/steam/620/poster?w=240 240w, /art/steam/620/poster?w=480 480w",
+    );
+    expect(image.attributes("sizes")).toBe("240px");
+    expect(image.attributes("decoding")).toBe("async");
     expect(image.attributes("loading")).toBe("lazy");
     expect(
       component.findComponent({ name: "PosterPlaceholder" }).exists(),
@@ -67,7 +72,7 @@ describe("GamePoster", () => {
     });
 
     expect(component.get("img").attributes("src")).toBe(
-      "/art/steam/220/poster",
+      "/art/steam/220/poster?w=240",
     );
   });
 });

@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { getGameArtUrls } from "#shared/art";
+import { artVariantUrl, getGameArtUrls } from "#shared/art";
 import type { Provider } from "#shared/providers";
 import type { GameWithProviders } from "#shared/types/Game";
 
 const props = defineProps<{ game: GameWithProviders }>();
 
 const posterUrl = computed(() => getGameArtUrls(props.game)?.poster ?? null);
+
+const posterSrc = computed(() =>
+  posterUrl.value ? artVariantUrl(posterUrl.value, 240) : null,
+);
+const posterSrcset = computed(() =>
+  posterUrl.value
+    ? `${artVariantUrl(posterUrl.value, 240)} 240w, ${artVariantUrl(posterUrl.value, 480)} 480w`
+    : undefined,
+);
 
 const posterFailed = ref(false);
 watch(posterUrl, () => {
@@ -38,12 +47,15 @@ const providers = computed<Provider[]>(() => {
         aria-label="Hidden"
       />
       <img
-        v-if="posterUrl && !posterFailed"
-        :src="posterUrl"
+        v-if="posterSrc && !posterFailed"
+        :src="posterSrc"
+        :srcset="posterSrcset"
+        sizes="240px"
         :alt="game.name"
         width="600"
         height="800"
         loading="lazy"
+        decoding="async"
         class="size-full object-cover"
         @error="posterFailed = true"
       />

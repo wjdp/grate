@@ -3,16 +3,24 @@ import { z } from "zod";
 import {
   ART_PROVIDERS,
   ART_TYPES_BY_PROVIDER,
+  ART_VARIANT_WIDTHS,
   ArtFetchError,
   ArtSourceNotFoundError,
+  artConditionalHeaders,
   contentTypeForPath,
   ensureArtCached,
+  ensureArtVariantCached,
+  isNotModified,
 } from "~~/server/services/art";
 
 const ProviderAndIdSchema = z.object({
   provider: z.enum(ART_PROVIDERS),
   id: z.coerce.number().int().positive(),
 });
+
+const WidthSchema = z
+  .union([z.literal(ART_VARIANT_WIDTHS[0]), z.literal(ART_VARIANT_WIDTHS[1])])
+  .optional();
 
 export default defineEventHandler(async (event) => {
   const providerAndId = ProviderAndIdSchema.safeParse({
@@ -33,9 +41,21 @@ export default defineEventHandler(async (event) => {
     return { error: "Invalid parameters" };
   }
 
+  const requestedWidth = getQuery(event).w;
+  const width = WidthSchema.safeParse(
+    requestedWidth === undefined ? undefined : Number(requestedWidth),
+  );
+  if (!width.success) {
+    setResponseStatus(event, 400);
+    return { error: "Invalid width" };
+  }
+
+  const key = { provider, id, type: type.data };
   let filePath: string;
   try {
-    filePath = await ensureArtCached({ provider, id, type: type.data });
+    filePath = width.data
+      ? await ensureArtVariantCached(key, width.data)
+      : await ensureArtCached(key);
   } catch (error) {
     if (error instanceof ArtSourceNotFoundError) {
       setResponseStatus(event, 404);
@@ -50,10 +70,22 @@ export default defineEventHandler(async (event) => {
     throw error;
   }
 
+  const cacheHeaders = await artConditionalHeaders(filePath);
+  for (const [header, value] of Object.entries(cacheHeaders)) {
+    setResponseHeader(event, header, value);
+  }
   const contentType = contentTypeForPath(filePath);
   if (contentType) {
     setResponseHeader(event, "Content-Type", contentType);
   }
-  setResponseHeader(event, "Cache-Control", "public, max-age=3600");
+  if (
+    isNotModified(cacheHeaders, {
+      ifNoneMatch: getRequestHeader(event, "if-none-match"),
+      ifModifiedSince: getRequestHeader(event, "if-modified-since"),
+    })
+  ) {
+    setResponseStatus(event, 304);
+    return null;
+  }
   return sendStream(event, fs.createReadStream(filePath));
 });

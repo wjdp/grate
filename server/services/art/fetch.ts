@@ -6,6 +6,7 @@ import {
   artFilePath,
   CACHED_ART_EXTENSIONS,
   extensionForContentType,
+  removeArtVariants,
 } from "./paths";
 
 export class ArtSourceNotFoundError extends Error {}
@@ -54,6 +55,7 @@ export async function writeArtFile(
   await fs.promises.writeFile(temporaryPath, body);
   await fs.promises.rename(temporaryPath, path);
   await removeStaleArtFiles(key, path);
+  await removeArtVariants(key);
   await clearMissingMarker(key);
   return path;
 }

@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { $fetch, fetch, setup } from "@nuxt/test-utils/e2e";
+import sharp from "sharp";
 import { afterAll, describe, expect, it } from "vitest";
 import { createDb } from "~~/server/database/client";
 import { runMigrations } from "~~/server/database/migrate";
@@ -105,8 +106,57 @@ describe("GET /art/:provider/:id/:type", () => {
 
     const response = await fetch(`/art/steam/${appId}/header`);
     expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect(response.headers.get("cache-control")).toBe("public, max-age=86400");
     const body = Buffer.from(await response.arrayBuffer());
     expect(body.equals(dummyJpg)).toBe(true);
+  });
+
+  it("400s for a width outside the variant whitelist", async () => {
+    const response = await fetch("/art/steam/42/header?w=123");
+    expect(response.status).toBe(400);
+  });
+
+  it("304s when the client sends back the etag", async () => {
+    const appId = 43;
+    const artDir = join(dataDir, "art", "steam", String(appId));
+    mkdirSync(artDir, { recursive: true });
+    writeFileSync(join(artDir, "header.jpg"), Buffer.from([0xff, 0xd8]));
+
+    const first = await fetch(`/art/steam/${appId}/header`);
+    const etag = first.headers.get("etag");
+    expect(etag).toBeTruthy();
+
+    const second = await fetch(`/art/steam/${appId}/header`, {
+      headers: { "if-none-match": etag as string },
+    });
+    expect(second.status).toBe(304);
+  });
+
+  it("serves a resized webp variant of a cached original", async () => {
+    const appId = 44;
+    const artDir = join(dataDir, "art", "steam", String(appId));
+    mkdirSync(artDir, { recursive: true });
+    writeFileSync(
+      join(artDir, "header.jpg"),
+      await sharp({
+        create: {
+          width: 600,
+          height: 800,
+          channels: 3,
+          background: { r: 1, g: 2, b: 3 },
+        },
+      })
+        .jpeg()
+        .toBuffer(),
+    );
+
+    const response = await fetch(`/art/steam/${appId}/header?w=240`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/webp");
+    const metadata = await sharp(
+      Buffer.from(await response.arrayBuffer()),
+    ).metadata();
+    expect(metadata.format).toBe("webp");
+    expect(metadata.width).toBe(240);
   });
 });

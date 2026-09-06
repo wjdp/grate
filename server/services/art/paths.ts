@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import type { ArtKey } from "#shared/art/types";
 import { ART_DIR } from "~~/server/constants";
 import { checkFileExists } from "~~/server/files";
@@ -49,6 +50,28 @@ export function artFilePath(key: ArtKey, extension: string) {
 
 export function artMissingMarkerPath(key: ArtKey) {
   return `${artDirectory(key)}/${key.type}.missing`;
+}
+
+// Resized copies sit alongside the original as `<type>.w<width>.webp`, a name
+// no original can take, so the extension probe never mistakes one for the
+// source file.
+export function artVariantFilePath(key: ArtKey, width: number) {
+  return `${artDirectory(key)}/${key.type}.w${width}.webp`;
+}
+
+export async function removeArtVariants(key: ArtKey): Promise<void> {
+  let entries: string[];
+  try {
+    entries = await fs.promises.readdir(artDirectory(key));
+  } catch {
+    return;
+  }
+  const variantName = new RegExp(`^${key.type}\\.w\\d+\\.webp$`);
+  for (const entry of entries) {
+    if (variantName.test(entry)) {
+      await fs.promises.rm(`${artDirectory(key)}/${entry}`, { force: true });
+    }
+  }
 }
 
 export async function findCachedArtFile(key: ArtKey): Promise<string | null> {

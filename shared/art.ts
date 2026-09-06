@@ -86,6 +86,10 @@ function artUrl(
   return `${ART_URL_BASE_PATH}/${provider}/${id}/${type}`;
 }
 
+export function artVariantUrl(url: string, width: number): string {
+  return `${url}?w=${width}`;
+}
+
 function artUrlWhenPresent(
   provider: "gog" | "epic",
   id: number,

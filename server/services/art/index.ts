@@ -16,4 +16,5 @@ export {
   ART_VARIANT_WIDTHS,
   type ArtVariantWidth,
   ensureArtVariantCached,
+  ensureArtVariantsCached,
 } from "./variants";

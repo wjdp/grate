@@ -62,3 +62,13 @@ export async function ensureArtVariantCached(
   inFlightVariants.set(inFlightKey, generating);
   return generating;
 }
+
+// Warms every variant width for a key, used by the bulk art cache task so the
+// first wall paint does not pay for the resizes.
+export async function ensureArtVariantsCached(key: ArtKey): Promise<string[]> {
+  const paths: string[] = [];
+  for (const width of ART_VARIANT_WIDTHS) {
+    paths.push(await ensureArtVariantCached(key, width));
+  }
+  return paths;
+}

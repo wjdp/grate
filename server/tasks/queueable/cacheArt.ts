@@ -8,16 +8,33 @@ import {
   ArtNegativelyCachedError,
   ArtSourceNotFoundError,
   ensureArtCached,
+  ensureArtVariantsCached,
 } from "~~/server/services/art";
 import type { Task } from "~~/server/tasks/queue";
 import { updateInProgressTask } from "~~/server/tasks/queue";
 
 const CACHE_ART_CONCURRENCY = 8;
 
+// Resizing is local work, so it is not rate limited. A single unreadable
+// original must not abort the whole bulk run.
+async function warmPosterVariants(provider: ArtProvider, id: number) {
+  try {
+    await ensureArtVariantsCached({ provider, id, type: "poster" });
+  } catch (error) {
+    console.error(
+      `Could not generate ${provider} poster variants for id ${id}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
 async function cacheArtForGame(provider: ArtProvider, id: number) {
   for (const type of ART_TYPES_BY_PROVIDER[provider]) {
     try {
       await ensureArtCached({ provider, id, type }, { rateLimit: true });
+      // Only the wall paints resized art, and only from posters.
+      if (type === "poster") {
+        await warmPosterVariants(provider, id);
+      }
     } catch (error) {
       // A recorded miss is already done as far as the bulk task is concerned.
       if (error instanceof ArtNegativelyCachedError) {

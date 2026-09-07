@@ -14,7 +14,7 @@ const { open: openCommandPalette } = useCommandPalette();
 </script>
 
 <template>
-  <UDashboardPanel>
+  <UDashboardPanel :ui="{ body: 'app-panel-body pb-20 sm:pb-20 md:pb-6' }">
     <template #header>
       <slot name="header">
         <UDashboardNavbar

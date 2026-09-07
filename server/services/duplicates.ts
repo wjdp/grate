@@ -1,5 +1,8 @@
 import { and, asc, desc, eq } from "drizzle-orm";
-import { normaliseGameName } from "#shared/utils/normaliseGameName";
+import {
+  isPackagingVariant,
+  normaliseGameName,
+} from "#shared/utils/normaliseGameName";
 import { db } from "~~/server/database/client";
 import {
   epicGame,
@@ -27,6 +30,12 @@ export type DuplicateCandidate = GameWithProviderRows & {
 export interface DuplicateCandidatePair {
   a: DuplicateCandidate;
   b: DuplicateCandidate;
+}
+
+interface CandidateBucket {
+  key: string;
+  name: string;
+  candidates: DuplicateCandidate[];
 }
 
 function loadGamesWithProviderRows() {
@@ -62,7 +71,7 @@ export async function findDuplicatePairs(): Promise<DuplicateCandidatePair[]> {
       .map((pair) => pairKey(pair.gameAId, pair.gameBId)),
   );
 
-  const buckets = new Map<string, DuplicateCandidate[]>();
+  const buckets = new Map<string, CandidateBucket>();
   for (const row of games) {
     const key = normaliseGameName(row.name);
     if (key === "") {
@@ -74,23 +83,47 @@ export async function findDuplicatePairs(): Promise<DuplicateCandidatePair[]> {
     };
     const bucket = buckets.get(key);
     if (bucket) {
-      bucket.push(candidate);
+      bucket.candidates.push(candidate);
     } else {
-      buckets.set(key, [candidate]);
+      buckets.set(key, { key, name: row.name, candidates: [candidate] });
     }
   }
 
   const pairs: DuplicateCandidatePair[] = [];
-  for (const bucket of buckets.values()) {
-    const ordered = [...bucket].sort((first, second) => first.id - second.id);
+  const emitted = new Set<string>();
+  const emit = (first: DuplicateCandidate, second: DuplicateCandidate) => {
+    const [a, b] = first.id < second.id ? [first, second] : [second, first];
+    const key = pairKey(a.id, b.id);
+    if (optedOut.has(key) || emitted.has(key)) {
+      return;
+    }
+    emitted.add(key);
+    pairs.push({ a, b });
+  };
+
+  for (const { candidates } of buckets.values()) {
+    const ordered = [...candidates].sort(
+      (first, second) => first.id - second.id,
+    );
     for (let index = 0; index < ordered.length; index += 1) {
       for (let other = index + 1; other < ordered.length; other += 1) {
-        const a = ordered[index];
-        const b = ordered[other];
-        if (optedOut.has(pairKey(a.id, b.id))) {
-          continue;
+        emit(ordered[index], ordered[other]);
+      }
+    }
+  }
+
+  const bucketList = [...buckets.values()];
+  for (let index = 0; index < bucketList.length; index += 1) {
+    for (let other = index + 1; other < bucketList.length; other += 1) {
+      const first = bucketList[index];
+      const second = bucketList[other];
+      if (!isPackagingVariant(first, second)) {
+        continue;
+      }
+      for (const a of first.candidates) {
+        for (const b of second.candidates) {
+          emit(a, b);
         }
-        pairs.push({ a, b });
       }
     }
   }

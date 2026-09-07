@@ -122,6 +122,54 @@ describe("findDuplicatePairs", () => {
     ]);
   });
 
+  it("pairs a game with its packaging-suffix variant", async () => {
+    const plain = createGame({ name: "The Outer Worlds" });
+    const variant = createGame({
+      name: "The Outer Worlds: Spacer's Choice Edition",
+    });
+    const pairs = await findDuplicatePairs();
+    expect(pairs.map((pair) => [pair.a.id, pair.b.id])).toStrictEqual([
+      [plain.id, variant.id],
+    ]);
+  });
+
+  it("pairs a game with a store extra bolted onto its name", async () => {
+    const plain = createGame({ name: "Portal" });
+    const variant = createGame({ name: "Portal with RTX" });
+    const pairs = await findDuplicatePairs();
+    expect(pairs.map((pair) => [pair.a.id, pair.b.id])).toStrictEqual([
+      [plain.id, variant.id],
+    ]);
+  });
+
+  it("excludes opted-out packaging-suffix pairs", async () => {
+    const plain = createGame({ name: "Portal" });
+    const variant = createGame({ name: "Portal with RTX" });
+    createGameDistinctPair(plain.id, variant.id);
+    expect(await findDuplicatePairs()).toStrictEqual([]);
+  });
+
+  it("emits each pair once when a key and a packaging suffix overlap", async () => {
+    const plain = createGame({ name: "Wreckfest" });
+    const edition = createGame({ name: "Wreckfest - Deluxe Edition" });
+    const promo = createGame({ name: "Wreckfest Throw-A-Santa + Sneak Peek" });
+    const pairs = await findDuplicatePairs();
+    expect(pairs.map((pair) => [pair.a.id, pair.b.id])).toStrictEqual([
+      [plain.id, edition.id],
+      [plain.id, promo.id],
+      [edition.id, promo.id],
+    ]);
+  });
+
+  it("excludes hidden games from packaging-suffix pairs", async () => {
+    createGame({ name: "The Outer Worlds" });
+    createGame({
+      name: "The Outer Worlds: Spacer's Choice Edition",
+      hidden: true,
+    });
+    expect(await findDuplicatePairs()).toStrictEqual([]);
+  });
+
   it("sorts pairs by the first game's name", async () => {
     createGame({ name: "Zeno Clash" });
     createGame({ name: "Zeno Clash™" });

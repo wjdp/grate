@@ -26,8 +26,12 @@ const searchLinks: NavigationMenuItem[] = [
   },
 ];
 
-const mainLinks = computed<NavigationMenuItem[]>(() => [
+const topLinks: NavigationMenuItem[] = [
+  { label: "Home", icon: "i-lucide-house", to: "/", exact: true },
   { label: "Library", icon: "i-lucide-library-big", to: "/games" },
+];
+
+const mainLinks = computed<NavigationMenuItem[]>(() => [
   { label: "Organise", icon: "i-lucide-list-checks", to: "/organise" },
   {
     label: "Duplicates",
@@ -47,6 +51,10 @@ const debugLinks: NavigationMenuItem[] = [
   { label: "Events", icon: "i-lucide-radio", to: "/debug/sse" },
   { label: "Steam art", icon: "i-lucide-image", to: "/debug/steam-art" },
 ];
+
+const navLinkUi = {
+  link: "px-2 data-[active]:text-highlighted data-[active]:before:bg-accented",
+};
 </script>
 
 <template>
@@ -83,7 +91,7 @@ const debugLinks: NavigationMenuItem[] = [
         :collapsed="collapsed"
         orientation="vertical"
         tooltip
-        :ui="{ link: 'px-2 before:bg-accented' }"
+        :ui="navLinkUi"
       >
         <template #search-trailing>
           <span v-if="!collapsed" class="ms-auto flex items-center gap-0.5">
@@ -92,24 +100,33 @@ const debugLinks: NavigationMenuItem[] = [
           </span>
         </template>
       </UNavigationMenu>
-      <UNavigationMenu
-        :items="mainLinks"
-        :collapsed="collapsed"
-        orientation="vertical"
-        tooltip
-        :ui="{ link: 'px-2 before:bg-accented' }"
-      />
-      <AppSidebarLibraryStates
-        v-if="route.path === '/games'"
-        :collapsed="collapsed"
-      />
+      <div class="flex flex-col">
+        <UNavigationMenu
+          :items="topLinks"
+          :collapsed="collapsed"
+          orientation="vertical"
+          tooltip
+          :ui="navLinkUi"
+        />
+        <AppSidebarLibraryStates
+          v-if="route.path === '/games'"
+          :collapsed="collapsed"
+        />
+        <UNavigationMenu
+          :items="mainLinks"
+          :collapsed="collapsed"
+          orientation="vertical"
+          tooltip
+          :ui="navLinkUi"
+        />
+      </div>
       <UNavigationMenu
         :items="debugLinks"
         :collapsed="collapsed"
         orientation="vertical"
         tooltip
         class="mt-auto"
-        :ui="{ link: 'px-2 before:bg-accented', label: 'px-2' }"
+        :ui="{ ...navLinkUi, label: 'px-2' }"
       />
 
       <AppTaskIndicator :collapsed="collapsed" />

@@ -107,9 +107,7 @@ const itemGroups = computed<NavigationMenuItem[][]>(() => {
       orientation="vertical"
       tooltip
       :ui="{
-        link: collapsed
-          ? 'px-2 before:bg-accented'
-          : 'ps-6 pe-2 before:bg-accented',
+        link: `${collapsed ? 'px-2' : 'ps-6 pe-2'} data-[active]:text-highlighted data-[active]:before:bg-accented`,
       }"
     />
   </div>

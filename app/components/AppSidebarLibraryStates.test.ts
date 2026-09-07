@@ -107,6 +107,24 @@ describe("AppSidebarLibraryStates", () => {
     expect(active).toEqual(["Playing1"]);
   });
 
+  it("gates the accented background on the active link", async () => {
+    routeMock.query = { state: "PLAYING" };
+
+    const component = await mount();
+    const classes = links(component).map((link) =>
+      (link.attributes("class") ?? "").split(/\s+/),
+    );
+    const inactive = links(component).filter(
+      (link) => link.attributes("data-active") === undefined,
+    );
+
+    expect(inactive.length).toBeGreaterThan(0);
+    for (const list of classes) {
+      expect(list).toContain("data-[active]:before:bg-accented");
+      expect(list).not.toContain("before:bg-accented");
+    }
+  });
+
   it("marks all active when there is no state param", async () => {
     const component = await mount();
     const active = links(component)

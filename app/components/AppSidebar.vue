@@ -52,9 +52,11 @@ const debugLinks: NavigationMenuItem[] = [
     collapsible
     resizable
     :ui="{
+      root: 'bg-elevated border-e border-default',
       header: 'px-3.5 sm:px-3.5 lg:px-6',
       body: 'sm:px-4',
       footer: 'border-t border-default px-3.5 sm:px-3.5',
+      content: 'bg-elevated',
     }"
   >
     <template #header="{ collapsed }">
@@ -79,7 +81,7 @@ const debugLinks: NavigationMenuItem[] = [
         :collapsed="collapsed"
         orientation="vertical"
         tooltip
-        :ui="{ link: 'px-2' }"
+        :ui="{ link: 'px-2 before:bg-accented' }"
       >
         <template #search-trailing>
           <span v-if="!collapsed" class="ms-auto flex items-center gap-0.5">
@@ -93,7 +95,7 @@ const debugLinks: NavigationMenuItem[] = [
         :collapsed="collapsed"
         orientation="vertical"
         tooltip
-        :ui="{ link: 'px-2' }"
+        :ui="{ link: 'px-2 before:bg-accented' }"
       />
       <UNavigationMenu
         :items="debugLinks"
@@ -101,7 +103,7 @@ const debugLinks: NavigationMenuItem[] = [
         orientation="vertical"
         tooltip
         class="mt-auto"
-        :ui="{ link: 'px-2', label: 'px-2' }"
+        :ui="{ link: 'px-2 before:bg-accented', label: 'px-2' }"
       />
 
       <AppTaskIndicator :collapsed="collapsed" />

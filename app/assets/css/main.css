@@ -44,7 +44,9 @@
 .light {
   --ui-bg: var(--color-grey-100);
   --ui-bg-muted: var(--color-grey-200);
-  --ui-bg-elevated: var(--color-grey-50);
+  /* white, not grey-50: grey-50 sat next to grey-100 (--ui-bg) at L 0.985 vs
+     0.967, too close to read as a distinct surface. */
+  --ui-bg-elevated: white;
   --ui-bg-accented: var(--color-grey-200);
   --ui-border: var(--color-grey-300);
   --ui-border-muted: var(--color-grey-300);

@@ -170,6 +170,22 @@ Docs to update:
 - `docs/19-Provider-Job-Normalisation.md` line 46 (`isActive` definition).
 - `docs/05-Test-Infrastructure.md` and `docs/13-Nuxt-4-Upgrade.md` mention `shared/steam-profile` — they are point-in-time reviews, so leave them; note the file is gone only if editing them for another reason.
 
+## Incident (2026-09-03): Steam flagged the session as a hijack
+
+Steam sent an "Account Alert" on 2026-09-03 for the dev account: "unexpected device using your Steam account from Oxford, GB" at 2 Sep 22:39, approved via Steam Guard, account restricted (purchasing, trading, community, VAC servers) until Steam Support restores it. The "logged in using your password" line is templated — QR logins never send one.
+
+- Timing matches the spike sessions above plus the deployed MobileApp session, all from the author's home IP. Not a real compromise; confirm on `store.steampowered.com/account/authorizeddevices` that only grate and the spike sessions are listed.
+- Likely triggers: a MobileApp-platform login with a non-phone `device_friendly_name` from a Linux box, then `refreshAccessToken()`/`renewRefreshToken()` from a server, and several fresh logins across two platforms within minutes. Emulating a client platform is what Steam's anomaly detection targets. The threat model above only covers the token; it should have covered this.
+- Recovery: Steam Support will likely force a password change, revoking every refresh token. grate then needs a re-scan and the fault banner ([29](29-Provider-Fault-Banners.md)) should show the expired session. Do not re-scan with the current build until the account is restored.
+
+Options, in order of preference:
+
+1. Reinstate the Web API key as the sanctioned path for library and playtime; keep the session only for DLC ownership ([27](27-DLC.md)), optional. Costs the onboarding win but is the only Valve-approved mechanism for an unattended poller. Reverses the "drop the key entirely" decision.
+2. Keep the MobileApp session but drop the `device_friendly_name` patch and any other platform spoofing. Still a fake "Galaxy S25" refreshing from a server; reduces the risk, does not remove it.
+3. Test WebBrowser properly. `refreshAccessToken()` is denied, but `getWebCookies()` worked and its `steamLoginSecure` value is a JWT access token. If that token satisfies `GetOwnedGames?access_token=`, a browser session is the most honest emulation. Untested.
+
+Decision pending.
+
 ## Open items
 
 - **Confirm renewal actually fires near expiry — March 2027** (dev instance token exp 2027-03-31). Also worth asking upstream / SteamKit folk how wide the window is; if it is short (days), the daily renew attempt above is load-bearing. Until confirmed, keep the re-scan warning path in place.

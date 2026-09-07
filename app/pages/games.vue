@@ -164,6 +164,16 @@ const title = computed(() =>
   stateFilter.value === "all" ? "Library" : selectedStateItem.value.label,
 );
 
+const titleIcon = computed(() =>
+  stateFilter.value === "all"
+    ? "i-lucide-library-big"
+    : selectedStateItem.value.icon,
+);
+
+const titleIconClass = computed(() =>
+  stateFilter.value === "all" ? "text-muted" : selectedStateItem.value.iconClass,
+);
+
 const hasHiddenGames = computed(() => games.value.some((game) => game.hidden));
 
 const emptyResultTitle = computed(() =>
@@ -190,7 +200,27 @@ const clearFilters = () => {
   <AppPanel class="space-y-6">
     <template #header>
       <div class="bg-elevated border-default border-b">
-        <UDashboardNavbar :title="title" class="border-b-0">
+        <UDashboardNavbar
+          :title="title"
+          class="border-b-0"
+          :ui="{ root: 'h-auto py-2', title: 'min-w-0 block' }"
+        >
+          <template #title>
+            <div class="flex min-w-0 items-center gap-1.5">
+              <UIcon
+                :name="titleIcon"
+                class="size-5 shrink-0"
+                :class="titleIconClass"
+              />
+              <div class="min-w-0">
+                <p class="text-highlighted truncate font-semibold">
+                  {{ title }}
+                </p>
+                <LibraryFilterSummary :games="filteredGames" />
+              </div>
+            </div>
+          </template>
+
           <template #toggle="{ toggleSidebar }">
             <UButton
               color="neutral"
@@ -241,6 +271,24 @@ const clearFilters = () => {
         </UDashboardNavbar>
 
         <UDashboardToolbar class="border-b-0">
+          <UButton
+            v-if="stateFilter !== 'all'"
+            variant="soft"
+            color="neutral"
+            trailing-icon="i-lucide-x"
+            aria-label="Clear state filter"
+            class="hidden shrink-0 lg:inline-flex"
+            @click="stateFilter = 'all'"
+          >
+            <template #leading>
+              <UIcon
+                :name="selectedStateItem.icon"
+                class="size-5 shrink-0"
+                :class="selectedStateItem.iconClass"
+              />
+            </template>
+            {{ selectedStateItem.label }}
+          </UButton>
           <UInput
             v-model="search"
             icon="i-lucide-search"
@@ -306,8 +354,6 @@ const clearFilters = () => {
             class="ms-auto w-40 shrink-0"
           />
         </UDashboardToolbar>
-
-        <LibraryFilterSummary :games="filteredGames" />
       </div>
     </template>
 

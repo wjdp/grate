@@ -23,7 +23,7 @@ const detailSegments = computed(() => [
 </script>
 
 <template>
-  <div class="text-muted flex items-center gap-1.5 px-4 py-1.5 text-xs sm:px-6">
+  <div class="text-muted flex items-center gap-1.5 text-xs">
     <span class="text-highlighted tabular-nums">{{ gameCountLabel }}</span>
     <template v-for="segment in detailSegments" :key="segment.label">
       <span aria-hidden="true" class="hidden sm:inline">·</span>

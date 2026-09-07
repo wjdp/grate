@@ -3,6 +3,8 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 
 const { version } = useRuntimeConfig().public;
 
+const route = useRoute();
+
 const duplicateCount = useDuplicateCount();
 const { data: fetchedDuplicateCount } = useFetch("/api/games/duplicates", {
   transform: (data) => data.pairs.length,
@@ -96,6 +98,10 @@ const debugLinks: NavigationMenuItem[] = [
         orientation="vertical"
         tooltip
         :ui="{ link: 'px-2 before:bg-accented' }"
+      />
+      <AppSidebarLibraryStates
+        v-if="route.path === '/games'"
+        :collapsed="collapsed"
       />
       <UNavigationMenu
         :items="debugLinks"

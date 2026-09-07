@@ -81,7 +81,7 @@ const manageButtonLabel = (state: ProviderState) => {
 </script>
 
 <template>
-  <PageContainer class="flex max-w-2xl flex-col gap-6">
+  <AppPanel title="Providers" class="flex max-w-2xl flex-col gap-6">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1
@@ -130,5 +130,5 @@ const manageButtonLabel = (state: ProviderState) => {
         </div>
       </UCard>
     </div>
-  </PageContainer>
+  </AppPanel>
 </template>

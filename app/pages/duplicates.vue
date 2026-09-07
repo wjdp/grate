@@ -76,7 +76,7 @@ const formatCreated = (createdAt: string) =>
 </script>
 
 <template>
-  <PageContainer class="max-w-3xl space-y-6">
+  <AppPanel title="Duplicate Games" class="max-w-3xl space-y-6">
     <div>
       <h1
         class="font-display text-highlighted text-2xl font-semibold tracking-tight"
@@ -165,5 +165,5 @@ const formatCreated = (createdAt: string) =>
         </div>
       </template>
     </UCollapsible>
-  </PageContainer>
+  </AppPanel>
 </template>

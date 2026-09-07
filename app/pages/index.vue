@@ -25,7 +25,7 @@ const unsortedPlayedCount = computed(
 </script>
 
 <template>
-  <PageContainer class="max-w-7xl space-y-8">
+  <AppPanel title="Home" class="max-w-7xl space-y-8">
     <UAlert
       v-if="needsProvider"
       color="neutral"
@@ -94,5 +94,5 @@ const unsortedPlayedCount = computed(
         </UButton>
       </div>
     </UCard>
-  </PageContainer>
+  </AppPanel>
 </template>

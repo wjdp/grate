@@ -77,7 +77,7 @@ const disconnect = async () => {
 </script>
 
 <template>
-  <PageContainer class="flex max-w-2xl flex-col gap-6">
+  <AppPanel title="Steam" class="flex max-w-2xl flex-col gap-6">
     <UBreadcrumb :items="breadcrumbs" />
 
     <h1
@@ -204,5 +204,5 @@ const disconnect = async () => {
     </p>
 
     <SteamQrLoginModal v-model:open="isLoginModalOpen" @connected="onConnected" />
-  </PageContainer>
+  </AppPanel>
 </template>

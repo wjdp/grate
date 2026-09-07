@@ -114,102 +114,104 @@ const primaryLaunch = computed(() =>
 </script>
 
 <template>
-  <PageContainer v-if="game" class="max-w-7xl space-y-6">
-    <ArtHero
-      :background="art?.background ?? null"
-      :logo="art?.logo ?? null"
-      :title="game.name"
-    >
-      <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
-        <GameStateControl v-model="state" @change="updateGameState(state)" />
-        <UButton
-          color="neutral"
-          variant="ghost"
-          :icon="game.hidden ? 'i-lucide-eye' : 'i-lucide-eye-off'"
-          :label="game.hidden ? 'Unhide' : 'Hide'"
-          @click="updateGameHidden(!game.hidden)"
-        />
-        <PlayButton v-if="primaryLaunch" :href="primaryLaunch.playUrl" />
-      </div>
-    </ArtHero>
-
-    <UAlert
-      v-if="game.hidden"
-      color="neutral"
-      variant="soft"
-      icon="i-lucide-eye-off"
-      title="Hidden from your library"
-      :actions="[
-        {
-          label: 'Unhide',
-          color: 'neutral',
-          variant: 'outline',
-          onClick: () => updateGameHidden(false),
-        },
-      ]"
-    />
-
-    <div
-      class="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-8 lg:space-y-0"
-    >
-      <div
-        class="grid grid-cols-2 gap-3 lg:order-last lg:grid-cols-1 lg:gap-2.5"
+  <AppPanel :title="game?.name" class="max-w-7xl space-y-6">
+      <template v-if="game">
+      <ArtHero
+        :background="art?.background ?? null"
+        :logo="art?.logo ?? null"
+        :title="game.name"
       >
-        <StatTile
-          class="lg:p-3"
-          label="Playtime"
-          icon="i-lucide-clock"
-          :value="formatPlaytime(game.playtimeMinutes) || 'None'"
-        />
-        <StatTile
-          class="lg:p-3"
-          label="Last played"
-          icon="i-lucide-calendar"
-          :value="
-            game.lastPlayedAt ? formatLastPlayed(game.lastPlayedAt) : 'Never'
-          "
-        />
-        <StatTile
-          class="lg:p-3"
-          label="Providers"
-          icon="i-lucide-library"
-          :value="providerCount"
-        />
-        <StatTile class="lg:p-3" label="State" icon="i-lucide-tag">
-          <GameStateBadge :state="game.state" />
-        </StatTile>
-      </div>
+        <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <GameStateControl v-model="state" @change="updateGameState(state)" />
+          <UButton
+            color="neutral"
+            variant="ghost"
+            :icon="game.hidden ? 'i-lucide-eye' : 'i-lucide-eye-off'"
+            :label="game.hidden ? 'Unhide' : 'Hide'"
+            @click="updateGameHidden(!game.hidden)"
+          />
+          <PlayButton v-if="primaryLaunch" :href="primaryLaunch.playUrl" />
+        </div>
+      </ArtHero>
 
-      <div class="min-w-0 space-y-6">
-        <CollapsibleText
-          v-if="description"
-          :text="description"
-          class="text-muted max-w-prose"
-        />
+      <UAlert
+        v-if="game.hidden"
+        color="neutral"
+        variant="soft"
+        icon="i-lucide-eye-off"
+        title="Hidden from your library"
+        :actions="[
+          {
+            label: 'Unhide',
+            color: 'neutral',
+            variant: 'outline',
+            onClick: () => updateGameHidden(false),
+          },
+        ]"
+      />
 
-        <GameProviderRows :game="game" />
+      <div
+        class="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-8 lg:space-y-0"
+      >
+        <div
+          class="grid grid-cols-2 gap-3 lg:order-last lg:grid-cols-1 lg:gap-2.5"
+        >
+          <StatTile
+            class="lg:p-3"
+            label="Playtime"
+            icon="i-lucide-clock"
+            :value="formatPlaytime(game.playtimeMinutes) || 'None'"
+          />
+          <StatTile
+            class="lg:p-3"
+            label="Last played"
+            icon="i-lucide-calendar"
+            :value="
+              game.lastPlayedAt ? formatLastPlayed(game.lastPlayedAt) : 'Never'
+            "
+          />
+          <StatTile
+            class="lg:p-3"
+            label="Providers"
+            icon="i-lucide-library"
+            :value="providerCount"
+          />
+          <StatTile class="lg:p-3" label="State" icon="i-lucide-tag">
+            <GameStateBadge :state="game.state" />
+          </StatTile>
+        </div>
 
-        <section class="space-y-3">
-          <div class="flex items-center justify-between gap-2">
+        <div class="min-w-0 space-y-6">
+          <CollapsibleText
+            v-if="description"
+            :text="description"
+            class="text-muted max-w-prose"
+          />
+
+          <GameProviderRows :game="game" />
+
+          <section class="space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="font-display text-highlighted text-lg font-semibold">
+                History
+              </h2>
+              <PlaytimeRawHistoryModal :game-id="id" />
+            </div>
+            <PlaytimeSessionList :sessions="sessions" />
+          </section>
+
+          <section class="space-y-3">
             <h2 class="font-display text-highlighted text-lg font-semibold">
-              History
+              Manage
             </h2>
-            <PlaytimeRawHistoryModal :game-id="id" />
-          </div>
-          <PlaytimeSessionList :sessions="sessions" />
-        </section>
-
-        <section class="space-y-3">
-          <h2 class="font-display text-highlighted text-lg font-semibold">
-            Manage
-          </h2>
-          <p class="text-muted max-w-prose text-sm">
-            Merge this game with another entry, or split a provider row into its
-            own game from the provider cards above.
-          </p>
-          <GameMergeDialog :game="game" @merged="onMerged" />
-        </section>
+            <p class="text-muted max-w-prose text-sm">
+              Merge this game with another entry, or split a provider row into its
+              own game from the provider cards above.
+            </p>
+            <GameMergeDialog :game="game" @merged="onMerged" />
+          </section>
+        </div>
       </div>
-    </div>
-  </PageContainer>
+    </template>
+  </AppPanel>
 </template>

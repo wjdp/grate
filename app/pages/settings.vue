@@ -66,7 +66,7 @@ const saveSettings = async () => {
 </script>
 
 <template>
-  <PageContainer class="flex max-w-2xl flex-col gap-6">
+  <AppPanel title="Settings" class="flex max-w-2xl flex-col gap-6">
     <h1
       class="font-display text-highlighted text-2xl font-semibold tracking-tight"
     >
@@ -116,5 +116,5 @@ const saveSettings = async () => {
         Save
       </UButton>
     </div>
-  </PageContainer>
+  </AppPanel>
 </template>

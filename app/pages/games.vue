@@ -207,7 +207,7 @@ const clearFilters = () => {
 </script>
 
 <template>
-  <PageContainer class="space-y-6">
+  <AppPanel title="Library" class="space-y-6">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <h1
         class="font-display text-highlighted text-2xl font-semibold tracking-tight"
@@ -355,5 +355,5 @@ const clearFilters = () => {
     <VirtualGameWall v-else-if="view === 'wall'" :games="sortedGames" />
 
     <VirtualGameList v-else :games="sortedGames" />
-  </PageContainer>
+  </AppPanel>
 </template>

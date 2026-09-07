@@ -58,7 +58,7 @@ const connectGog = async () => {
 </script>
 
 <template>
-  <PageContainer class="flex max-w-2xl flex-col gap-6">
+  <AppPanel title="GOG" class="flex max-w-2xl flex-col gap-6">
     <UBreadcrumb :items="breadcrumbs" />
 
     <h1
@@ -122,5 +122,5 @@ const connectGog = async () => {
         Connect GOG account
       </UButton>
     </div>
-  </PageContainer>
+  </AppPanel>
 </template>

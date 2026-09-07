@@ -13,6 +13,8 @@ const games = computed(() => data.value?.games ?? []);
 const route = useRoute();
 const router = useRouter();
 
+const { open: openCommandPalette } = useCommandPalette();
+
 function queryParam<Value extends string>(
   key: string,
   fallback: Value,
@@ -158,31 +160,9 @@ const sortedGames = computed(() =>
   }),
 );
 
-// Stats always describe the visible library, whatever the hidden filter shows.
-const visibleGames = computed(() => games.value.filter((game) => !game.hidden));
-
-const totalPlaytime = computed(() =>
-  visibleGames.value.reduce((total, game) => total + game.playtimeMinutes, 0),
+const title = computed(() =>
+  stateFilter.value === "all" ? "Library" : selectedStateItem.value.label,
 );
-const playedCount = computed(
-  () => visibleGames.value.filter((game) => game.playtimeMinutes > 0).length,
-);
-const recentCount = computed(
-  () =>
-    visibleGames.value.filter((game) => isRecentlyPlayed(game.lastPlayedAt))
-      .length,
-);
-
-const stats = computed(() => [
-  {
-    label: "Total playtime",
-    value: formatPlaytime(totalPlaytime.value) || "0m",
-  },
-  { label: "Games", value: visibleGames.value.length },
-  { label: "Played", value: playedCount.value },
-  { label: "Unplayed", value: visibleGames.value.length - playedCount.value },
-  { label: "Played recently", value: recentCount.value },
-]);
 
 const hasHiddenGames = computed(() => games.value.some((game) => game.hidden));
 
@@ -207,120 +187,133 @@ const clearFilters = () => {
 </script>
 
 <template>
-  <AppPanel title="Library" class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1
-        class="font-display text-highlighted text-2xl font-semibold tracking-tight"
-      >
-        Library
-      </h1>
-      <div class="flex items-center gap-2">
-        <UFieldGroup>
-          <UButton
-            icon="i-lucide-layout-grid"
-            :variant="view === 'wall' ? 'solid' : 'outline'"
-            :color="view === 'wall' ? 'primary' : 'neutral'"
-            aria-label="Poster wall"
-            @click="view = 'wall'"
-          />
-          <UButton
-            icon="i-lucide-list"
-            :variant="view === 'list' ? 'solid' : 'outline'"
-            :color="view === 'list' ? 'primary' : 'neutral'"
-            aria-label="List"
-            @click="view = 'list'"
-          />
-        </UFieldGroup>
-      </div>
-    </div>
+  <AppPanel class="space-y-6">
+    <template #header>
+      <div class="bg-elevated border-default border-b">
+        <UDashboardNavbar :title="title" class="border-b-0">
+          <template #toggle="{ toggleSidebar }">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              aria-label="Open navigation"
+              class="lg:hidden"
+              @click="toggleSidebar"
+            >
+              <img
+                src="/icon.png"
+                alt=""
+                class="size-6 shrink-0 invert dark:invert-0"
+              />
+              <span
+                class="font-display text-highlighted truncate text-lg font-semibold tracking-tight"
+              >
+                grate
+              </span>
+            </UButton>
+          </template>
 
-    <dl
-      class="border-default divide-default flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-4 py-2.5 sm:gap-x-6 sm:divide-x"
-    >
-      <div
-        v-for="stat in stats"
-        :key="stat.label"
-        class="flex items-baseline gap-1.5 sm:pe-6 sm:last:pe-0"
-      >
-        <dd
-          class="font-display text-highlighted text-sm font-semibold tabular-nums"
-        >
-          {{ stat.value }}
-        </dd>
-        <dt class="text-muted text-xs">{{ stat.label }}</dt>
-      </div>
-    </dl>
+          <template #right>
+            <UFieldGroup>
+              <UButton
+                icon="i-lucide-layout-grid"
+                :variant="view === 'wall' ? 'solid' : 'outline'"
+                :color="view === 'wall' ? 'primary' : 'neutral'"
+                aria-label="Poster wall"
+                @click="view = 'wall'"
+              />
+              <UButton
+                icon="i-lucide-list"
+                :variant="view === 'list' ? 'solid' : 'outline'"
+                :color="view === 'list' ? 'primary' : 'neutral'"
+                aria-label="List"
+                @click="view = 'list'"
+              />
+            </UFieldGroup>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-lucide-search"
+              aria-label="Search"
+              class="lg:hidden"
+              @click="openCommandPalette"
+            />
+          </template>
+        </UDashboardNavbar>
 
-    <div class="flex flex-wrap items-center gap-2">
-      <UInput
-        v-model="search"
-        icon="i-lucide-search"
-        placeholder="Search games"
-        class="w-full sm:w-64"
-      />
-      <USelectMenu
-        v-model="stateFilter"
-        :items="stateFilterGroups"
-        value-key="value"
-        :search-input="false"
-        :ui="{
-          content:
-            'max-h-[min(24rem,var(--reka-combobox-content-available-height,24rem))]',
-        }"
-        class="w-40"
-      >
-        <template #leading>
-          <UIcon
-            :name="selectedStateItem.icon"
-            class="size-5 shrink-0"
-            :class="selectedStateItem.iconClass"
+        <UDashboardToolbar class="border-b-0">
+          <UInput
+            v-model="search"
+            icon="i-lucide-search"
+            placeholder="Search games"
+            class="w-48 shrink-0 sm:w-64"
           />
-        </template>
-        <template #item-leading="{ item }">
-          <UIcon
-            :name="item.icon"
-            class="size-5 shrink-0"
-            :class="item.iconClass"
+          <USelectMenu
+            v-model="stateFilter"
+            :items="stateFilterGroups"
+            value-key="value"
+            :search-input="false"
+            :ui="{
+              content:
+                'max-h-[min(24rem,var(--reka-combobox-content-available-height,24rem))]',
+            }"
+            class="w-40 shrink-0 lg:hidden"
+          >
+            <template #leading>
+              <UIcon
+                :name="selectedStateItem.icon"
+                class="size-5 shrink-0"
+                :class="selectedStateItem.iconClass"
+              />
+            </template>
+            <template #item-leading="{ item }">
+              <UIcon
+                :name="item.icon"
+                class="size-5 shrink-0"
+                :class="item.iconClass"
+              />
+            </template>
+          </USelectMenu>
+          <ProviderSelect v-model="providerFilter" class="w-40 shrink-0" />
+          <USelectMenu
+            v-model="playedFilter"
+            :items="playedItems"
+            value-key="value"
+            :search-input="false"
+            class="w-48 shrink-0"
           />
-        </template>
-      </USelectMenu>
-      <ProviderSelect v-model="providerFilter" class="w-40" />
-      <USelectMenu
-        v-model="playedFilter"
-        :items="playedItems"
-        value-key="value"
-        :search-input="false"
-        class="w-48"
-      />
-      <USelectMenu
-        v-model="hiddenFilter"
-        :items="hiddenItems"
-        value-key="value"
-        :search-input="false"
-        class="w-32"
-      >
-        <template #leading>
-          <UIcon
-            :name="
-              hiddenFilter === 'hidden' ? 'i-lucide-eye-off' : 'i-lucide-eye'
-            "
-            class="text-muted size-5 shrink-0"
+          <USelectMenu
+            v-model="hiddenFilter"
+            :items="hiddenItems"
+            value-key="value"
+            :search-input="false"
+            class="w-32 shrink-0"
+          >
+            <template #leading>
+              <UIcon
+                :name="
+                  hiddenFilter === 'hidden' ? 'i-lucide-eye-off' : 'i-lucide-eye'
+                "
+                class="text-muted size-5 shrink-0"
+              />
+            </template>
+          </USelectMenu>
+          <USelectMenu
+            v-model="sort"
+            :items="sortItems"
+            value-key="value"
+            :search-input="false"
+            icon="i-lucide-arrow-up-down"
+            class="ms-auto w-40 shrink-0"
           />
-        </template>
-      </USelectMenu>
-      <USelectMenu
-        v-model="sort"
-        :items="sortItems"
-        value-key="value"
-        :search-input="false"
-        icon="i-lucide-arrow-up-down"
-        class="ms-auto w-40"
-      />
-    </div>
+        </UDashboardToolbar>
+
+        <LibraryFilterSummary :games="filteredGames" />
+      </div>
+    </template>
 
     <div
       v-if="games.length === 0"
-      class="border-default flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-16 text-center"
+      class="bg-elevated border-default flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-16 text-center"
     >
       <UIcon name="i-lucide-library-big" class="text-dimmed size-10" />
       <p class="font-display text-highlighted text-lg font-semibold">
@@ -336,7 +329,7 @@ const clearFilters = () => {
 
     <div
       v-else-if="sortedGames.length === 0"
-      class="border-default flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-16 text-center"
+      class="bg-elevated border-default flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-16 text-center"
     >
       <UIcon name="i-lucide-search-x" class="text-dimmed size-10" />
       <p class="font-display text-highlighted text-lg font-semibold">

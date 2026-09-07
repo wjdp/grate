@@ -88,7 +88,7 @@ The drawer is the weak half of the mobile story: every page change is toggle →
 
 - `AppTabBar.vue` in the layout, `fixed bottom-0 inset-x-0 md:hidden`, `bg-elevated border-t border-default`, `pb-[env(safe-area-inset-bottom)]`. Panel body gets bottom padding of the bar's height below `md`.
 - Nuxt UI has no tab-bar component; use a horizontal `UNavigationMenu` with `variant: 'link'`, icon over label, `justify-around`, or a plain `NuxtLink` row. Active item in `--ui-primary`, matching the sidebar accent.
-- Five slots, matching sidebar order: Home, Library, Organise, Activity, More. More opens the existing drawer (Duplicates with badge, Providers, Settings, Debug, colour mode). Search stays a navbar button.
+- Five slots, matching sidebar order: Home, Library, Organise, Activity, More. More opens the existing drawer, which keeps its full nav because tablets (`md`–`lg`) have no tab bar and depend on it. Search stays a navbar button.
 - Library tab tapped while on `/games` scrolls to top (iOS convention); a second tap could reset filters, but that is easy to hit by accident — leave it at scroll-to-top.
 - The navbar's sidebar toggle becomes redundant on the tabbed pages; keep it only as the "More" entry point or drop it once the tab bar lands.
 
@@ -103,7 +103,7 @@ Ships as step 6 so the rest of the task is not gated on it.
 3. `AppSidebarLibraryStates.vue` + tests (counts, used-state filtering, query preservation, active detection).
 4. `games.vue`: header rows, title from state, `lg:hidden` state select, filter summary row replacing the stat strip.
 5. Manual: dark + light, collapsed sidebar tooltips, drawer on mobile width, scroll memory across state switches, state change from the context menu updates the sidebar count.
-6. `AppTabBar.vue`, body bottom padding, drawer reduced to the More set. Check the wall's last row clears the bar and `useScrollParent` margins are unaffected.
+6. `AppTabBar.vue`, body bottom padding below `md`. Check the wall's last row clears the bar and `useScrollParent` margins are unaffected.
 
 ## Decisions
 

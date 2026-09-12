@@ -1,6 +1,5 @@
 import { and, asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import type { GameState } from "#shared/game-state";
-import { playDayOf } from "#shared/playDay";
 import type { PlaytimeSession } from "#shared/types/PlaytimeSession";
 import { db } from "~~/server/database/client";
 import {
@@ -18,7 +17,7 @@ import {
 import { countProviderRows } from "~~/server/providers/rows";
 import { refreshGameAggregates } from "~~/server/services/gameAggregates";
 import {
-  deriveSessions,
+  deriveTimeline,
   type PlaytimeProviderRow,
   type PlaytimeSnapshot,
 } from "~~/server/services/playtimeTimeline";
@@ -179,11 +178,10 @@ export async function getGameTimeline(id: number): Promise<PlaytimeSession[]> {
   const rows = await getProviderRowSnapshots(id);
   const playDaySettings = await getPlayDaySettings();
   return rows
-    .flatMap(({ row, snapshots }) => deriveSessions(snapshots, row))
-    .map((session) => ({
-      ...session,
-      playDay: playDayOf(session.endedBefore, playDaySettings),
-    }))
+    .flatMap(
+      ({ row, snapshots }) =>
+        deriveTimeline(snapshots, row, [], playDaySettings).sessions,
+    )
     .sort((a, b) => b.endedBefore.getTime() - a.endedBefore.getTime());
 }
 

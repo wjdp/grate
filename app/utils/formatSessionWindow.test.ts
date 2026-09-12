@@ -26,6 +26,10 @@ const makeSession = (
   uncertaintyMinutes: 70,
   anchored: false,
   playDay: "2026-08-31",
+  calendarMonth: "2026-08",
+  calendarYear: 2026,
+  snapshotId: null,
+  correction: null,
   ...overrides,
 });
 

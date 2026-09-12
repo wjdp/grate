@@ -1,12 +1,27 @@
 import { describe, expect, it } from "vitest";
+import type { PlayDaySettings } from "#shared/playDay";
 import type {
+  CorrectionInput,
   PlaytimeProviderRow,
   PlaytimeSnapshot,
 } from "~~/server/services/playtimeTimeline";
 import {
-  deriveSessions,
+  deriveTimeline,
   inferredLastPlayedAt,
 } from "~~/server/services/playtimeTimeline";
+
+const playDaySettings: PlayDaySettings = {
+  timezone: "UTC",
+  dayBoundaryHour: 6,
+};
+
+function deriveSessions(
+  snapshots: PlaytimeSnapshot[],
+  row: PlaytimeProviderRow,
+  corrections: CorrectionInput[] = [],
+) {
+  return deriveTimeline(snapshots, row, corrections, playDaySettings).sessions;
+}
 
 const cyberpunkRow: PlaytimeProviderRow = {
   provider: "gog",
@@ -82,7 +97,7 @@ const factorioSnapshots: PlaytimeSnapshot[] = (
   rTimeLastPlayed,
 }));
 
-describe("deriveSessions", () => {
+describe("deriveTimeline", () => {
   it("returns nothing for no snapshots", () => {
     expect(deriveSessions([], cyberpunkRow)).toEqual([]);
   });
@@ -137,6 +152,11 @@ describe("deriveSessions", () => {
         estimatedEnd: new Date("2026-08-31T20:43:46Z"),
         uncertaintyMinutes: 70,
         anchored: false,
+        playDay: "2026-08-31",
+        calendarMonth: "2026-08",
+        calendarYear: 2026,
+        snapshotId: null,
+        correction: null,
       },
     ]);
   });
@@ -241,6 +261,11 @@ describe("deriveSessions", () => {
         estimatedEnd: new Date("2026-06-13T13:07:48Z"),
         uncertaintyMinutes: 0,
         anchored: true,
+        playDay: "2026-06-13",
+        calendarMonth: "2026-06",
+        calendarYear: 2026,
+        snapshotId: null,
+        correction: null,
       },
     ]);
   });
@@ -459,5 +484,277 @@ describe("inferredLastPlayedAt", () => {
     expect(inferredLastPlayedAt(cyberpunkSnapshots)).toEqual(
       new Date("2026-08-31T20:43:46Z"),
     );
+  });
+});
+
+const identifiedCyberpunkSnapshots: PlaytimeSnapshot[] = [
+  {
+    id: 1,
+    timestampStart: null,
+    timestampEnd: new Date("2026-08-30T14:14:45Z"),
+    playtimeMinutes: 600,
+  },
+  {
+    id: 2,
+    timestampStart: new Date("2026-08-30T14:14:45Z"),
+    timestampEnd: new Date("2026-08-31T20:43:46Z"),
+    playtimeMinutes: 670,
+  },
+];
+
+const factorioSnapshotsWithIds: PlaytimeSnapshot[] = factorioSnapshots.map(
+  (snapshot, index) => ({ ...snapshot, id: index + 1 }),
+);
+
+function correction(overrides: Partial<CorrectionInput> = {}): CorrectionInput {
+  return {
+    id: 1,
+    snapshotId: 2,
+    minutes: 70,
+    playedFrom: "2026-08-29T20:00",
+    playedTo: "2026-08-29T21:10",
+    note: null,
+    ...overrides,
+  };
+}
+
+describe("deriveTimeline with corrections", () => {
+  it("carries the id of the row that introduced an uncorrected delta", () => {
+    const sessions = deriveSessions(identifiedCyberpunkSnapshots, cyberpunkRow);
+    expect(sessions.map((session) => session.snapshotId)).toEqual([2]);
+  });
+
+  it("re-places a delta exactly, dropping the observed session", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [correction()],
+    );
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({
+      minutes: 70,
+      anchored: true,
+      uncertaintyMinutes: 0,
+      estimatedStart: new Date("2026-08-29T20:00:00Z"),
+      estimatedEnd: new Date("2026-08-29T21:10:00Z"),
+      endedAfter: new Date("2026-08-29T20:00:00Z"),
+      endedBefore: new Date("2026-08-29T21:10:00Z"),
+      playDay: "2026-08-29",
+      calendarMonth: "2026-08",
+      calendarYear: 2026,
+      snapshotId: null,
+      correction: {
+        id: 1,
+        playedFrom: "2026-08-29T20:00",
+        playedTo: "2026-08-29T21:10",
+        note: null,
+      },
+    });
+  });
+
+  it("leaves a residual session in the original window when corrections cover part of a delta", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [
+        correction({ id: 1, minutes: 25 }),
+        correction({
+          id: 2,
+          minutes: 15,
+          playedFrom: "2026-08-29T22:00",
+          playedTo: "2026-08-29T22:15",
+        }),
+      ],
+    );
+    expect(
+      sessions.map((session) => [session.minutes, session.snapshotId]),
+    ).toEqual([
+      [30, 2],
+      [25, null],
+      [15, null],
+    ]);
+    const residual = sessions[0];
+    expect(residual?.correction).toBeNull();
+    expect(residual?.endedAfter).toEqual(new Date("2026-08-30T14:14:45Z"));
+    expect(residual?.endedBefore).toEqual(new Date("2026-08-31T20:43:46Z"));
+  });
+
+  it("dates part of the baseline and reports the rest as undated pre-history", () => {
+    const timeline = deriveTimeline(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [
+        correction({
+          id: 1,
+          snapshotId: 1,
+          minutes: 200,
+          playedFrom: "2020-10",
+          playedTo: "2020-10",
+        }),
+        correction({
+          id: 2,
+          snapshotId: 1,
+          minutes: 100,
+          playedFrom: "2021",
+          playedTo: "2021",
+        }),
+      ],
+      playDaySettings,
+    );
+    expect(timeline.undatedMinutes).toBe(300);
+    expect(timeline.baselineSnapshotId).toBe(1);
+    expect(
+      timeline.sessions
+        .filter((session) => session.correction)
+        .map((session) => session.minutes),
+    ).toEqual([200, 100]);
+  });
+
+  it("reports no undated pre-history once the baseline is fully dated", () => {
+    const timeline = deriveTimeline(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [
+        correction({
+          id: 1,
+          snapshotId: 1,
+          minutes: 600,
+          playedFrom: "2020-10",
+          playedTo: "2020-10",
+        }),
+      ],
+      playDaySettings,
+    );
+    expect(timeline.undatedMinutes).toBe(0);
+  });
+
+  it("reports the whole baseline as undated when nothing dates it", () => {
+    const timeline = deriveTimeline(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [],
+      playDaySettings,
+    );
+    expect(timeline.undatedMinutes).toBe(600);
+  });
+
+  it("reports no undated pre-history when there is no baseline", () => {
+    const timeline = deriveTimeline(
+      factorioSnapshotsWithIds,
+      factorioRow,
+      [],
+      playDaySettings,
+    );
+    expect(timeline.undatedMinutes).toBe(0);
+    expect(timeline.baselineSnapshotId).toBeNull();
+  });
+
+  it("adds a manual correction as an extra session", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [correction({ snapshotId: null, minutes: 45 })],
+    );
+    expect(
+      sessions.map((session) => [session.minutes, session.snapshotId]),
+    ).toEqual([
+      [70, 2],
+      [45, null],
+    ]);
+  });
+
+  it("buckets a correction within one month to that month, never a day", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [
+        correction({
+          snapshotId: 1,
+          minutes: 200,
+          playedFrom: "2020-10-12",
+          playedTo: "2020-10-30",
+        }),
+      ],
+    );
+    const corrected = sessions.find((session) => session.correction);
+    expect(corrected).toMatchObject({
+      playDay: null,
+      calendarMonth: "2020-10",
+      calendarYear: 2020,
+      anchored: false,
+    });
+    expect(corrected?.uncertaintyMinutes).toBeCloseTo(19 * 24 * 60, 0);
+  });
+
+  it("buckets a correction spanning months to the year", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [
+        correction({
+          snapshotId: 1,
+          minutes: 200,
+          playedFrom: "2020-10",
+          playedTo: "2020-11",
+        }),
+      ],
+    );
+    expect(sessions.find((session) => session.correction)).toMatchObject({
+      playDay: null,
+      calendarMonth: null,
+      calendarYear: 2020,
+    });
+  });
+
+  it("leaves a correction spanning years unallocated", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [
+        correction({
+          snapshotId: 1,
+          minutes: 200,
+          playedFrom: "2020-10",
+          playedTo: "2021-02",
+        }),
+      ],
+    );
+    expect(sessions.find((session) => session.correction)).toMatchObject({
+      playDay: null,
+      calendarMonth: null,
+      calendarYear: null,
+    });
+  });
+
+  it("treats an approximate minute-precision correction as imprecise", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [correction({ playedFrom: "2026-08-29T20:00~" })],
+    );
+    expect(sessions[0]?.anchored).toBe(false);
+    expect(sessions[0]?.playDay).toBeNull();
+    expect(sessions[0]?.calendarMonth).toBe("2026-08");
+  });
+
+  it("gives a merged Steam run no snapshot to correct", () => {
+    const sessions = deriveSessions(factorioSnapshotsWithIds, factorioRow);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]?.minutes).toBe(1076);
+    expect(sessions[0]?.snapshotId).toBeNull();
+  });
+
+  it("keeps a corrected Steam delta out of the contiguity merge", () => {
+    const sessions = deriveSessions(factorioSnapshotsWithIds, factorioRow, [
+      correction({ snapshotId: 4, minutes: 60 }),
+    ]);
+    expect(
+      sessions
+        .filter((session) => !session.correction)
+        .map((session) => session.minutes),
+    ).toEqual([30, 986]);
+    expect(
+      sessions.filter((session) => session.correction).map((s) => s.minutes),
+    ).toEqual([60]);
   });
 });

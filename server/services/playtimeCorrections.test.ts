@@ -181,6 +181,68 @@ describe("playtime corrections", () => {
     });
   });
 
+  it("accepts a day-precision end on the day the store observed the delta", async () => {
+    const { gog, delta } = gogRowWithDelta();
+    const correction = await createPlaytimeCorrection(
+      gog.gameId,
+      gogCorrection({
+        providerId: gog.gogId,
+        snapshotId: delta.id,
+        minutes: 10,
+        playedFrom: "2026-08-30",
+        playedTo: "2026-08-31",
+      }),
+    );
+    expect(correction.playedTo).toBe("2026-08-31");
+    await expect(
+      createPlaytimeCorrection(
+        gog.gameId,
+        gogCorrection({
+          providerId: gog.gogId,
+          snapshotId: delta.id,
+          minutes: 10,
+          playedFrom: "2026-09-01",
+          playedTo: "2026-09-01",
+        }),
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: expect.stringContaining("after the store observed it"),
+    });
+  });
+
+  it("accepts a manual session whose day-precision end is today", async () => {
+    const { gog } = gogRowWithDelta();
+    const now = new Date("2026-09-02T12:00:00.000Z");
+    const manual = await createPlaytimeCorrection(
+      gog.gameId,
+      gogCorrection({
+        providerId: gog.gogId,
+        snapshotId: null,
+        minutes: 45,
+        playedFrom: "2026-09-01",
+        playedTo: "2026-09-02",
+      }),
+      now,
+    );
+    expect(manual.playedTo).toBe("2026-09-02");
+    await expect(
+      createPlaytimeCorrection(
+        gog.gameId,
+        gogCorrection({
+          providerId: gog.gogId,
+          snapshotId: null,
+          playedFrom: "2026-09-03",
+          playedTo: "2026-09-03",
+        }),
+        now,
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: expect.stringContaining("cannot end in the future"),
+    });
+  });
+
   it("rejects a fuzzy range that ends before it starts", async () => {
     const { gog, delta } = gogRowWithDelta();
     await expect(

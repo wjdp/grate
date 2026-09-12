@@ -134,6 +134,19 @@ describe("resolveFuzzyDateRange", () => {
     expect(range.to.precision).toBe("day");
   });
 
+  it("reports the earliest instant the end date could fall on", () => {
+    const range = resolveFuzzyDateRange("2020-10-25", "2020-10-30", "UTC");
+    expect(range.toEarliest.toISOString()).toBe("2020-10-30T00:00:00.000Z");
+    expect(range.latest.toISOString()).toBe("2020-10-30T23:59:59.999Z");
+
+    const minutes = resolveFuzzyDateRange(
+      "2020-10-30T19:00",
+      "2020-10-30T20:10",
+      "UTC",
+    );
+    expect(minutes.toEarliest.toISOString()).toBe(minutes.latest.toISOString());
+  });
+
   it("rejects a reversed range after resolution", () => {
     expect(() => resolveFuzzyDateRange("2020-11", "2020-10", "UTC")).toThrow(
       "ends before it starts",

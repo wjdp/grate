@@ -16,6 +16,7 @@ export interface ResolvedFuzzyDate {
 export interface ResolvedFuzzyDateRange extends ResolvedFuzzyDate {
   from: FuzzyDate;
   to: FuzzyDate;
+  toEarliest: Date;
 }
 
 export class FuzzyDateError extends Error {
@@ -164,7 +165,7 @@ export function resolveFuzzyDateRange(
   const from = asFuzzyDate(fromInput);
   const to = asFuzzyDate(toInput);
   const { earliest } = resolveFuzzyDate(from, timezone);
-  const { latest } = resolveFuzzyDate(to, timezone);
+  const { earliest: toEarliest, latest } = resolveFuzzyDate(to, timezone);
 
   if (latest < earliest) {
     throw new FuzzyDateError(
@@ -172,7 +173,7 @@ export function resolveFuzzyDateRange(
     );
   }
 
-  return { from, to, earliest, latest };
+  return { from, to, earliest, latest, toEarliest };
 }
 
 export function compareFuzzyDates(

@@ -172,7 +172,7 @@ async function assertPlacementIsPossible(
   }
 
   if (snapshotId === null) {
-    if (resolved.latest > now) {
+    if (resolved.toEarliest > now) {
       throw invalidRequest("A manual session cannot end in the future");
     }
     return;
@@ -203,7 +203,7 @@ async function assertPlacementIsPossible(
       `Corrections for this snapshot may total at most ${capacity} minutes, ${alreadyClaimed} already claimed`,
     );
   }
-  if (resolved.latest > snapshot.timestampEnd) {
+  if (resolved.toEarliest > snapshot.timestampEnd) {
     throw invalidRequest(
       `Play cannot end after the store observed it at ${snapshot.timestampEnd.toISOString()}`,
     );

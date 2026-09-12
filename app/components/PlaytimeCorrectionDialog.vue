@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { DateTime } from "luxon";
 import { isValidFuzzyDate } from "#shared/fuzzyDate";
 import type { PlaytimeProvider } from "#shared/types/PlaytimeSession";
 
@@ -42,21 +43,35 @@ const error = ref<string | null>(null);
 const pending = ref(false);
 const confirmingDelete = ref(false);
 
+const {
+  data: settings,
+  status: settingsStatus,
+  execute: loadSettings,
+} = useFetch("/api/settings", { immediate: false });
+
+const effectiveTimezone = computed(
+  () => settings.value?.effectiveTimezone ?? "UTC",
+);
+
+// Dating pre-history has a known upper bound, so start To on that day.
+const defaultPlayedTo = computed(() => {
+  if (props.mode !== "date" || !props.before || props.existing) return "";
+  if (!settings.value) return "";
+  return (
+    DateTime.fromISO(props.before, { zone: effectiveTimezone.value }).toISODate() ??
+    ""
+  );
+});
+
 const reset = () => {
   playedFrom.value = props.existing?.playedFrom ?? "";
-  playedTo.value = props.existing?.playedTo ?? "";
+  playedTo.value = props.existing?.playedTo ?? defaultPlayedTo.value;
   minutes.value = props.existing?.minutes ?? props.target?.maxMinutes ?? null;
   note.value = props.existing?.note ?? "";
   error.value = null;
   pending.value = false;
   confirmingDelete.value = false;
 };
-
-const {
-  data: settings,
-  status: settingsStatus,
-  execute: loadSettings,
-} = useFetch("/api/settings", { immediate: false });
 
 watch(
   () => [open.value, props.existing?.id, props.target?.snapshotId],
@@ -68,6 +83,10 @@ watch(
   { immediate: true },
 );
 
+watch(defaultPlayedTo, (value) => {
+  if (value && open.value && !playedTo.value) playedTo.value = value;
+});
+
 const timezoneHint = computed(() =>
   settings.value
     ? ` Times are read in ${settings.value.effectiveTimezone}.`
@@ -75,11 +94,9 @@ const timezoneHint = computed(() =>
 );
 
 const formatBeforeDate = (before: string) =>
-  new Date(before).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  DateTime.fromISO(before, { zone: effectiveTimezone.value })
+    .setLocale("en-GB")
+    .toLocaleString({ day: "numeric", month: "short", year: "numeric" });
 
 const title = computed(() => {
   if (props.existing) return "Edit correction";

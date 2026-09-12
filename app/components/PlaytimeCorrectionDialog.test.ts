@@ -179,6 +179,49 @@ describe("PlaytimeCorrectionDialog", () => {
     expect(document.body.textContent).toContain("Played before 30 Oct 2020.");
   });
 
+  it("prefills the To date from the baseline bound", async () => {
+    await mount({ mode: "date", before: "2020-10-30T02:20:43.000Z" });
+
+    await vi.waitFor(() =>
+      expect(field("correction-to")?.value).toBe("2020-10-30"),
+    );
+
+    await setField("correction-from", "2020-10-25");
+    submitButton()?.click();
+    await vi.waitFor(() => expect(calls).toHaveLength(1));
+
+    expect(calls[0]).toStrictEqual({
+      path: "/api/games/7/corrections",
+      method: "POST",
+      body: {
+        provider: "gog",
+        providerId: 1423049311,
+        snapshotId: 42,
+        minutes: 120,
+        playedFrom: "2020-10-25",
+        playedTo: "2020-10-30",
+        note: null,
+      },
+    });
+  });
+
+  it("prefills the To date in the effective timezone", async () => {
+    await mount({ mode: "date", before: "2020-07-01T23:30:00.000Z" });
+
+    await vi.waitFor(() =>
+      expect(field("correction-to")?.value).toBe("2020-07-02"),
+    );
+  });
+
+  it("does not prefill the To date when correcting a session", async () => {
+    await mount();
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain("Times are read in"),
+    );
+    expect(field("correction-to")?.value).toBe("");
+  });
+
   it("patches an existing correction in edit mode", async () => {
     await mount({
       existing: {

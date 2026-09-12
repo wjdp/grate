@@ -50,12 +50,26 @@ const reset = () => {
   confirmingDelete.value = false;
 };
 
+const {
+  data: settings,
+  status: settingsStatus,
+  execute: loadSettings,
+} = useFetch("/api/settings", { immediate: false });
+
 watch(
   () => [open.value, props.existing?.id, props.target?.snapshotId],
   () => {
-    if (open.value) reset();
+    if (!open.value) return;
+    reset();
+    if (settingsStatus.value === "idle") loadSettings();
   },
   { immediate: true },
+);
+
+const timezoneHint = computed(() =>
+  settings.value
+    ? ` Times are read in ${settings.value.effectiveTimezone}.`
+    : "",
 );
 
 const title = computed(() => {
@@ -199,7 +213,7 @@ const remove = async () => {
       </div>
       <p class="text-dimmed text-xs">
         Year, month, day or minute: 2020, 2020-10, 2020-10-12,
-        2020-10-12T20:00. Add ~ for approximately.
+        2020-10-12T20:00. Add ~ for approximately.{{ timezoneHint }}
       </p>
 
       <UFormField label="Minutes" :hint="minutesHint" :error="minutesError">

@@ -43,6 +43,12 @@ registerEndpoint(
   record("/api/games/7/corrections/9"),
 );
 
+registerEndpoint("/api/settings", () => ({
+  timezone: "Europe/London",
+  effectiveTimezone: "Europe/London",
+  dayBoundaryHour: 6,
+}));
+
 type DialogProps = InstanceType<typeof PlaytimeCorrectionDialog>["$props"];
 
 const mount = (props: Partial<DialogProps> = {}) =>
@@ -96,6 +102,16 @@ describe("PlaytimeCorrectionDialog", () => {
 
     expect(field("correction-minutes")?.value).toBe("120");
     expect(document.body.textContent).toContain("of 2h observed");
+  });
+
+  it("says which timezone times are read in", async () => {
+    await mount();
+
+    await vi.waitFor(() =>
+      expect(document.body.textContent).toContain(
+        "Times are read in Europe/London.",
+      ),
+    );
   });
 
   it("posts a correction against the target snapshot", async () => {

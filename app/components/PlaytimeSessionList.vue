@@ -70,8 +70,10 @@ const isManual = (session: PlaytimeSessionJson) =>
     ? correctionsById.value.get(session.correction.id)?.snapshotId === null
     : false;
 
+// A correction is shown as the user typed it, tilde and all, even when its
+// precision anchors it to a play day.
 const sessionWindow = (session: PlaytimeSessionJson) =>
-  session.correction && !session.anchored
+  session.correction
     ? formatFuzzyDateRange(
         session.correction.playedFrom,
         session.correction.playedTo,

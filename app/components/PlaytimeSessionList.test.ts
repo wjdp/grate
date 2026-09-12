@@ -164,6 +164,25 @@ describe("PlaytimeSessionList", () => {
     expect(component.text()).toContain("12–30 Oct 2020");
   });
 
+  it("keeps the tilde on an anchored correction with an approximate start", async () => {
+    const component = await mount([
+      makeSession({
+        anchored: true,
+        playDay: "2026-09-12",
+        correction: {
+          id: 1,
+          playedFrom: "2026-09-12T00:33~",
+          playedTo: "2026-09-12T03:10",
+          note: null,
+        },
+      }),
+    ]);
+
+    expect(component.text()).toContain("~");
+    expect(component.text()).toContain("00:33");
+    expect(component.text()).toContain("03:10");
+  });
+
   it("badges a correction with no snapshot as manual", async () => {
     const component = await mount(
       [

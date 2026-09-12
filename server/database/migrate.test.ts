@@ -25,6 +25,7 @@ const TABLES = [
   "EpicGame",
   "EpicGamePlaytime",
   "EpicIgnoredItem",
+  "PlaytimeCorrection",
 ];
 
 const openConnections: Database.Database[] = [];
@@ -105,8 +106,8 @@ describe("runMigrations", () => {
     const { db, sqlite } = open(":memory:");
     const report = runMigrations(sqlite, db);
 
-    expect(report.total).toBe(12);
-    expect(report.applied).toHaveLength(12);
+    expect(report.total).toBe(13);
+    expect(report.applied).toHaveLength(13);
     expect(report.applied[0]).toBe("0000_baseline");
 
     const tables = (
@@ -118,7 +119,7 @@ describe("runMigrations", () => {
     for (const table of TABLES) expect(tables).toContain(table);
     expect(
       sqlite.prepare(`SELECT count(*) FROM __drizzle_migrations`).raw().get(),
-    ).toEqual([12]);
+    ).toEqual([13]);
   });
 
   it("is a no-op when run again", () => {
@@ -130,10 +131,10 @@ describe("runMigrations", () => {
 
     const report = runMigrations(sqlite, db);
 
-    expect(report).toMatchObject({ applied: [], total: 12 });
+    expect(report).toMatchObject({ applied: [], total: 13 });
     expect(schemaOf(path)).toEqual(schema);
     expect(rowCounts(path)).toEqual(counts);
-    expect(drizzleMigrationCount(path)).toBe(12);
+    expect(drizzleMigrationCount(path)).toBe(13);
   });
 });
 
@@ -141,11 +142,11 @@ describe("describeMigrations", () => {
   it("reports an up-to-date database on one line", () => {
     expect(
       describeMigrations(
-        { applied: [], total: 12, durationMs: 1 },
+        { applied: [], total: 13, durationMs: 1 },
         "/data/grate.db",
       ),
     ).toBe(
-      "Database up to date, 12 migrations already applied (/data/grate.db)",
+      "Database up to date, 13 migrations already applied (/data/grate.db)",
     );
   });
 
@@ -154,14 +155,14 @@ describe("describeMigrations", () => {
       describeMigrations(
         {
           applied: ["0009_game_hidden", "0010_next"],
-          total: 12,
+          total: 13,
           durationMs: 42,
         },
         "/data/grate.db",
       ),
     ).toBe(
       [
-        "Database migrated, applied 2 new migrations in 42ms, 12 total (/data/grate.db)",
+        "Database migrated, applied 2 new migrations in 42ms, 13 total (/data/grate.db)",
         "  ✔ 0009_game_hidden",
         "  ✔ 0010_next",
       ].join("\n"),

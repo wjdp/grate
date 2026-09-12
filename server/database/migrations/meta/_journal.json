@@ -85,6 +85,13 @@
       "when": 1789230825827,
       "tag": "0011_steam_api_key_returns",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1789236196888,
+      "tag": "0012_playtime_correction",
+      "breakpoints": true
     }
   ]
 }

@@ -3,20 +3,29 @@ import { db } from "~~/server/database/client";
 import {
   type EpicGame,
   epicGame,
+  epicGamePlaytime,
   type Game,
   type GameDistinctPair,
   type GogGame,
   game,
   gameDistinctPair,
   gogGame,
+  gogGamePlaytime,
   type NewEpicGame,
+  type NewEpicGamePlaytime,
   type NewGame,
   type NewGogGame,
+  type NewGogGamePlaytime,
+  type NewPlaytimeCorrection,
   type NewSteamGame,
+  type NewSteamGamePlaytime,
   type NewSteamUser,
+  type PlaytimeCorrection,
+  playtimeCorrection,
   type SteamGame,
   type SteamUser,
   steamGame,
+  steamGamePlaytime,
   steamUser,
   user,
 } from "~~/server/database/schema";
@@ -135,4 +144,22 @@ export function createSteamUser(
     })
     .returning()
     .get();
+}
+
+export function createSteamGamePlaytime(values: NewSteamGamePlaytime) {
+  return db.insert(steamGamePlaytime).values(values).returning().get();
+}
+
+export function createGogGamePlaytime(values: NewGogGamePlaytime) {
+  return db.insert(gogGamePlaytime).values(values).returning().get();
+}
+
+export function createEpicGamePlaytime(values: NewEpicGamePlaytime) {
+  return db.insert(epicGamePlaytime).values(values).returning().get();
+}
+
+export function createPlaytimeCorrection(
+  values: NewPlaytimeCorrection,
+): PlaytimeCorrection {
+  return db.insert(playtimeCorrection).values(values).returning().get();
 }

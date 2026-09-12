@@ -1,5 +1,6 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
+  check,
   index,
   integer,
   sqliteTable,
@@ -347,6 +348,32 @@ export const epicIgnoredItem = sqliteTable("EpicIgnoredItem", {
     .$defaultFn(() => new Date()),
 });
 
+export const PLAYTIME_PROVIDERS = ["steam", "gog", "epic"] as const;
+
+export const playtimeCorrection = sqliteTable(
+  "PlaytimeCorrection",
+  {
+    id: autoIncrementId(),
+    provider: text({ enum: PLAYTIME_PROVIDERS }).notNull(),
+    providerId: integer().notNull(),
+    snapshotId: integer(),
+    minutes: integer().notNull(),
+    playedFrom: text().notNull(),
+    playedTo: text().notNull(),
+    note: text(),
+    createdAt: datetime()
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [
+    index("PlaytimeCorrection_provider_providerId_idx").on(
+      table.provider,
+      table.providerId,
+    ),
+    check("PlaytimeCorrection_minutes_positive", sql`${table.minutes} > 0`),
+  ],
+);
+
 export const userRelations = relations(user, ({ one }) => ({
   steamUser: one(steamUser),
 }));
@@ -472,3 +499,5 @@ export type EpicGamePlaytime = typeof epicGamePlaytime.$inferSelect;
 export type NewEpicGamePlaytime = typeof epicGamePlaytime.$inferInsert;
 export type EpicIgnoredItem = typeof epicIgnoredItem.$inferSelect;
 export type NewEpicIgnoredItem = typeof epicIgnoredItem.$inferInsert;
+export type PlaytimeCorrection = typeof playtimeCorrection.$inferSelect;
+export type NewPlaytimeCorrection = typeof playtimeCorrection.$inferInsert;

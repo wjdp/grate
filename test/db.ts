@@ -11,6 +11,7 @@ import {
   gogGamePlaytime,
   gogIgnoredProduct,
   gogUser,
+  playtimeCorrection,
   steamAppInfo,
   steamGame,
   steamGamePlaytime,
@@ -19,6 +20,7 @@ import {
 } from "~~/server/database/schema";
 
 const TABLES = [
+  playtimeCorrection,
   steamGamePlaytime,
   gogGamePlaytime,
   epicGamePlaytime,

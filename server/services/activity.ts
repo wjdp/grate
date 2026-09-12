@@ -1,101 +1,212 @@
-import { asc, eq } from "drizzle-orm";
-import { type PlayDaySettings, playDayOf } from "#shared/playDay";
-import type { DailyPlaytime } from "#shared/types/Activity";
+import { eq } from "drizzle-orm";
+import type { PlayDaySettings } from "#shared/playDay";
+import type {
+  ActivityYear,
+  DailyPlaytime,
+  MonthlyPlaytime,
+} from "#shared/types/Activity";
+import type { PlaytimeProvider } from "#shared/types/PlaytimeSession";
 import { db } from "~~/server/database/client";
 import {
+  epicGame,
   epicGamePlaytime,
   game,
+  gogGame,
   gogGamePlaytime,
+  playtimeCorrection,
+  steamGame,
   steamGamePlaytime,
 } from "~~/server/database/schema";
+import {
+  type CorrectionInput,
+  deriveTimeline,
+  type PlaytimeProviderRow,
+  type PlaytimeSnapshot,
+} from "~~/server/services/playtimeTimeline";
 import { getPlayDaySettings } from "~~/server/services/settings";
 
-interface Snapshot {
-  rowKey: string;
-  timestampEnd: Date;
-  playtimeMinutes: number;
+interface ProviderRowTimeline {
+  row: PlaytimeProviderRow;
+  snapshots: PlaytimeSnapshot[];
+  corrections: CorrectionInput[];
 }
 
-async function getHiddenRowKeys(): Promise<Set<string>> {
-  const hiddenGames = await db.query.game.findMany({
-    columns: { id: true },
-    with: {
-      steamGames: { columns: { appId: true } },
-      gogGames: { columns: { gogId: true } },
-      epicGames: { columns: { epicId: true } },
-    },
-    where: eq(game.hidden, true),
-  });
-  return new Set(
-    hiddenGames.flatMap((hiddenGame) => [
-      ...hiddenGame.steamGames.map((row) => `steam:${row.appId}`),
-      ...hiddenGame.gogGames.map((row) => `gog:${row.gogId}`),
-      ...hiddenGame.epicGames.map((row) => `epic:${row.epicId}`),
-    ]),
+function rowKey(provider: PlaytimeProvider, providerId: number) {
+  return `${provider}:${providerId}`;
+}
+
+function groupedByRow<T>(
+  records: T[],
+  keyOf: (record: T) => string,
+): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const record of records) {
+    const key = keyOf(record);
+    const existing = grouped.get(key);
+    if (existing) existing.push(record);
+    else grouped.set(key, [record]);
+  }
+  return grouped;
+}
+
+function visibleProviderRows(): PlaytimeProviderRow[] {
+  const steamRows = db
+    .select({ providerId: steamGame.appId, providerName: steamGame.name })
+    .from(steamGame)
+    .innerJoin(game, eq(steamGame.gameId, game.id))
+    .where(eq(game.hidden, false))
+    .all();
+  const gogRows = db
+    .select({ providerId: gogGame.gogId, providerName: gogGame.name })
+    .from(gogGame)
+    .innerJoin(game, eq(gogGame.gameId, game.id))
+    .where(eq(game.hidden, false))
+    .all();
+  const epicRows = db
+    .select({ providerId: epicGame.epicId, providerName: epicGame.name })
+    .from(epicGame)
+    .innerJoin(game, eq(epicGame.gameId, game.id))
+    .where(eq(game.hidden, false))
+    .all();
+  return [
+    ...steamRows.map((row) => ({ ...row, provider: "steam" as const })),
+    ...gogRows.map((row) => ({ ...row, provider: "gog" as const })),
+    ...epicRows.map((row) => ({ ...row, provider: "epic" as const })),
+  ];
+}
+
+function snapshotsByRow(): Map<string, PlaytimeSnapshot[]> {
+  const steamRecords = db
+    .select({
+      id: steamGamePlaytime.id,
+      steamAppId: steamGamePlaytime.steamAppId,
+      timestampStart: steamGamePlaytime.timestampStart,
+      timestampEnd: steamGamePlaytime.timestampEnd,
+      playtimeMinutes: steamGamePlaytime.playtimeForever,
+      rTimeLastPlayed: steamGamePlaytime.rTimeLastPlayed,
+      playtimeDisconnected: steamGamePlaytime.playtimeDisconnected,
+    })
+    .from(steamGamePlaytime)
+    .all();
+  const gogRecords = db
+    .select({
+      id: gogGamePlaytime.id,
+      gogId: gogGamePlaytime.gogId,
+      timestampStart: gogGamePlaytime.timestampStart,
+      timestampEnd: gogGamePlaytime.timestampEnd,
+      playtimeMinutes: gogGamePlaytime.playtimeMinutes,
+    })
+    .from(gogGamePlaytime)
+    .all();
+  const epicRecords = db
+    .select({
+      id: epicGamePlaytime.id,
+      epicId: epicGamePlaytime.epicId,
+      timestampStart: epicGamePlaytime.timestampStart,
+      timestampEnd: epicGamePlaytime.timestampEnd,
+      playtimeMinutes: epicGamePlaytime.playtimeMinutes,
+    })
+    .from(epicGamePlaytime)
+    .all();
+
+  return groupedByRow<PlaytimeSnapshot & { key: string }>(
+    [
+      ...steamRecords.map(({ steamAppId, ...record }) => ({
+        ...record,
+        playtimeMinutes: record.playtimeMinutes ?? 0,
+        key: rowKey("steam", steamAppId),
+      })),
+      ...gogRecords.map(({ gogId, ...record }) => ({
+        ...record,
+        key: rowKey("gog", gogId),
+      })),
+      ...epicRecords.map(({ epicId, ...record }) => ({
+        ...record,
+        key: rowKey("epic", epicId),
+      })),
+    ],
+    (record) => record.key,
   );
 }
 
-async function getSnapshots(): Promise<Snapshot[]> {
-  const steamRecords = await db
-    .select()
-    .from(steamGamePlaytime)
-    .orderBy(asc(steamGamePlaytime.timestampEnd), asc(steamGamePlaytime.id))
+function correctionsByRow(): Map<string, CorrectionInput[]> {
+  const corrections = db
+    .select({
+      id: playtimeCorrection.id,
+      provider: playtimeCorrection.provider,
+      providerId: playtimeCorrection.providerId,
+      snapshotId: playtimeCorrection.snapshotId,
+      minutes: playtimeCorrection.minutes,
+      playedFrom: playtimeCorrection.playedFrom,
+      playedTo: playtimeCorrection.playedTo,
+      note: playtimeCorrection.note,
+    })
+    .from(playtimeCorrection)
     .all();
-  const gogRecords = await db
-    .select()
-    .from(gogGamePlaytime)
-    .orderBy(asc(gogGamePlaytime.timestampEnd), asc(gogGamePlaytime.id))
-    .all();
-  const epicRecords = await db
-    .select()
-    .from(epicGamePlaytime)
-    .orderBy(asc(epicGamePlaytime.timestampEnd), asc(epicGamePlaytime.id))
-    .all();
+  return groupedByRow(corrections, (correction) =>
+    rowKey(correction.provider, correction.providerId),
+  );
+}
 
-  return [
-    ...steamRecords.map((record) => ({
-      rowKey: `steam:${record.steamAppId}`,
-      timestampEnd: record.timestampEnd,
-      playtimeMinutes: record.playtimeForever ?? 0,
-    })),
-    ...gogRecords.map((record) => ({
-      rowKey: `gog:${record.gogId}`,
-      timestampEnd: record.timestampEnd,
-      playtimeMinutes: record.playtimeMinutes,
-    })),
-    ...epicRecords.map((record) => ({
-      rowKey: `epic:${record.epicId}`,
-      timestampEnd: record.timestampEnd,
-      playtimeMinutes: record.playtimeMinutes,
-    })),
-  ];
+function visibleTimelines(): ProviderRowTimeline[] {
+  const snapshots = snapshotsByRow();
+  const corrections = correctionsByRow();
+  return visibleProviderRows().map((row) => {
+    const key = rowKey(row.provider, row.providerId);
+    return {
+      row,
+      snapshots: snapshots.get(key) ?? [],
+      corrections: corrections.get(key) ?? [],
+    };
+  });
+}
+
+function addMinutes(totals: Map<string, number>, key: string, minutes: number) {
+  totals.set(key, (totals.get(key) ?? 0) + minutes);
 }
 
 export async function getDailyPlaytime(
   year: number,
   settings?: PlayDaySettings,
-): Promise<DailyPlaytime[]> {
+): Promise<ActivityYear> {
   const playDaySettings = settings ?? (await getPlayDaySettings());
-  const snapshots = await getSnapshots();
-  const hiddenRowKeys = await getHiddenRowKeys();
-  const previousByRow = new Map<string, number>();
-  const minutesByDate = new Map<string, number>();
+  const minutesByDay = new Map<string, number>();
+  const minutesByMonth = new Map<string, number>();
+  let yearOnly = 0;
 
-  for (const snapshot of snapshots) {
-    if (hiddenRowKeys.has(snapshot.rowKey)) continue;
-    const previous = previousByRow.get(snapshot.rowKey);
-    previousByRow.set(snapshot.rowKey, snapshot.playtimeMinutes);
-    if (previous === undefined) continue;
-
-    const delta = snapshot.playtimeMinutes - previous;
-    if (delta <= 0) continue;
-
-    const date = playDayOf(snapshot.timestampEnd, playDaySettings);
-    minutesByDate.set(date, (minutesByDate.get(date) ?? 0) + delta);
+  for (const { row, snapshots, corrections } of visibleTimelines()) {
+    const { sessions } = deriveTimeline(
+      snapshots,
+      row,
+      corrections,
+      playDaySettings,
+    );
+    for (const session of sessions) {
+      const minutes = Math.round(session.minutes);
+      if (session.playDay) {
+        if (session.playDay.startsWith(`${year}-`)) {
+          addMinutes(minutesByDay, session.playDay, minutes);
+        }
+        continue;
+      }
+      if (session.calendarMonth) {
+        if (session.calendarMonth.startsWith(`${year}-`)) {
+          addMinutes(minutesByMonth, session.calendarMonth, minutes);
+        }
+        continue;
+      }
+      if (session.calendarYear === year) {
+        yearOnly += minutes;
+      }
+    }
   }
 
-  return [...minutesByDate.entries()]
-    .filter(([date]) => date.startsWith(`${year}-`))
+  const days: DailyPlaytime[] = [...minutesByDay.entries()]
     .map(([date, minutes]) => ({ date, minutes }))
     .sort((a, b) => a.date.localeCompare(b.date));
+  const months: MonthlyPlaytime[] = [...minutesByMonth.entries()]
+    .map(([month, minutes]) => ({ month, minutes }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  return { days, imprecise: { months, yearOnly } };
 }

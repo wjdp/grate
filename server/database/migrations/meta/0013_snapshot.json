@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "bf4a152b-3d9f-46c4-aa15-c3fcb05652a1",
-  "prevId": "d94e6c09-9292-4f91-bc9b-ab7f98718839",
+  "id": "6393b5d9-53b1-48bb-b63c-e748c51b1ab5",
+  "prevId": "bf4a152b-3d9f-46c4-aa15-c3fcb05652a1",
   "tables": {
     "EpicGame": {
       "name": "EpicGame",
@@ -150,6 +150,11 @@
         "EpicGame_gameId_idx": {
           "name": "EpicGame_gameId_idx",
           "columns": ["gameId"],
+          "isUnique": false
+        },
+        "EpicGame_catalogItemId_idx": {
+          "name": "EpicGame_catalogItemId_idx",
+          "columns": ["catalogItemId"],
           "isUnique": false
         }
       },

@@ -7,3 +7,13 @@ export const gogAuthBodySchema = z.object({
 export const epicAuthBodySchema = z.object({
   code: z.string().min(1),
 });
+
+export const steamIdentifyBodySchema = z.object({
+  profile: z.string().min(1),
+});
+
+export const steamAuthBodySchema = z.object({
+  apiKey: z.string().min(1),
+  steamId: z.string().regex(/^\d{17}$/),
+  qrLoginId: z.string().uuid().optional(),
+});

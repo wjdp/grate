@@ -111,7 +111,10 @@ async function holdOrAttach(login: QrLogin, session: LoginSession) {
   const profile = await getCommunityProfile({ steamId });
   login.steamId = steamId;
   login.personaName = profile.steamID;
-  if (await getSteamUser()) {
+  // A row without a key is mid-setup (or disconnected), so the token waits
+  // for the key rather than attaching to an account that cannot poll.
+  const currentUser = await getSteamUser();
+  if (currentUser?.apiKey) {
     await attachSteamWebSession({ steamId, ...webSession });
   } else {
     login.held = webSession;

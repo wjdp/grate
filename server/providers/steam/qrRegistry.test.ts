@@ -146,7 +146,10 @@ describe("startQrLogin", () => {
 
 describe("authentication", () => {
   it("attaches the web session to an existing account", async () => {
-    service.getSteamUser.mockResolvedValue({ steamId: STEAM_ID });
+    service.getSteamUser.mockResolvedValue({
+      steamId: STEAM_ID,
+      apiKey: "API-KEY",
+    });
     const { id } = await startQrLogin();
     const { refreshToken, refreshTokenExpiresAt } = scan();
 
@@ -194,6 +197,24 @@ describe("authentication", () => {
     expect(getQrLogin(id)).toBeNull();
   });
 
+  it("holds the token when the row has no api key", async () => {
+    service.getSteamUser.mockResolvedValue({
+      steamId: STEAM_ID,
+      apiKey: null,
+    });
+    const { id } = await startQrLogin();
+    const { refreshToken, refreshTokenExpiresAt } = scan();
+
+    await vi.waitFor(() => expect(getQrLogin(id)?.state).toBe("authenticated"));
+
+    expect(service.attachSteamWebSession).not.toHaveBeenCalled();
+    expect(takeHeldQrLogin(id)).toEqual({
+      steamId: STEAM_ID,
+      refreshToken,
+      refreshTokenExpiresAt,
+    });
+  });
+
   it("has nothing to take for an unknown or unscanned login", async () => {
     const { id } = await startQrLogin();
     expect(takeHeldQrLogin(id)).toBeNull();
@@ -201,7 +222,10 @@ describe("authentication", () => {
   });
 
   it("surfaces the single-account guard as an error state", async () => {
-    service.getSteamUser.mockResolvedValue({ steamId: "76561198000000002" });
+    service.getSteamUser.mockResolvedValue({
+      steamId: "76561198000000002",
+      apiKey: "API-KEY",
+    });
     service.attachSteamWebSession.mockRejectedValue(
       new Error("grate only supports a single Steam account"),
     );

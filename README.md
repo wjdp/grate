@@ -36,6 +36,7 @@ services:
     image: ghcr.io/wjdp/grate:latest
     container_name: grate
     restart: unless-stopped
+    user: "1000:1000"
     volumes:
       - <path to local directory>:/app/data
     ports:
@@ -43,6 +44,8 @@ services:
     environment:
       - TZ=Europe/London
 ```
+
+The container runs as whatever `user` you give it; `1000:1000` is the usual first user on a Linux host, so check with `id -u` and `id -g` and make sure the data directory is owned by that user, or grate will fail to create its database.
 
 grate uses the container's `TZ` to decide which day a session belongs to (the day runs 06:00 to 06:00, so a 1am session counts towards the night before); it defaults to UTC when unset, and can be overridden per user in Settings.
 

@@ -260,9 +260,7 @@ const formatRelative = (value: string) => {
 
           <p class="text-muted">
             Your API key is stored in grate's database. Revoke it at
-            <ULink :to="API_KEY_URL" target="_blank" class="underline">
-              steamcommunity.com/dev/apikey </ULink
-            >.
+            <ULink :to="API_KEY_URL" target="_blank" class="underline">steamcommunity.com/dev/apikey</ULink>.
           </p>
         </div>
       </UCard>
@@ -361,9 +359,7 @@ const formatRelative = (value: string) => {
 
           <p class="text-muted">
             Revoke it on Steam's side under
-            <ULink :to="AUTHORISED_DEVICES_URL" target="_blank" class="underline">
-              Authorised Devices </ULink
-            >.
+            <ULink :to="AUTHORISED_DEVICES_URL" target="_blank" class="underline">Authorised Devices</ULink>.
           </p>
         </div>
       </UCard>

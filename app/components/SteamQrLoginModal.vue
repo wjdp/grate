@@ -191,23 +191,26 @@ onBeforeUnmount(() => {
         <UAlert
           v-if="phase === 'starting' || phase === 'pending'"
           color="warning"
-          variant="subtle"
+          variant="soft"
           icon="i-lucide-shield-alert"
           title="A browser-style login, opted into knowingly"
+          :ui="{ description: 'text-default' }"
         >
           <template #description>
             <p>
               grate uses this session at most once a day for data the Web API
-              key cannot reach — owned DLC today, more later. Steam's terms
-              forbid automated access, and grate's earlier mobile-style login
-              got an account restricted, so link it only if you accept that
-              risk. The session grants full account access, including
-              purchases. grate cannot renew it: it expires after about seven
-              months. Revoke it at any time under Steam's
+              key cannot reach — owned DLC today, more later. The Web API key
+              is Steam's sanctioned route; the Subscriber Agreement forbids
+              automated use of the store itself, which is what this session
+              does. grate's earlier mobile-style login got an account
+              restricted, so link it only if you accept that risk. The session
+              grants full account access, including purchases. grate cannot
+              renew it: it expires after about seven months. Revoke it at any
+              time under Steam's
               <ULink
                 :to="AUTHORISED_DEVICES_URL"
                 target="_blank"
-                class="underline text-amber-300"
+                class="underline"
                 >Authorised Devices</ULink
               >.
             </p>

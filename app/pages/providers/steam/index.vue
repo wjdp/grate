@@ -465,8 +465,8 @@ const formatRelative = (value: string) => {
               <template #description>
                 Create a key for {{ identity.personaName }} at
                 <ULink :to="API_KEY_URL" target="_blank" class="underline">
-                  steamcommunity.com/dev/apikey </ULink
-                >; any domain name works. grate stores the key in its database,
+                  steamcommunity.com/dev/apikey</ULink>
+                  any domain name works. grate stores the key in its database,
                 and you revoke it on the same page.
               </template>
               <UInput

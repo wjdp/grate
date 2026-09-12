@@ -30,6 +30,8 @@ import {
   createGame,
   createGameDistinctPair,
   createGogGame,
+  createGogGamePlaytime,
+  createPlaytimeCorrection,
   createSteamGame,
 } from "~~/test/fixtures/game";
 
@@ -378,7 +380,7 @@ describe("getGameTimeline", () => {
         .values({ gogId: gogGame.gogId, ...record })
         .run();
     }
-    const sessions = await getGameTimeline(gogGame.gameId);
+    const { sessions } = await getGameTimeline(gogGame.gameId);
     expect(sessions).toStrictEqual([
       {
         provider: "gog",
@@ -392,6 +394,10 @@ describe("getGameTimeline", () => {
         uncertaintyMinutes: 70,
         anchored: false,
         playDay: "2026-08-31",
+        calendarMonth: "2026-08",
+        calendarYear: 2026,
+        snapshotId: expect.any(Number),
+        correction: null,
       },
     ]);
   });
@@ -415,7 +421,7 @@ describe("getGameTimeline", () => {
         .values({ gogId: gogGame.gogId, ...record })
         .run();
     }
-    const sessions = await getGameTimeline(gogGame.gameId);
+    const { sessions } = await getGameTimeline(gogGame.gameId);
     expect(sessions.map((session) => session.playDay)).toStrictEqual([
       "2026-08-31",
     ]);
@@ -463,7 +469,7 @@ describe("getGameTimeline", () => {
         playtimeMinutes: 545,
       })
       .run();
-    const sessions = await getGameTimeline(steamGame.gameId);
+    const { sessions } = await getGameTimeline(steamGame.gameId);
     expect(
       sessions.map((session) => [
         session.provider,
@@ -477,9 +483,72 @@ describe("getGameTimeline", () => {
     ]);
   });
 
+  it("re-places a corrected delta and reports undated pre-history", async () => {
+    const gog = createGogGame({ name: "Quantum Break" });
+    const baseline = createGogGamePlaytime({
+      gogId: gog.gogId,
+      timestampStart: null,
+      timestampEnd: new Date("2020-10-30T00:00:00.000Z"),
+      playtimeMinutes: 600,
+    });
+    const delta = createGogGamePlaytime({
+      gogId: gog.gogId,
+      timestampStart: new Date("2020-10-30T00:00:00.000Z"),
+      timestampEnd: new Date("2020-11-02T00:00:00.000Z"),
+      playtimeMinutes: 670,
+    });
+    createPlaytimeCorrection({
+      provider: "gog",
+      providerId: gog.gogId,
+      snapshotId: baseline.id,
+      minutes: 200,
+      playedFrom: "2020-09",
+      playedTo: "2020-09",
+    });
+    createPlaytimeCorrection({
+      provider: "gog",
+      providerId: gog.gogId,
+      snapshotId: delta.id,
+      minutes: 70,
+      playedFrom: "2020-11-01T20:00",
+      playedTo: "2020-11-01T21:10",
+    });
+
+    const { sessions, undated } = await getGameTimeline(gog.gameId);
+
+    expect(undated).toStrictEqual([
+      {
+        provider: "gog",
+        providerId: gog.gogId,
+        providerName: gog.name,
+        snapshotId: baseline.id,
+        minutes: 400,
+        before: new Date("2020-10-30T00:00:00.000Z"),
+      },
+    ]);
+    expect(
+      sessions.map((session) => [
+        session.minutes,
+        session.playDay,
+        session.calendarMonth,
+      ]),
+    ).toStrictEqual([
+      [70, "2020-11-01", "2020-11"],
+      [200, null, "2020-09"],
+    ]);
+    expect(sessions[0]?.correction).toMatchObject({
+      playedFrom: "2020-11-01T20:00",
+      playedTo: "2020-11-01T21:10",
+    });
+    expect(sessions[0]?.snapshotId).toBeNull();
+  });
+
   it("returns no sessions for a game with no providers", async () => {
     const bareGame = createGame({ name: "Hollow Knight" });
-    expect(await getGameTimeline(bareGame.id)).toStrictEqual([]);
+    expect(await getGameTimeline(bareGame.id)).toStrictEqual({
+      sessions: [],
+      undated: [],
+    });
   });
 });
 

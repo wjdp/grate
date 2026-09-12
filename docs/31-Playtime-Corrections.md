@@ -7,6 +7,10 @@ status: open
 
 Written 2026-09-08 against `4f42a0d`. Builds on the timeline layer in [22](22-Playtime-Timeline.md) and the backfill / playthrough goals in [17](17-Product-Goals.md).
 
+## Revision
+
+Revised 2026-09-12. A first attempt (branch `playtime-correction-gpt`) built contiguous snapshot-range claims, three claim kinds, auto-reconciliation and a materialised projection. Reviewed as far more than the three cases need; this revision keeps the problem statement and fuzzy dates and replaces the model.
+
 ## Problem
 
 Stores expose cumulative totals, so a delta is a correct **amount** with an uncertain **placement**. Two ways that goes wrong:
@@ -31,7 +35,7 @@ Three cases, one mechanism:
 ## Principles
 
 - Raw snapshot rows stay immutable evidence ([22](22-Playtime-Timeline.md)). Corrections are a read layer over derivation.
-- A correction normally **re-places observed minutes**. The one additive form, `unreported`, exists because launchers lose sessions; it is an explicit user declaration that the store total is wrong, badged as such everywhere. Manual entry for games with no store row (consoles, unsupported stores) is still a separate feature and a separate provider.
+- A correction normally **re-places observed minutes**. The one additive form is a manual session with no snapshot: an explicit user declaration that the store missed play. Manual entry for games with no store row (consoles, unsupported stores) is still a separate feature and a separate provider.
 - Precision is stored honestly. A rough date is stored rough, never as a fabricated datetime.
 - The user is the authority. Grate validates against the evidence it holds (a claim cannot exceed its delta, cannot end after the store observed it) and otherwise obeys.
 - Everything downstream reads the corrected timeline: game page, activity chart, `lastPlayedAt`, aggregates, future state automation. A late delta must not reset a stall clock if the user has already dated it.
@@ -41,26 +45,22 @@ Three cases, one mechanism:
 ```
 PlaytimeCorrection
   id
-  provider              steam | gog | epic
-  providerId            appId / gogId / epicId
-  claim                 claimed | staged | unreported
-  claimFromSnapshotId   nullable  } contiguous range of rows in that provider's
-  claimToSnapshotId     nullable  } playtime table; set iff claim = claimed
-  minutes
-  playedFrom            text, fuzzy date (grammar below)
-  playedTo              text, same grammar; equals playedFrom for a single fuzzy date
-  source                manual | save-file | achievements   (later: automated)
-  note                  nullable
+  provider       steam | gog | epic
+  providerId     appId / gogId / epicId
+  snapshotId     nullable. Id of the row in that provider's playtime table whose delta
+                 this re-places. For the baseline it is the first row (timestampStart null).
+                 null = manual additive session the store never reported.
+  minutes        > 0
+  playedFrom     fuzzy date text (grammar below)
+  playedTo       fuzzy date text; equals playedFrom for a single fuzzy date
+  note           nullable
   createdAt
 ```
 
-**Claims.** A correction claims a contiguous range of snapshot rows on one provider row. A single delta is the degenerate range; a Steam sitting merged from hourly flushes is a wider one. The claimed `minutes` must be at most the summed delta of the range; several corrections may claim the same range as long as the sum fits. Any unclaimed remainder stays as a residual session with the original window. The grounding baseline (`timestampStart: null` row plus partner) is claimable like any delta: that is how pre-history gets dated.
-
-**Staged corrections** have no claim. They count in stats immediately and render flagged. Each sync, new deltas on the provider row are matched against staged corrections; a match binds the claim and drops the flag. A bound delta is excluded from ordinary derivation, so nothing double counts. Unmatched corrections can be bound by hand ("this is that") or marked permanent (store will never report it).
-
-**Unreported corrections** have no claim and never seek one. They add minutes the store does not have. Grate's total for the game becomes store total plus unreported minutes; the raw sync modal still shows the store's own figure, so the divergence is inspectable. If a later delta on the same row looks like the unreported session (similar minutes, window after the declared end), flag it as a possible duplicate and offer to convert the correction to a claim. Suggest, never auto-bind, because the user has already said the store missed it.
-
-**Matching tolerance:** decide from test scenarios. Starting guess: declared and observed minutes differ by under 15 min or 10%, whichever larger; also try one correction against the sum of consecutive deltas, since a Steam offline upload may arrive split. Users think in hours plus minutes, not exact minutes.
+- A correction targets one snapshot row: the row that introduced a positive cumulative delta, or the baseline row. Its capacity is that delta (baseline: the cumulative total on the first row). A lone correction re-places the whole delta: the session renders with the store's minutes, and the correction's own minutes only cap what it may claim. Several corrections may target the same row to split it into several played periods; their minutes sum to at most the capacity, and any remainder stays as a residual session in the original observation window. The baseline is the exception: its remainder is always reported as undated pre-history, bounded by the baseline row's `timestampEnd` (for Steam this is grounded on `rTimeLastPlayed`, the last time the game was played before grate), so a lone baseline correction does not absorb it.
+- Snapshot rows are never deleted (verified: no code deletes from the playtime tables), so the reference is stable. It is polymorphic across three tables, so no FK; the service checks ownership.
+- Manual sessions (`snapshotId` null) are additive. If the store later reports the play, the user binds the correction to that delta by patching `snapshotId`, or deletes it. No automatic matching.
+- No Steam merged-run claims: corrections target single deltas. A merged Steam sitting is already anchored and rarely needs correcting; the UI does not offer Correct… on multi-delta sessions.
 
 ## Fuzzy dates
 
@@ -81,73 +81,76 @@ any of the above with a trailing ~
 - Mixed precision allowed: `2020-10-12T20:00` to `2020-10-13` ("started 8pm, finished sometime next day").
 - Reject `playedTo` earlier than `playedFrom` after resolution.
 - Sorts lexicographically as text.
-- Parser and formatter live in `shared/` next to `playDay.ts`; the same type will serve playthrough backfill and journal entries.
+- Implemented in `shared/fuzzyDate.ts`: parse, resolve to `[earliest, latest]` in a timezone, range resolution, compare, format. Salvaged from the first attempt.
 
 Rendering follows precision: `2020`, `Oct 2020`, `12–30 Oct 2020`, `Tue 12 Oct, 20:00–23:52`. Trailing `~` renders as the tilde the timeline already uses for fuzziness.
 
-Defer `?`, `XX`, seasons and the `edtf` npm package until a real need appears.
+Defer `?`, `XX` and seasons until a real need appears.
 
 ## Derivation
 
-1. `observeDeltas` as now.
-2. `applyCorrections(deltas, corrections)`: for each claimed range, emit one session per correction (bounds from the resolved fuzzy dates, `anchored` iff both ends are exact datetimes, `uncertaintyMinutes` = window width otherwise) plus a residual session for any unclaimed minutes carrying the original delta window. Emit staged corrections as sessions with a `staged` flag.
-3. Steam contiguity merging runs only over uncorrected deltas.
-4. Bucketing: exact sessions use the end-bound play-day rule as today. Sessions whose window spans more than one play day count at the coarsest calendar unit (month, then year) that contains the window, and never on a day. The day chart notes "plus Nh imprecisely dated this month".
+`deriveTimeline(snapshots, row, corrections, playDaySettings)` in `server/services/playtimeTimeline.ts`, replacing `deriveSessions`:
 
-Validation on write: claimed minutes at most the range's delta; resolved `playedTo` at or before the last claimed row's `timestampEnd`; for a Steam baseline, at or before `rTimeLastPlayed`. Staged and unreported corrections only require `playedTo` not in the future.
+1. Observe deltas as now, each carrying the id of the row that introduced it.
+2. A delta with exactly one correction emits one session, placed by the correction and carrying the delta's minutes: a lone correction re-places the whole delta; the store's minutes are grate's unit. A delta with several corrections emits one session per correction with that correction's minutes, plus a residual session with the original window if they sum to less than the delta. Residuals only arise when several corrections split a delta. Corrected deltas never take part in Steam contiguity merging.
+3. The baseline (first row, `timestampStart` null, cumulative > 0) is treated the same: corrections against it become sessions; any remainder is reported as undated pre-history minutes, not as a session.
+4. Manual corrections become additive sessions.
+5. A session from a correction: exact when both ends are minute-precision → `anchored`, `uncertaintyMinutes` 0, bounds are the resolved instants. Otherwise unanchored, bounds `[earliest, latest]`, `uncertaintyMinutes` = width. `~` marks a time as approximate for display only and never affects placement: `2026-09-12T00:33~` is placed exactly as `2026-09-12T00:33` is.
+6. Bucketing. Observed and exact sessions: end-bound play day as today. A correction whose ends are both day-precision and name the same date buckets to that calendar date — a user writing `2026-09-03` means that day, so the play day boundary is not applied. Coarser or mixed precision buckets to the coarsest calendar unit containing the range — month if within one month, else year, else unallocated — never a day. Every session carries `playDay`, `calendarMonth` and `calendarYear`, each null when not applicable; exact sessions fill all three from the play day.
+7. `inferredLastPlayedAt` unchanged (GOG/Epic, raw deltas). `Game.lastPlayedAt` = max of the provider-derived value and the latest correction end. Dating a late delta backwards does not yet lower it; revisit with state automation.
+8. `Game.playtimeMinutes` = store totals + manual correction minutes.
 
-## Case 1: present, precise
+Validation on write: minutes a positive integer; `playedTo` not before `playedFrom` after resolution; snapshot belongs to the provider row and is the baseline or a positive-delta row; sum of minutes on that snapshot ≤ capacity; resolved `playedTo` latest bound ≤ that row's `timestampEnd`; manual corrections' `playedTo` ≤ now. Nothing else — overlapping played periods are the user's business.
 
-Cyberpunk-style: a 232-minute GOG delta lands Thursday in a 4-minute window; the user knows from the save file it ended Tuesday 23:52.
+## Consumers
 
-- Game page session row → "Correct…". Form prefills the delta's minutes; accepts start or end plus duration (save files give the end). Writes an exact correction claiming that delta.
-- Session now renders anchored, `Tue 12 Oct, 20:00–23:52`, badged as corrected, original window in the tooltip.
-- Splitting: an outage delta or offline upload covering several sittings gets several corrections; the residual stays fuzzy until fully claimed.
-- Delta not arrived yet: "Add session" on the game page writes a staged correction. It shows flagged, counts now, and binds on the next matching sync.
+- `getGameTimeline` returns `{ sessions, undated }`; `undated` lists per provider row the pre-history minutes not yet dated, with the baseline `snapshotId` and its `before` bound (the baseline's `timestampEnd`) so the UI can offer Date this…. Sessions carry `snapshotId` (single-delta observed/residual sessions only) and `correction` (`{ id, playedFrom, playedTo, note }` or null).
+- `getDailyPlaytime` moves onto `deriveTimeline` so the activity chart and the game page agree. Its response gains imprecise totals for the year: per-month minutes and year-only minutes, never assigned to days. Cross-year ranges are omitted from yearly activity.
+- `refreshGameAggregates` adds manual minutes and the latest correction end.
+- API: `GET/POST /api/games/[id]/corrections`, `PATCH/DELETE /api/games/[id]/corrections/[correctionId]`. Mutations verify the correction's provider row belongs to the game and refresh aggregates.
+- UI: game page — Correct… on a single-delta session (prefilled with its minutes as the cap), Date this… on undated pre-history, Add session (manual). One form: from, to, minutes, note. Corrected and manual badges; original observation window in the tooltip of a corrected session; edit and delete. Activity page: imprecise month/year totals shown as text beside the heatmap ("plus 8h imprecisely dated: Oct 6h, Nov 2h"), not fabricated onto days.
 
-## Case 2: history, rough
+## The three cases, revisited
 
-Quantum Break (game 328): Steam baseline 1053 min, `rTimeLastPlayed` 30 Oct 2020, nothing since. The user recalls a playthrough over a couple of weeks that October.
+**Case 1: present, precise.** Cyberpunk-style GOG delta.
 
-- Game page shows the undated pre-history block. "Date this…" opens the same form with the fuzzy-date input; the user enters `2020-10-12` to `2020-10-30`, or just `2020-10`, and all or part of the minutes.
-- Writes a range correction claiming the baseline pair. Renders as a wide band labelled `12–30 Oct 2020`; counts in October 2020 and 2020 totals, on no particular day. "Your 2020 in games" becomes possible for pre-grate years.
-- Achievements as evidence: unlock timestamps bound the *when*; the baseline supplies the *how much*. Manual for now (`source: achievements`, user reads unlock dates). Once achievements sync, grate can cluster unlock times per game and **propose** a range correction against undated pre-history for the user to confirm. Suggest, never auto-apply, per the automation posture in [17](17-Product-Goals.md).
-- This is the playthrough backfill from [17](17-Product-Goals.md). The correction is the stored fact; playthrough promotion later wraps one or more corrections rather than carrying its own duration.
+- Correct… on the single-delta session; form prefilled with the delta's minutes as the cap.
+- Exact dates in, exact dates out: session renders anchored, badged corrected, original window in the tooltip.
+- Splitting a delta into several sittings: several corrections against the same snapshot, minutes summing to at most the capacity.
+- Delta hasn't arrived yet: not handled here — Add session (Case 3) covers it, bound to the delta later.
 
-## Case 3: present, unreported
+**Case 2: history, rough.** Quantum Break's baseline.
 
-Cyberpunk again: played last night via Heroic on GOG; Heroic's exit bug meant the session was never posted, so GOG's `time_sum` did not move and no delta will ever arrive.
+- Date this… on the undated pre-history block opens the same form; `2020-10-12` to `2020-10-30`, or just `2020-10`.
+- Buckets to the coarsest containing unit — October 2020 here — never a day.
+- Several playthrough periods within the pre-history: several corrections against the baseline snapshot.
+- Any remainder stays undated pre-history, offered again next time.
+- Achievements later **propose** a range against undated pre-history for the user to confirm; never auto-applied.
 
-- "Add session" on the game page, same form as the staged path, with a choice: **awaiting the store** (staged, default) or **the store missed this** (unreported). Unsure users pick staged; if nothing arrives they can flip it to unreported later.
-- Unreported writes an exact correction with `claim: unreported`. Renders anchored, badged unreported, counts in stats and moves `lastPlayedAt` to last night.
-- `Game.playtimeMinutes` via `refreshGameAggregates` includes unreported minutes; the provider row keeps the store's figure.
-- If the launcher turns out to post late rather than never, the duplicate check above catches the delta and offers to bind it, turning the unreported entry into an ordinary claim.
-- Achievements are a natural cross-check here too: an unlock timestamp during the declared window corroborates the session.
+**Case 3: present, unreported.** Heroic-on-GOG dropped session.
 
-## Touch points
-
-- `server/services/playtimeTimeline.ts`: `applyCorrections`, claimed-range exclusion before merging.
-- `server/services/activity.ts`: `getDailyPlaytime` reimplements the delta loop and would silently ignore corrections. Unify it onto the timeline service first, otherwise the game page and the activity chart disagree.
-- `server/services/games.ts`: `getGameTimeline`; `refreshGameAggregates` and provider `lastPlayedAt` inference read the corrected timeline, so a dated offline delta can move `lastPlayedAt` backwards.
-- Sync (`server/providers/*/service.ts`): after recording a delta, attempt to bind staged corrections; flag deltas resembling an unreported one.
-- `refreshGameAggregates`: total = store total + unreported minutes.
-- `shared/fuzzyDate.ts`: parse, resolve, format, compare.
-- `app/`: correction form, badges (corrected, staged), pre-history "Date this…" affordance, activity-chart imprecise note.
-- Migration adding `PlaytimeCorrection`.
+- Add session, manual: `snapshotId` null, exact dates, minutes entered by hand.
+- Counts in stats and `Game.playtimeMinutes` immediately; moves `lastPlayedAt`.
+- If the store later reports the same play, the user binds the correction to that delta by patching `snapshotId` (or deletes it) — no automatic matching.
 
 ## Decisions
 
-1. Corrections re-place minutes, except `unreported`, the single additive form for store-linked rows whose launcher lost a session. Manual entry for games with no store row stays out of scope.
-2. Staged corrections count immediately, flagged.
-3. Exact sessions spanning the 06:00 boundary keep the end-bound rule.
-4. Claims are contiguous snapshot ranges, so Steam merged runs are one claim.
-5. Fuzzy dates stored as reduced-precision text, resolved at read time.
-6. Matching tolerance set empirically from test scenarios.
-7. Staged never binds by itself to unreported; the user flips it. Deltas resembling an unreported entry are flagged, never auto-bound.
+1. One target: a single snapshot row (delta or baseline). No contiguous ranges.
+2. Two forms: re-place (snapshotId set) and manual additive (null). No staged kind, no auto-matching.
+3. Capacity is a cap for the baseline too; no override or signed adjustment. Play beyond the store total is a manual session.
+4. No played-period overlap validation.
+5. Compute on read, as doc 22 decided. No projection table; ~3k snapshot rows is nothing.
+6. Fuzzy dates stored as reduced-precision text, resolved at read time in the user's timezone. `~` allowed.
+7. Imprecise corrections bucket to the coarsest containing calendar unit; exact and observed sessions keep the end-bound play-day rule.
+8. Multi-delta (merged Steam) sessions are not correctable in v1.
+
+## Follow-ups
+
+- `lastPlayedAt` lowered by backdated corrections (needed once state automation lands).
+- Achievement-proposed corrections.
+- Correcting merged Steam runs.
+- Save-file sitting detection should split on any playthrough-time stall of a few minutes; GOG logs once per exit, verified 12 Sep 2026.
 
 ## Unanswered questions
 
-- Allow `~` in v1, or strictly reduced-precision only?
-- Staged correction never matched after N syncs: nag with "mark as unreported?", or silently keep?
-- Rough (range) precision for unreported play, e.g. "some evenings in August the launcher dropped"? Grammar allows it; is it worth exposing in the form?
-- Range bucketing at the coarsest containing unit: confirmed, or end-bound even here?
+None.

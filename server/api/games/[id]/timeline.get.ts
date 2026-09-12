@@ -6,6 +6,5 @@ export default defineEventHandler(async (event) => {
     event,
     gameRouterParamsSchema.parse,
   );
-  const sessions = await getGameTimeline(id);
-  return { sessions };
+  return await getGameTimeline(id);
 });

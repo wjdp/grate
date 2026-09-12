@@ -1,5 +1,9 @@
 <script lang="ts" setup>
 import { getPageTitle } from "#shared/title";
+import {
+  formatImprecisePlaytime,
+  impreciseMinutes,
+} from "~/utils/formatImprecisePlaytime";
 import { formatPlaytime } from "~/utils/formatPlaytime";
 
 useSeoMeta({ title: getPageTitle("Activity") });
@@ -33,17 +37,28 @@ const { data } = await useFetch("/api/activity", {
 });
 
 const days = computed(() => data.value?.days ?? []);
+const imprecise = computed(
+  () => data.value?.imprecise ?? { months: [], yearOnly: 0 },
+);
 
-const totalMinutes = computed(() =>
+const datedMinutes = computed(() =>
   days.value.reduce((total, day) => total + day.minutes, 0),
+);
+const impreciseTotal = computed(() => impreciseMinutes(imprecise.value));
+const totalMinutes = computed(
+  () => datedMinutes.value + impreciseTotal.value,
+);
+const impreciseSummary = computed(() =>
+  formatImprecisePlaytime(imprecise.value, year.value),
 );
 const longestDay = computed(() =>
   days.value.reduce((longest, day) => Math.max(longest, day.minutes), 0),
 );
+// Imprecise playtime belongs to no day, so it stays out of the per-day average.
 const averageMinutes = computed(() =>
   days.value.length === 0
     ? 0
-    : Math.round(totalMinutes.value / days.value.length),
+    : Math.round(datedMinutes.value / days.value.length),
 );
 </script>
 
@@ -65,11 +80,16 @@ const averageMinutes = computed(() =>
     </div>
 
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <StatTile
-        label="Total this year"
-        :value="formatPlaytime(totalMinutes) || '0m'"
-        icon="i-lucide-clock"
-      />
+      <StatTile label="Total this year" icon="i-lucide-clock">
+        <p
+          class="font-display text-highlighted text-2xl font-semibold tabular-nums"
+        >
+          {{ formatPlaytime(totalMinutes) || "0m" }}
+        </p>
+        <p v-if="impreciseTotal" class="text-dimmed text-xs">
+          incl. {{ formatPlaytime(impreciseTotal) }} imprecise
+        </p>
+      </StatTile>
       <StatTile
         label="Days played"
         :value="days.length"
@@ -86,6 +106,10 @@ const averageMinutes = computed(() =>
         icon="i-lucide-chart-no-axes-column"
       />
     </div>
+
+    <p v-if="impreciseSummary" class="text-muted text-sm">
+      {{ impreciseSummary }}
+    </p>
 
     <div
       v-if="days.length === 0"

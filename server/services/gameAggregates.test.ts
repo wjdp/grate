@@ -1,16 +1,21 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { db } from "~~/server/database/client";
+import { user } from "~~/server/database/schema";
 import { refreshGameAggregates } from "~~/server/services/gameAggregates";
 import { flushDb } from "~~/test/db";
 import {
   createEpicGame,
   createGame,
   createGogGame,
+  createGogGamePlaytime,
+  createPlaytimeCorrection,
   createSteamGame,
 } from "~~/test/fixtures/game";
 
 describe("refreshGameAggregates", () => {
   beforeEach(async () => {
     await flushDb();
+    db.insert(user).values({ timezone: "UTC", dayBoundaryHour: 6 }).run();
   });
 
   it("uses steam playtime and lastPlayedAt when only steam game present", async () => {
@@ -135,5 +140,96 @@ describe("refreshGameAggregates", () => {
     const game = await refreshGameAggregates(steamGame.gameId);
     expect(game.playtimeMinutes).toBe(5);
     expect(game.lastPlayedAt).toBeNull();
+  });
+
+  it("adds manual correction minutes to the store total", async () => {
+    const gogGame = createGogGame({
+      playtimeMinutes: 90,
+      lastPlayedAt: new Date("2024-01-01T00:00:00.000Z"),
+    });
+    createPlaytimeCorrection({
+      provider: "gog",
+      providerId: gogGame.gogId,
+      snapshotId: null,
+      minutes: 45,
+      playedFrom: "2023-12-01T19:00",
+      playedTo: "2023-12-01T19:45",
+    });
+    const game = await refreshGameAggregates(gogGame.gameId);
+    expect(game.playtimeMinutes).toBe(135);
+  });
+
+  it("leaves the total alone when a correction only re-places observed minutes", async () => {
+    const gogGame = createGogGame({
+      playtimeMinutes: 90,
+      lastPlayedAt: new Date("2024-01-01T00:00:00.000Z"),
+    });
+    const snapshot = createGogGamePlaytime({
+      gogId: gogGame.gogId,
+      timestampEnd: new Date("2024-01-01T00:00:00.000Z"),
+      playtimeMinutes: 90,
+    });
+    createPlaytimeCorrection({
+      provider: "gog",
+      providerId: gogGame.gogId,
+      snapshotId: snapshot.id,
+      minutes: 90,
+      playedFrom: "2023-12-01T19:00",
+      playedTo: "2023-12-01T20:30",
+    });
+    const game = await refreshGameAggregates(gogGame.gameId);
+    expect(game.playtimeMinutes).toBe(90);
+  });
+
+  it("raises lastPlayedAt to a later correction", async () => {
+    const gogGame = createGogGame({
+      playtimeMinutes: 90,
+      lastPlayedAt: new Date("2024-01-01T00:00:00.000Z"),
+    });
+    createPlaytimeCorrection({
+      provider: "gog",
+      providerId: gogGame.gogId,
+      snapshotId: null,
+      minutes: 45,
+      playedFrom: "2024-03-04T19:00",
+      playedTo: "2024-03-04T19:45",
+    });
+    const game = await refreshGameAggregates(gogGame.gameId);
+    expect(game.lastPlayedAt).toStrictEqual(
+      new Date("2024-03-04T19:45:00.000Z"),
+    );
+  });
+
+  it("caps a corrected lastPlayedAt that would otherwise land in the future", async () => {
+    const gogGame = createGogGame({
+      playtimeMinutes: 90,
+      lastPlayedAt: new Date("2024-01-01T00:00:00.000Z"),
+    });
+    createPlaytimeCorrection({
+      provider: "gog",
+      providerId: gogGame.gogId,
+      snapshotId: null,
+      minutes: 45,
+      playedFrom: "2026-09",
+      playedTo: "2026-09",
+    });
+    const now = new Date("2026-09-12T12:00:00.000Z");
+    const game = await refreshGameAggregates(gogGame.gameId, now);
+    expect(game.lastPlayedAt).toStrictEqual(now);
+  });
+
+  it("does not lower lastPlayedAt for an earlier correction", async () => {
+    const lastPlayedAt = new Date("2024-06-01T00:00:00.000Z");
+    const gogGame = createGogGame({ playtimeMinutes: 90, lastPlayedAt });
+    createPlaytimeCorrection({
+      provider: "gog",
+      providerId: gogGame.gogId,
+      snapshotId: null,
+      minutes: 45,
+      playedFrom: "2023-01-04T19:00",
+      playedTo: "2023-01-04T19:45",
+    });
+    const game = await refreshGameAggregates(gogGame.gameId);
+    expect(game.lastPlayedAt).toStrictEqual(lastPlayedAt);
   });
 });

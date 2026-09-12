@@ -38,12 +38,19 @@ export interface UndatedPlaytime {
   // The baseline snapshot's timestampEnd: the real upper bound on this
   // pre-history.
   before: Date;
+  // The store's own last-played instant, when it reports one. Null for stores
+  // that only tell us the total.
+  lastPlayed: Date | null;
 }
 
-// Routes hand undated playtime to the client as JSON, so before arrives as an
-// ISO string.
-export type UndatedPlaytimeJson = Omit<UndatedPlaytime, "before"> & {
+// Routes hand undated playtime to the client as JSON, so the Dates arrive as
+// ISO strings.
+export type UndatedPlaytimeJson = Omit<
+  UndatedPlaytime,
+  "before" | "lastPlayed"
+> & {
   before: string;
+  lastPlayed: string | null;
 };
 
 // Routes hand sessions to the client as JSON, so every Date arrives as an ISO string.

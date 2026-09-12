@@ -153,6 +153,7 @@ const correctionTarget = ref<{ snapshotId: number; maxMinutes: number } | null>(
 const correctionMode = ref<"correct" | "date">("correct");
 
 const correctionBefore = ref<string | null>(null);
+const correctionLastPlayed = ref<string | null>(null);
 
 const formatUndatedBefore = (before: string) =>
   new Date(before).toLocaleDateString("en-GB", {
@@ -165,6 +166,7 @@ const dateUndated = (entry: CorrectableRow & {
   snapshotId: number;
   minutes: number;
   before: string;
+  lastPlayed: string | null;
 }) => {
   correctionRow.value = entry;
   correctionTarget.value = {
@@ -173,6 +175,7 @@ const dateUndated = (entry: CorrectableRow & {
   };
   correctionMode.value = "date";
   correctionBefore.value = entry.before;
+  correctionLastPlayed.value = entry.lastPlayed;
   correctionOpen.value = true;
 };
 
@@ -181,6 +184,7 @@ const addManualSession = (row: CorrectableRow) => {
   correctionTarget.value = null;
   correctionMode.value = "correct";
   correctionBefore.value = null;
+  correctionLastPlayed.value = null;
   correctionOpen.value = true;
 };
 
@@ -341,6 +345,7 @@ const manualSessionItems = computed(() =>
               :target="correctionTarget"
               :mode="correctionMode"
               :before="correctionBefore ?? undefined"
+              :last-played="correctionLastPlayed ?? undefined"
               @saved="refreshPlaytime"
             />
           </section>

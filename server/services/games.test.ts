@@ -33,6 +33,7 @@ import {
   createGogGamePlaytime,
   createPlaytimeCorrection,
   createSteamGame,
+  createSteamGamePlaytime,
 } from "~~/test/fixtures/game";
 
 function stateChangesFor(gameId: number) {
@@ -524,6 +525,7 @@ describe("getGameTimeline", () => {
         snapshotId: baseline.id,
         minutes: 400,
         before: new Date("2020-10-30T00:00:00.000Z"),
+        lastPlayed: null,
       },
     ]);
     expect(
@@ -541,6 +543,32 @@ describe("getGameTimeline", () => {
       playedTo: "2020-11-01T21:10",
     });
     expect(sessions[0]?.snapshotId).toBeNull();
+  });
+
+  it("dates undated Steam pre-history by the baseline's last played", async () => {
+    const steamGame = createSteamGame({ name: "Portal 2" });
+    const lastPlayed = new Date("2020-10-30T02:20:43.000Z");
+    createSteamGamePlaytime({
+      steamAppId: steamGame.appId,
+      timestampStart: null,
+      timestampEnd: new Date("2026-08-30T14:14:45.000Z"),
+      playtimeForever: 600,
+      rTimeLastPlayed: lastPlayed.getTime() / 1000,
+    });
+
+    const { undated } = await getGameTimeline(steamGame.gameId);
+
+    expect(undated).toStrictEqual([
+      {
+        provider: "steam",
+        providerId: steamGame.appId,
+        providerName: steamGame.name,
+        snapshotId: expect.any(Number),
+        minutes: 600,
+        before: new Date("2026-08-30T14:14:45.000Z"),
+        lastPlayed,
+      },
+    ]);
   });
 
   it("returns no sessions for a game with no providers", async () => {

@@ -179,11 +179,11 @@ describe("PlaytimeCorrectionDialog", () => {
     expect(document.body.textContent).toContain("Played before 30 Oct 2020.");
   });
 
-  it("prefills the To date from the baseline bound", async () => {
-    await mount({ mode: "date", before: "2020-10-30T02:20:43.000Z" });
+  it("prefills the To date from the store's last-played instant", async () => {
+    await mount({ mode: "date", lastPlayed: "2020-10-30T02:20:43.000Z" });
 
     await vi.waitFor(() =>
-      expect(field("correction-to")?.value).toBe("2020-10-30"),
+      expect(field("correction-to")?.value).toBe("2020-10-30T02:20"),
     );
 
     await setField("correction-from", "2020-10-25");
@@ -199,18 +199,19 @@ describe("PlaytimeCorrectionDialog", () => {
         snapshotId: 42,
         minutes: 120,
         playedFrom: "2020-10-25",
-        playedTo: "2020-10-30",
+        playedTo: "2020-10-30T02:20",
         note: null,
       },
     });
   });
 
-  it("prefills the To date in the effective timezone", async () => {
-    await mount({ mode: "date", before: "2020-07-01T23:30:00.000Z" });
+  it("leaves the To date blank when the store reports no last-played instant", async () => {
+    await mount({ mode: "date", before: "2020-10-30T02:20:43.000Z" });
 
     await vi.waitFor(() =>
-      expect(field("correction-to")?.value).toBe("2020-07-02"),
+      expect(document.body.textContent).toContain("Times are read in"),
     );
+    expect(field("correction-to")?.value).toBe("");
   });
 
   it("does not prefill the To date when correcting a session", async () => {

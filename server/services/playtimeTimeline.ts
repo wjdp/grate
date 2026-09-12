@@ -51,6 +51,10 @@ export interface DerivedTimeline {
   // pre-history (Steam grounds this on rTimeLastPlayed; GOG/Epic on the first
   // sync). Null when there is no baseline.
   baselineBefore: Date | null;
+  // The store's own last-played instant at the baseline, which only Steam
+  // reports. Null for every other provider, and when Steam has never seen the
+  // game played.
+  baselineLastPlayed: Date | null;
 }
 
 interface ObservedDelta {
@@ -126,6 +130,18 @@ function baselineSnapshot(snapshots: PlaytimeSnapshot[]) {
     return null;
   }
   return first;
+}
+
+// Only Steam dates the pre-history it hands over: its baseline carries
+// `rTimeLastPlayed`, where a GOG or Epic baseline is just grate's first sync.
+function baselineLastPlayed(
+  baseline: PlaytimeSnapshot | null,
+  provider: PlaytimeProvider,
+): Date | null {
+  if (provider !== "steam" || !baseline?.rTimeLastPlayed) {
+    return null;
+  }
+  return new Date(baseline.rTimeLastPlayed * 1000);
 }
 
 // The minutes each correctable row can account for: the pre-history total on
@@ -437,6 +453,7 @@ export function deriveTimeline(
     undatedMinutes,
     baselineSnapshotId: baseline?.id ?? null,
     baselineBefore: baseline?.timestampEnd ?? null,
+    baselineLastPlayed: baselineLastPlayed(baseline, row.provider),
   };
 }
 

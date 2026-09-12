@@ -708,6 +708,35 @@ describe("deriveTimeline with corrections", () => {
     expect(timeline.baselineBefore).toEqual(baseline?.timestampEnd);
   });
 
+  it("dates a Steam baseline by its rTimeLastPlayed", () => {
+    const lastPlayed = new Date("2020-10-30T02:20:43Z");
+    const timeline = deriveTimeline(
+      [
+        {
+          id: 1,
+          timestampStart: null,
+          timestampEnd: new Date("2026-08-30T14:14:45Z"),
+          playtimeMinutes: 600,
+          rTimeLastPlayed: lastPlayed.getTime() / 1000,
+        },
+      ],
+      steamRow,
+      [],
+      playDaySettings,
+    );
+    expect(timeline.baselineLastPlayed).toEqual(lastPlayed);
+  });
+
+  it("leaves the baseline undated for a provider that reports no last played", () => {
+    const timeline = deriveTimeline(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [],
+      playDaySettings,
+    );
+    expect(timeline.baselineLastPlayed).toBeNull();
+  });
+
   it("only treats the first ordered snapshot as the baseline, not a later null-start row", () => {
     const snapshots: PlaytimeSnapshot[] = [
       {

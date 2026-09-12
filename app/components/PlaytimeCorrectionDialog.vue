@@ -28,6 +28,9 @@ const props = withDefaults(
     mode?: "correct" | "date";
     // Set when mode is "date": the baseline's real upper bound.
     before?: string;
+    // Set when mode is "date" and the store reports its own last-played
+    // instant, which is a far better guess at when the play ended.
+    lastPlayed?: string;
   }>(),
   { existing: null, mode: "correct" },
 );
@@ -53,14 +56,14 @@ const effectiveTimezone = computed(
   () => settings.value?.effectiveTimezone ?? "UTC",
 );
 
-// Dating pre-history has a known upper bound, so start To on that day.
+// The store's last-played instant is when this pre-history ended, so start To
+// there.
 const defaultPlayedTo = computed(() => {
-  if (props.mode !== "date" || !props.before || props.existing) return "";
+  if (props.mode !== "date" || !props.lastPlayed || props.existing) return "";
   if (!settings.value) return "";
-  return (
-    DateTime.fromISO(props.before, { zone: effectiveTimezone.value }).toISODate() ??
-    ""
-  );
+  return DateTime.fromISO(props.lastPlayed, {
+    zone: effectiveTimezone.value,
+  }).toFormat("yyyy-MM-dd'T'HH:mm");
 });
 
 const reset = () => {

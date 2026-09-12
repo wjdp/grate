@@ -209,6 +209,7 @@ export async function getGameTimeline(id: number): Promise<GameTimeline> {
         snapshotId: timeline.baselineSnapshotId,
         minutes: timeline.undatedMinutes,
         before: timeline.baselineBefore,
+        lastPlayed: timeline.baselineLastPlayed,
       });
     }
   }

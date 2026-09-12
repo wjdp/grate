@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { getGameArtUrls } from "#shared/art";
 import type { GameState } from "#shared/game-state";
-import { getPrimaryLaunch } from "#shared/providers";
+import { getPrimaryLaunch, ProviderLabels } from "#shared/providers";
 import { getPageTitle } from "#shared/title";
 
 const route = useRoute();
@@ -20,6 +20,18 @@ const { data: timelineData, refresh: refreshTimeline } = await useFetch(
   `/api/games/${id}/timeline`,
 );
 const sessions = computed(() => timelineData.value?.sessions ?? []);
+const undated = computed(() => timelineData.value?.undated ?? []);
+
+const { data: correctionsData, refresh: refreshCorrections } = await useFetch(
+  `/api/games/${id}/corrections`,
+);
+const corrections = computed(() => correctionsData.value?.corrections ?? []);
+
+// Corrections change playtime and last played, so the game itself is refetched
+// alongside the timeline.
+const refreshPlaytime = async () => {
+  await Promise.all([refresh(), refreshTimeline(), refreshCorrections()]);
+};
 
 const state = ref(game.value?.state ?? null);
 watch(
@@ -86,9 +98,7 @@ const updateGameHidden = async (hidden: boolean) => {
   }
 };
 
-const onMerged = async () => {
-  await Promise.all([refresh(), refreshTimeline()]);
-};
+const onMerged = refreshPlaytime;
 
 const steamGames = computed(() => game.value?.steamGames ?? []);
 const gogGames = computed(() => game.value?.gogGames ?? []);
@@ -109,6 +119,64 @@ const providerCount = computed(
 
 const primaryLaunch = computed(() =>
   game.value ? getPrimaryLaunch(game.value) : null,
+);
+
+interface CorrectableRow {
+  provider: "steam" | "gog" | "epic";
+  providerId: number;
+  providerName: string;
+}
+
+const providerRows = computed<CorrectableRow[]>(() => [
+  ...steamGames.value.map((row) => ({
+    provider: "steam" as const,
+    providerId: row.appId,
+    providerName: row.name,
+  })),
+  ...gogGames.value.map((row) => ({
+    provider: "gog" as const,
+    providerId: row.gogId,
+    providerName: row.name,
+  })),
+  ...epicGames.value.map((row) => ({
+    provider: "epic" as const,
+    providerId: row.epicId,
+    providerName: row.name,
+  })),
+]);
+
+const correctionOpen = ref(false);
+const correctionRow = ref<CorrectableRow | null>(null);
+const correctionTarget = ref<{ snapshotId: number; maxMinutes: number } | null>(
+  null,
+);
+const correctionMode = ref<"correct" | "date">("correct");
+
+const dateUndated = (entry: CorrectableRow & {
+  snapshotId: number;
+  minutes: number;
+}) => {
+  correctionRow.value = entry;
+  correctionTarget.value = {
+    snapshotId: entry.snapshotId,
+    maxMinutes: entry.minutes,
+  };
+  correctionMode.value = "date";
+  correctionOpen.value = true;
+};
+
+const addManualSession = (row: CorrectableRow) => {
+  correctionRow.value = row;
+  correctionTarget.value = null;
+  correctionMode.value = "correct";
+  correctionOpen.value = true;
+};
+
+const manualSessionItems = computed(() =>
+  providerRows.value.map((row) => ({
+    label: `${ProviderLabels[row.provider]} · ${row.providerName}`,
+    onSelect: () => addManualSession(row),
+  })),
 );
 
 </script>
@@ -195,9 +263,73 @@ const primaryLaunch = computed(() =>
               <h2 class="font-display text-highlighted text-lg font-semibold">
                 History
               </h2>
-              <PlaytimeRawHistoryModal :game-id="id" />
+              <div class="flex items-center gap-1">
+                <UDropdownMenu
+                  v-if="manualSessionItems.length > 1"
+                  :items="manualSessionItems"
+                >
+                  <UButton
+                    variant="ghost"
+                    color="neutral"
+                    size="xs"
+                    icon="i-lucide-plus"
+                    label="Add session"
+                  />
+                </UDropdownMenu>
+                <UButton
+                  v-else-if="providerRows[0]"
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  icon="i-lucide-plus"
+                  label="Add session"
+                  @click="addManualSession(providerRows[0])"
+                />
+                <PlaytimeRawHistoryModal :game-id="id" />
+              </div>
             </div>
-            <PlaytimeSessionList :sessions="sessions" />
+
+            <ul v-if="undated.length" class="space-y-1">
+              <li
+                v-for="entry in undated"
+                :key="`${entry.provider}-${entry.providerId}`"
+                class="text-muted flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+              >
+                <ProviderIcon :provider="entry.provider" />
+                <span>{{ entry.providerName }}</span>
+                <span>·</span>
+                <span class="tabular-nums">
+                  {{ formatPlaytime(entry.minutes) }} before grate started
+                  watching
+                </span>
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  label="Date this…"
+                  @click="dateUndated(entry)"
+                />
+              </li>
+            </ul>
+
+            <PlaytimeSessionList
+              :sessions="sessions"
+              :game-id="id"
+              :corrections="corrections"
+              @changed="refreshPlaytime"
+            />
+
+            <PlaytimeCorrectionDialog
+              v-if="correctionRow"
+              v-model:open="correctionOpen"
+              :game-id="id"
+              :provider="correctionRow.provider"
+              :provider-id="correctionRow.providerId"
+              :provider-name="correctionRow.providerName"
+              :target="correctionTarget"
+              :mode="correctionMode"
+              @saved="refreshPlaytime"
+            />
           </section>
 
           <section class="space-y-3">

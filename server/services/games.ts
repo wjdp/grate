@@ -1,6 +1,9 @@
 import { and, asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import type { GameState } from "#shared/game-state";
-import type { PlaytimeSession } from "#shared/types/PlaytimeSession";
+import type {
+  PlaytimeSession,
+  UndatedPlaytime,
+} from "#shared/types/PlaytimeSession";
 import { db } from "~~/server/database/client";
 import {
   epicGame,
@@ -16,6 +19,7 @@ import {
 } from "~~/server/database/schema";
 import { countProviderRows } from "~~/server/providers/rows";
 import { refreshGameAggregates } from "~~/server/services/gameAggregates";
+import { listPlaytimeCorrectionsForRow } from "~~/server/services/playtimeCorrections";
 import {
   deriveTimeline,
   type PlaytimeProviderRow,
@@ -107,6 +111,7 @@ async function getProviderRowSnapshots(
         providerName: steamRow.name,
       },
       snapshots: steamRecords.map((record) => ({
+        id: record.id,
         timestampStart: record.timestampStart,
         timestampEnd: record.timestampEnd,
         playtimeMinutes: record.playtimeForever ?? 0,
@@ -128,6 +133,7 @@ async function getProviderRowSnapshots(
         providerName: gogRow.name,
       },
       snapshots: gogRecords.map((record) => ({
+        id: record.id,
         timestampStart: record.timestampStart,
         timestampEnd: record.timestampEnd,
         playtimeMinutes: record.playtimeMinutes,
@@ -147,6 +153,7 @@ async function getProviderRowSnapshots(
         providerName: epicRow.name,
       },
       snapshots: epicRecords.map((record) => ({
+        id: record.id,
         timestampStart: record.timestampStart,
         timestampEnd: record.timestampEnd,
         playtimeMinutes: record.playtimeMinutes,
@@ -174,15 +181,38 @@ export async function getGamePlaytimes(
     .sort(byTimestampStartDescending);
 }
 
-export async function getGameTimeline(id: number): Promise<PlaytimeSession[]> {
+export interface GameTimeline {
+  sessions: PlaytimeSession[];
+  undated: UndatedPlaytime[];
+}
+
+export async function getGameTimeline(id: number): Promise<GameTimeline> {
   const rows = await getProviderRowSnapshots(id);
   const playDaySettings = await getPlayDaySettings();
-  return rows
-    .flatMap(
-      ({ row, snapshots }) =>
-        deriveTimeline(snapshots, row, [], playDaySettings).sessions,
-    )
-    .sort((a, b) => b.endedBefore.getTime() - a.endedBefore.getTime());
+  const sessions: PlaytimeSession[] = [];
+  const undated: UndatedPlaytime[] = [];
+  for (const { row, snapshots } of rows) {
+    const timeline = deriveTimeline(
+      snapshots,
+      row,
+      listPlaytimeCorrectionsForRow(row),
+      playDaySettings,
+    );
+    sessions.push(...timeline.sessions);
+    if (timeline.undatedMinutes > 0 && timeline.baselineSnapshotId !== null) {
+      undated.push({
+        ...row,
+        snapshotId: timeline.baselineSnapshotId,
+        minutes: timeline.undatedMinutes,
+      });
+    }
+  }
+  return {
+    sessions: sessions.sort(
+      (a, b) => b.estimatedEnd.getTime() - a.estimatedEnd.getTime(),
+    ),
+    undated,
+  };
 }
 
 export async function getRecentGames(limit: number = 6) {

@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { LoginSession } from "steam-session";
-import { linkSteamAccount } from "~~/server/providers/steam/service";
+import { getCommunityProfile } from "~~/server/providers/steam/api";
+import {
+  attachSteamWebSession,
+  getSteamUser,
+  type SteamWebSession,
+} from "~~/server/providers/steam/service";
 import {
   createSession,
   decodeJwtExpiry,
@@ -8,6 +13,9 @@ import {
 
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
 const SWEEP_GRACE_MS = 30 * 1000;
+// A scan before the account exists holds its token while the user fetches an
+// API key, so setup does not need a second scan.
+const HELD_TTL_MS = 15 * 60 * 1000;
 
 export type QrLoginState = "pending" | "authenticated" | "expired" | "error";
 
@@ -15,11 +23,18 @@ export interface QrLoginStatus {
   state: QrLoginState;
   qrChallengeUrl: string;
   message?: string;
+  steamId?: string;
+  personaName?: string;
 }
 
 interface QrLogin extends QrLoginStatus {
   session: LoginSession;
   createdAt: number;
+  held?: SteamWebSession;
+}
+
+export interface HeldQrLogin extends SteamWebSession {
+  steamId: string;
 }
 
 const logins = new Map<string, QrLogin>();
@@ -58,18 +73,10 @@ export async function startQrLogin(): Promise<{
   });
 
   session.on("authenticated", () => {
-    linkSteamAccount({
-      steamId: session.steamID.getSteamID64(),
-      refreshToken: session.refreshToken,
-      refreshTokenExpiresAt: decodeJwtExpiry(session.refreshToken),
-    })
-      .then(() => {
-        login.state = "authenticated";
-      })
-      .catch((error: Error) => {
-        login.state = "error";
-        login.message = error.message;
-      });
+    holdOrAttach(login, session).catch((error: Error) => {
+      login.state = "error";
+      login.message = error.message;
+    });
   });
 
   session.on("timeout", () => {
@@ -95,10 +102,28 @@ export async function startQrLogin(): Promise<{
   }
 }
 
+async function holdOrAttach(login: QrLogin, session: LoginSession) {
+  const steamId = session.steamID.getSteamID64();
+  const webSession: SteamWebSession = {
+    refreshToken: session.refreshToken,
+    refreshTokenExpiresAt: decodeJwtExpiry(session.refreshToken),
+  };
+  const profile = await getCommunityProfile({ steamId });
+  login.steamId = steamId;
+  login.personaName = profile.steamID;
+  if (await getSteamUser()) {
+    await attachSteamWebSession({ steamId, ...webSession });
+  } else {
+    login.held = webSession;
+  }
+  login.state = "authenticated";
+}
+
 function sweep() {
-  const cutoff = Date.now() - LOGIN_TIMEOUT_MS - SWEEP_GRACE_MS;
+  const now = Date.now();
   for (const [id, login] of logins) {
-    if (login.createdAt > cutoff) continue;
+    const ttl = login.held ? HELD_TTL_MS : LOGIN_TIMEOUT_MS + SWEEP_GRACE_MS;
+    if (now - login.createdAt < ttl) continue;
     if (login.state === "pending") login.session.cancelLoginAttempt();
     logins.delete(id);
   }
@@ -108,13 +133,24 @@ export function getQrLogin(id: string): QrLoginStatus | null {
   sweep();
   const login = logins.get(id);
   if (!login) return null;
-  const { state, qrChallengeUrl, message } = login;
-  // A terminal state is only useful to the client once; holding it would keep
-  // a finished attempt alive until the sweep.
-  if (state !== "pending") logins.delete(id);
-  return message === undefined
-    ? { state, qrChallengeUrl }
-    : { state, qrChallengeUrl, message };
+  const { state, qrChallengeUrl, message, steamId, personaName } = login;
+  // A failed attempt is only useful to the client once; holding it would keep
+  // it alive until the sweep. An authenticated entry survives so setup can
+  // still claim its token.
+  if (state === "expired" || state === "error") logins.delete(id);
+  const status: QrLoginStatus = { state, qrChallengeUrl };
+  if (message !== undefined) status.message = message;
+  if (steamId !== undefined) status.steamId = steamId;
+  if (personaName !== undefined) status.personaName = personaName;
+  return status;
+}
+
+export function takeHeldQrLogin(id: string): HeldQrLogin | null {
+  sweep();
+  const login = logins.get(id);
+  if (!login?.held || !login.steamId) return null;
+  logins.delete(id);
+  return { steamId: login.steamId, ...login.held };
 }
 
 export function cancelQrLogin(id: string) {

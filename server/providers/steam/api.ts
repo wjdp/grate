@@ -1,5 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
+import type { SteamProfileInput } from "#shared/steam-profile";
 
 export class SteamApiError extends Error {
   statusCode: number;
@@ -42,7 +43,7 @@ export async function getServerInfo(): Promise<ServerInfo> {
 }
 
 export interface SteamCredentials {
-  accessToken: string;
+  apiKey: string;
   steamId: string;
 }
 
@@ -68,11 +69,17 @@ function emptyToNull(value: string | null | undefined): string | null {
 // parseTagValue keeps every value a string, so the 64-bit SteamID survives.
 const xmlParser = new XMLParser({ parseTagValue: false, trimValues: true });
 
+function communityProfilePath(profile: SteamProfileInput): string {
+  return "steamId" in profile
+    ? `/profiles/${profile.steamId}`
+    : `/id/${profile.vanityName}`;
+}
+
 export async function getCommunityProfile(
-  steamId: string,
+  profile: SteamProfileInput,
 ): Promise<CommunityProfile> {
   const response = await fetch(
-    `${COMMUNITY_BASE_URL}/profiles/${steamId}/?xml=1`,
+    `${COMMUNITY_BASE_URL}${communityProfilePath(profile)}/?xml=1`,
   );
   if (!response.ok) {
     throw createSteamApiError(response);
@@ -83,7 +90,11 @@ export async function getCommunityProfile(
       message:
         typeof document.response?.error === "string"
           ? document.response.error
-          : `Steam returned no profile for SteamID ${steamId}`,
+          : `Steam returned no profile for ${
+              "steamId" in profile
+                ? `SteamID ${profile.steamId}`
+                : `vanity name "${profile.vanityName}"`
+            }`,
       statusCode: 404,
     });
   }
@@ -129,11 +140,11 @@ export const userGameSchema = z.object({
 export type UserGame = z.infer<typeof userGameSchema>;
 
 export async function getUserGames({
-  accessToken,
+  apiKey,
   steamId,
 }: SteamCredentials): Promise<UserGame[]> {
   const parameters = new URLSearchParams({
-    access_token: accessToken,
+    key: apiKey,
     steamid: steamId,
     include_appinfo: "1",
     include_played_free_games: "1",

@@ -7,11 +7,11 @@ import userData from "~~/server/providers/steam/fixtures/userdata.json";
 import {
   createSession,
   decodeJwtExpiry,
-  getAccessToken,
   getOwnedAppIds,
-  getSessionRenewal,
+  getWebCookies,
+  getWebSessionActivity,
+  hasSteamWebSession,
   resetWebSessionState,
-  tryRenewRefreshToken,
 } from "~~/server/providers/steam/webSession";
 import { flushDb } from "~~/test/db";
 import { createSteamUser } from "~~/test/fixtures/game";
@@ -26,58 +26,49 @@ function jwt(expiresAt: Date): string {
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
+const STEAM_ID = "76561198000000001";
+
+function loginSecureCookie(expiresAt: Date, domain = "store.steampowered.com") {
+  const value = encodeURIComponent(`${STEAM_ID}||${jwt(expiresAt)}`);
+  return `steamLoginSecure=${value}; Path=/; Domain=${domain}; Secure; HttpOnly`;
+}
+
+function webCookies(expiresAt: Date) {
+  return [
+    loginSecureCookie(expiresAt),
+    "sessionid=store-session; Path=/; Domain=store.steampowered.com",
+    "browserid=1; Path=/; Domain=steamcommunity.com",
+    `steamLoginSecure=${STEAM_ID}%7C%7Cother; Path=/; Domain=help.steampowered.com`,
+    "timezoneOffset=0,0; Path=/",
+  ];
+}
 
 const steamSession = vi.hoisted(() => {
   const state: {
-    accessToken: string | null;
-    refreshError: Error | null;
-    renewedRefreshToken: string | null;
-    renewResult: boolean;
-    renewError: Error | null;
     cookies: string[];
-    refreshAccessTokenCalls: number;
-    renewCalls: number;
+    cookiesError: Error | null;
+    getWebCookiesCalls: number;
+    platformTypes: number[];
+    refreshTokens: string[];
   } = {
-    accessToken: null,
-    refreshError: null,
-    renewedRefreshToken: null,
-    renewResult: false,
-    renewError: null,
-    cookies: ["steamLoginSecure=abc", "sessionid=def"],
-    refreshAccessTokenCalls: 0,
-    renewCalls: 0,
+    cookies: [],
+    cookiesError: null,
+    getWebCookiesCalls: 0,
+    platformTypes: [],
+    refreshTokens: [],
   };
 
-  class FakeAuthenticationClient {
-    _getPlatformData() {
-      return { deviceDetails: { device_friendly_name: "Galaxy S25" } };
-    }
-  }
-
   class FakeLoginSession {
-    _handler = new FakeAuthenticationClient();
-    accessToken = "";
     refreshToken = "";
 
-    constructor(public platformType: number) {}
-
-    async refreshAccessToken() {
-      state.refreshAccessTokenCalls += 1;
-      if (state.refreshError) throw state.refreshError;
-      this.accessToken = state.accessToken ?? "";
-    }
-
-    async renewRefreshToken() {
-      state.renewCalls += 1;
-      if (state.renewError) throw state.renewError;
-      this.accessToken = state.accessToken ?? "";
-      if (state.renewResult && state.renewedRefreshToken) {
-        this.refreshToken = state.renewedRefreshToken;
-      }
-      return state.renewResult;
+    constructor(public platformType: number) {
+      state.platformTypes.push(platformType);
     }
 
     async getWebCookies() {
+      state.getWebCookiesCalls += 1;
+      state.refreshTokens.push(this.refreshToken);
+      if (state.cookiesError) throw state.cookiesError;
       return state.cookies;
     }
   }
@@ -87,7 +78,7 @@ const steamSession = vi.hoisted(() => {
 
 vi.mock("steam-session", () => ({
   LoginSession: steamSession.FakeLoginSession,
-  EAuthTokenPlatformType: { MobileApp: 2 },
+  EAuthTokenPlatformType: { MobileApp: 2, WebBrowser: 4 },
 }));
 
 const fetchMocker = createFetchMock(vi);
@@ -95,18 +86,23 @@ fetchMocker.enableMocks();
 
 const { state } = steamSession;
 
+function createSessionUser(overrides: Parameters<typeof createSteamUser>[0]) {
+  return createSteamUser({
+    refreshToken: jwt(new Date(Date.now() + 200 * DAY_MS)),
+    refreshTokenExpiresAt: new Date(Date.now() + 200 * DAY_MS),
+    ...overrides,
+  });
+}
+
 beforeEach(async () => {
   await flushDb();
   resetWebSessionState();
   fetchMocker.resetMocks();
-  state.accessToken = jwt(new Date(Date.now() + HOUR_MS));
-  state.refreshError = null;
-  state.renewedRefreshToken = null;
-  state.renewResult = false;
-  state.renewError = null;
-  state.cookies = ["steamLoginSecure=abc", "sessionid=def"];
-  state.refreshAccessTokenCalls = 0;
-  state.renewCalls = 0;
+  state.cookies = webCookies(new Date(Date.now() + DAY_MS));
+  state.cookiesError = null;
+  state.getWebCookiesCalls = 0;
+  state.platformTypes = [];
+  state.refreshTokens = [];
 });
 
 afterAll(() => {
@@ -114,20 +110,9 @@ afterAll(() => {
 });
 
 describe("createSession", () => {
-  it("names the device after grate", () => {
-    const session = createSession();
-    const handler = (
-      session as unknown as {
-        _handler: {
-          _getPlatformData(): {
-            deviceDetails: { device_friendly_name: string };
-          };
-        };
-      }
-    )._handler;
-    expect(
-      handler._getPlatformData().deviceDetails.device_friendly_name,
-    ).toMatch(/^grate/);
+  it("logs in as a web browser", () => {
+    createSession();
+    expect(state.platformTypes).toEqual([4]);
   });
 });
 
@@ -138,144 +123,99 @@ describe("decodeJwtExpiry", () => {
   });
 });
 
-describe("getAccessToken", () => {
-  it("returns null when no account is linked", async () => {
-    expect(await getAccessToken()).toBeNull();
-    expect(state.refreshAccessTokenCalls).toBe(0);
+describe("hasSteamWebSession", () => {
+  it("is false without a linked account", async () => {
+    expect(await hasSteamWebSession()).toBe(false);
   });
 
-  it("returns null when the stored token has expired", async () => {
-    createSteamUser({
+  it("is false without a stored token", async () => {
+    createSteamUser();
+    expect(await hasSteamWebSession()).toBe(false);
+  });
+
+  it("is false once the stored token has expired", async () => {
+    createSessionUser({
       refreshTokenExpiresAt: new Date(Date.now() - DAY_MS),
     });
-    expect(await getAccessToken()).toBeNull();
-    expect(state.refreshAccessTokenCalls).toBe(0);
+    expect(await hasSteamWebSession()).toBe(false);
   });
 
-  it("refreshes an access token and reuses it while it is valid", async () => {
-    createSteamUser();
-    expect(await getAccessToken()).toBe(state.accessToken);
-    expect(await getAccessToken()).toBe(state.accessToken);
-    expect(state.refreshAccessTokenCalls).toBe(1);
-  });
-
-  it("refreshes again once the cached token is within a minute of expiry", async () => {
-    createSteamUser();
-    state.accessToken = jwt(new Date(Date.now() + 30 * 1000));
-    await getAccessToken();
-    state.accessToken = jwt(new Date(Date.now() + HOUR_MS));
-    expect(await getAccessToken()).toBe(state.accessToken);
-    expect(state.refreshAccessTokenCalls).toBe(2);
-  });
-
-  it("clears the stored session when steam rejects the token", async () => {
-    const linked = createSteamUser();
-    state.refreshError = Object.assign(new Error("AccessDenied"), {
-      eresult: 15,
-    });
-
-    await expect(getAccessToken()).rejects.toThrow("AccessDenied");
-
-    const row = await db.query.steamUser.findFirst({
-      where: eq(steamUser.steamId, linked.steamId),
-    });
-    expect(row?.refreshToken).toBeNull();
-    expect(row?.refreshTokenExpiresAt).toBeNull();
+  it("is true for an unexpired stored token", async () => {
+    createSessionUser({});
+    expect(await hasSteamWebSession()).toBe(true);
   });
 });
 
-async function storedRow(steamId: string) {
-  return db.query.steamUser.findFirst({
-    where: eq(steamUser.steamId, steamId),
-  });
-}
-
-describe("tryRenewRefreshToken", () => {
-  it("does nothing without a linked account", async () => {
-    expect(await tryRenewRefreshToken()).toBe(false);
-    expect(state.renewCalls).toBe(0);
+describe("getWebCookies", () => {
+  it("returns null without a web session", async () => {
+    createSteamUser();
+    expect(await getWebCookies()).toBeNull();
+    expect(state.getWebCookiesCalls).toBe(0);
   });
 
-  it("stores a renewed refresh token and its expiry", async () => {
-    const linked = createSteamUser();
-    const expiresAt = new Date(Math.floor(Date.now() / 1000) * 1000 + DAY_MS);
-    state.renewResult = true;
-    state.renewedRefreshToken = jwt(expiresAt);
+  it("keeps only the store cookies, as name=value pairs", async () => {
+    createSessionUser({});
+    const expiresAt = new Date(Date.now() + DAY_MS);
+    state.cookies = webCookies(expiresAt);
 
-    expect(await tryRenewRefreshToken()).toBe(true);
-
-    const row = await storedRow(linked.steamId);
-    expect(row?.refreshToken).toBe(state.renewedRefreshToken);
-    expect(row?.refreshTokenExpiresAt).toStrictEqual(expiresAt);
-    expect(getSessionRenewal().lastRenewedAt).toBeInstanceOf(Date);
+    expect(await getWebCookies()).toEqual([
+      `steamLoginSecure=${encodeURIComponent(`${STEAM_ID}||${jwt(expiresAt)}`)}`,
+      "sessionid=store-session",
+      "timezoneOffset=0,0",
+    ]);
   });
 
-  it("leaves the row alone when steam issues no new token", async () => {
-    const linked = createSteamUser();
-    state.renewResult = false;
+  it("mints the cookies from the stored refresh token once", async () => {
+    const linked = createSessionUser({});
 
-    expect(await tryRenewRefreshToken()).toBe(false);
+    const first = await getWebCookies();
+    expect(await getWebCookies()).toEqual(first);
 
-    const row = await storedRow(linked.steamId);
-    expect(row?.refreshToken).toBe(linked.refreshToken);
-    expect(row?.refreshTokenExpiresAt).toStrictEqual(
-      linked.refreshTokenExpiresAt,
+    expect(state.getWebCookiesCalls).toBe(1);
+    expect(state.refreshTokens).toEqual([linked.refreshToken]);
+  });
+
+  it("mints again once the login cookie is within a minute of expiry", async () => {
+    createSessionUser({});
+    state.cookies = webCookies(new Date(Date.now() + 30 * 1000));
+    await getWebCookies();
+    state.cookies = webCookies(new Date(Date.now() + DAY_MS));
+
+    await getWebCookies();
+
+    expect(state.getWebCookiesCalls).toBe(2);
+  });
+
+  it("mints again when the stored token has been replaced", async () => {
+    createSessionUser({});
+    await getWebCookies();
+    const rescanned = jwt(new Date(Date.now() + 201 * DAY_MS));
+    db.update(steamUser).set({ refreshToken: rescanned }).run();
+
+    await getWebCookies();
+
+    expect(state.getWebCookiesCalls).toBe(2);
+    expect(state.refreshTokens[1]).toBe(rescanned);
+  });
+
+  it("rejects a cookie jar with no login cookie", async () => {
+    createSessionUser({});
+    state.cookies = ["sessionid=store-session; Domain=store.steampowered.com"];
+    await expect(getWebCookies()).rejects.toThrow(
+      "Steam web cookies carry no steamLoginSecure token",
     );
-    expect(getSessionRenewal().lastRenewAttemptAt).toBeInstanceOf(Date);
-    expect(getSessionRenewal().lastRenewedAt).toBeNull();
-  });
-
-  it("caches the access token the renewal returns", async () => {
-    createSteamUser();
-    await tryRenewRefreshToken();
-    expect(await getAccessToken()).toBe(state.accessToken);
-    expect(state.refreshAccessTokenCalls).toBe(0);
-  });
-
-  it("skips a second attempt within twenty hours", async () => {
-    createSteamUser();
-    await tryRenewRefreshToken();
-    expect(await tryRenewRefreshToken()).toBe(false);
-    expect(state.renewCalls).toBe(1);
-  });
-
-  it("clears the stored session when steam rejects the token", async () => {
-    const linked = createSteamUser();
-    state.renewError = Object.assign(new Error("AccessDenied"), {
-      eresult: 15,
-    });
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    expect(await tryRenewRefreshToken()).toBe(false);
-
-    const row = await storedRow(linked.steamId);
-    expect(row?.refreshToken).toBeNull();
-    expect(row?.refreshTokenExpiresAt).toBeNull();
-    expect(await getAccessToken()).toBeNull();
-    vi.mocked(console.error).mockRestore();
-  });
-
-  it("keeps the stored session for a transient failure", async () => {
-    const linked = createSteamUser();
-    state.renewError = new Error("Network unreachable");
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
-    expect(await tryRenewRefreshToken()).toBe(false);
-
-    const row = await storedRow(linked.steamId);
-    expect(row?.refreshToken).toBe(linked.refreshToken);
-    vi.mocked(console.error).mockRestore();
   });
 });
 
 describe("getOwnedAppIds", () => {
-  it("returns null without a session", async () => {
+  it("returns null without a web session", async () => {
+    createSteamUser();
     expect(await getOwnedAppIds()).toBeNull();
     expect(fetchMocker.mock.calls).toHaveLength(0);
   });
 
   it("returns the owned app ids from the store userdata", async () => {
-    createSteamUser();
+    createSessionUser({});
     fetchMocker.mockResponseOnce(JSON.stringify(userData));
 
     expect(await getOwnedAppIds()).toEqual(new Set(userData.rgOwnedApps));
@@ -285,8 +225,51 @@ describe("getOwnedAppIds", () => {
       "https://store.steampowered.com/dynamicstore/userdata/?_=",
     );
     expect(init.headers).toEqual({
-      Cookie: state.cookies.join("; "),
+      Cookie: (await getWebCookies())?.join("; "),
       Referer: "https://store.steampowered.com/",
     });
+    expect(getWebSessionActivity().lastUsedAt).toBeInstanceOf(Date);
+    expect(getWebSessionActivity().lastError).toBeNull();
+  });
+
+  it("records the error from a failed request", async () => {
+    createSessionUser({});
+    fetchMocker.mockResponseOnce("", { status: 503 });
+
+    await expect(getOwnedAppIds()).rejects.toThrow(
+      "Steam store userdata request failed: 503",
+    );
+
+    expect(getWebSessionActivity().lastError).toContain("503");
+    expect(getWebSessionActivity().lastUsedAt).toBeNull();
+  });
+
+  it("removes the web session when steam rejects the token", async () => {
+    const linked = createSessionUser({});
+    state.cookiesError = Object.assign(new Error("AccessDenied"), {
+      eresult: 15,
+    });
+
+    await expect(getOwnedAppIds()).rejects.toThrow("AccessDenied");
+
+    const row = await db.query.steamUser.findFirst({
+      where: eq(steamUser.steamId, linked.steamId),
+    });
+    expect(row?.refreshToken).toBeNull();
+    expect(row?.refreshTokenExpiresAt).toBeNull();
+    expect(row?.apiKey).toBe(linked.apiKey);
+    expect(getWebSessionActivity().lastError).toBe("AccessDenied");
+  });
+
+  it("keeps the web session for a transient failure", async () => {
+    const linked = createSessionUser({});
+    state.cookiesError = new Error("Network unreachable");
+
+    await expect(getOwnedAppIds()).rejects.toThrow("Network unreachable");
+
+    const row = await db.query.steamUser.findFirst({
+      where: eq(steamUser.steamId, linked.steamId),
+    });
+    expect(row?.refreshToken).toBe(linked.refreshToken);
   });
 });

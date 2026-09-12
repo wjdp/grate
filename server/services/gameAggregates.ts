@@ -34,16 +34,17 @@ function correctionsForRows(
 function latestCorrectedPlay(
   corrections: PlaytimeCorrection[],
   timezone: string,
+  now: Date,
 ): Date | null {
   return corrections
-    .map(
-      (correction) =>
-        resolveFuzzyDateRange(
-          correction.playedFrom,
-          correction.playedTo,
-          timezone,
-        ).latest,
-    )
+    .map((correction) => {
+      const { latest } = resolveFuzzyDateRange(
+        correction.playedFrom,
+        correction.playedTo,
+        timezone,
+      );
+      return latest > now ? now : latest;
+    })
     .reduce<Date | null>(maxDate, null);
 }
 
@@ -60,7 +61,10 @@ function maxDate(a: Date | null, b: Date | null): Date | null {
   return a > b ? a : b;
 }
 
-export async function refreshGameAggregates(gameId: number): Promise<Game> {
+export async function refreshGameAggregates(
+  gameId: number,
+  now: Date = new Date(),
+): Promise<Game> {
   const gameRecord = await db.query.game.findFirst({
     where: eq(game.id, gameId),
     with: { steamGames: true, gogGames: true, epicGames: true },
@@ -108,7 +112,7 @@ export async function refreshGameAggregates(gameId: number): Promise<Game> {
   ].reduce<Date | null>(maxDate, null);
   const lastPlayedAt = maxDate(
     observedLastPlayedAt,
-    latestCorrectedPlay(corrections, timezone),
+    latestCorrectedPlay(corrections, timezone, now),
   );
   return db
     .update(game)

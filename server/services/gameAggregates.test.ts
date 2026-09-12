@@ -200,6 +200,24 @@ describe("refreshGameAggregates", () => {
     );
   });
 
+  it("caps a corrected lastPlayedAt that would otherwise land in the future", async () => {
+    const gogGame = createGogGame({
+      playtimeMinutes: 90,
+      lastPlayedAt: new Date("2024-01-01T00:00:00.000Z"),
+    });
+    createPlaytimeCorrection({
+      provider: "gog",
+      providerId: gogGame.gogId,
+      snapshotId: null,
+      minutes: 45,
+      playedFrom: "2026-09",
+      playedTo: "2026-09",
+    });
+    const now = new Date("2026-09-12T12:00:00.000Z");
+    const game = await refreshGameAggregates(gogGame.gameId, now);
+    expect(game.lastPlayedAt).toStrictEqual(now);
+  });
+
   it("does not lower lastPlayedAt for an earlier correction", async () => {
     const lastPlayedAt = new Date("2024-06-01T00:00:00.000Z");
     const gogGame = createGogGame({ playtimeMinutes: 90, lastPlayedAt });

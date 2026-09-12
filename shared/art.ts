@@ -82,7 +82,7 @@ export function getPrimaryEpicGame(game: GameWithProviders) {
 // and Epic art is only cacheable when the backing column holds a URL.
 function artUrl(
   provider: "steam" | "gog" | "epic",
-  id: number,
+  id: number | string,
   type: string,
 ): string {
   return `${ART_URL_BASE_PATH}/${provider}/${id}/${type}`;
@@ -94,7 +94,7 @@ export function artVariantUrl(url: string, width: number): string {
 
 function artUrlWhenPresent(
   provider: "steam" | "gog" | "epic",
-  id: number,
+  id: number | string,
   type: string,
   ...sources: (string | null | undefined)[]
 ): string | null {
@@ -170,23 +170,33 @@ export function getGameArtUrls(game: GameWithArtSources): ArtUrls | null {
   }
   const epicGame = getPrimaryEpicGame(game);
   if (epicGame) {
-    const { epicId } = epicGame;
+    const { catalogItemId } = epicGame;
     return {
-      icon: artUrlWhenPresent("epic", epicId, "icon", epicGame.boxArtTallUrl),
+      icon: artUrlWhenPresent(
+        "epic",
+        catalogItemId,
+        "icon",
+        epicGame.boxArtTallUrl,
+      ),
       poster: artUrlWhenPresent(
         "epic",
-        epicId,
+        catalogItemId,
         "poster",
         epicGame.boxArtTallUrl,
       ),
-      hero: artUrlWhenPresent("epic", epicId, "hero", epicGame.boxArtWideUrl),
+      hero: artUrlWhenPresent(
+        "epic",
+        catalogItemId,
+        "hero",
+        epicGame.boxArtWideUrl,
+      ),
       background: artUrlWhenPresent(
         "epic",
-        epicId,
+        catalogItemId,
         "background",
         epicGame.boxArtWideUrl,
       ),
-      logo: artUrlWhenPresent("epic", epicId, "logo", epicGame.logoUrl),
+      logo: artUrlWhenPresent("epic", catalogItemId, "logo", epicGame.logoUrl),
     };
   }
   return null;

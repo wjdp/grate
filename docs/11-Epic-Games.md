@@ -197,6 +197,8 @@ Identity is the triple `(namespace, catalogItemId, appName)`. `appName` alone is
 
 Art helpers (`shared/art.ts`) gain an Epic branch; Epic image URLs are absolute CDN links with no size formatter, so they are simpler than GOG's `{formatter}` templates.
 
+Cached art is keyed on `catalogItemId`, not `epicId` (see [33](33-Epic-Art-Cache-Key.md)): `/art/epic/<catalogItemId>/<type>`, cached at `data/art/epic/<catalogItemId>/`. The `epicId` autoincrement is reassigned whenever the library is re-imported, which served the wrong game's art. Sync drops a game's cached art when any of `boxArtTallUrl`, `boxArtWideUrl` or `logoUrl` changes, since Epic CDN URLs embed a content hash.
+
 ## Differences from Steam and GOG that affect design
 
 - **Two-step library.** Steam and GOG return titles with the owned list. Epic returns identifiers only; every game costs a catalog request. Batch by namespace where possible (`bulk/items` takes repeated `id` params for one namespace) and cache aggressively.

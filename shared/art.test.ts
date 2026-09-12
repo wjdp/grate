@@ -80,8 +80,11 @@ const gogRow = {
   galaxyBackgroundImageUrl: `https://images.gog-statics.com/${GOG_HASH}.jpg`,
 };
 
+const EPIC_CATALOG_ITEM_ID = "3c06b395a08a4bc4b96d045b1e1f1e4f";
+
 const epicRow = {
   epicId: 7,
+  catalogItemId: EPIC_CATALOG_ITEM_ID,
   name: "Alan Wake",
   boxArtTallUrl: EPIC_BOX_ART,
   boxArtWideUrl:
@@ -206,13 +209,13 @@ describe("getGameArtUrls", () => {
     expect(art?.background).toBe("/art/gog/1207658930/background");
   });
 
-  it("builds epic route urls when the backing columns are present", () => {
+  it("builds epic route urls keyed on the catalogue item id", () => {
     expect(getGameArtUrls(makeGame({ epicGames: [epicRow] }))).toEqual({
-      icon: "/art/epic/7/icon",
-      poster: "/art/epic/7/poster",
-      hero: "/art/epic/7/hero",
-      background: "/art/epic/7/background",
-      logo: "/art/epic/7/logo",
+      icon: `/art/epic/${EPIC_CATALOG_ITEM_ID}/icon`,
+      poster: `/art/epic/${EPIC_CATALOG_ITEM_ID}/poster`,
+      hero: `/art/epic/${EPIC_CATALOG_ITEM_ID}/hero`,
+      background: `/art/epic/${EPIC_CATALOG_ITEM_ID}/background`,
+      logo: `/art/epic/${EPIC_CATALOG_ITEM_ID}/logo`,
     });
   });
 

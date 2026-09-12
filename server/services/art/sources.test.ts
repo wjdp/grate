@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
+import type { EpicArtType } from "#shared/art/types";
 import { db } from "~~/server/database/client";
 import {
   steamAppInfo,
@@ -7,7 +8,7 @@ import {
   steamPicsMetadata,
 } from "~~/server/database/schema";
 import { flushDb } from "~~/test/db";
-import { createSteamGame } from "~~/test/fixtures/game";
+import { createEpicGame, createSteamGame } from "~~/test/fixtures/game";
 import { resolveArtSources } from "./sources";
 
 const PICS_BASE_URL =
@@ -352,5 +353,58 @@ describe("resolveArtSources for steam", () => {
         LEGACY_BACKGROUND_V6B,
       ]);
     });
+  });
+});
+
+describe("resolveArtSources for epic", () => {
+  const CATALOG_ITEM_ID = "0123456789abcdef0123456789abcdef";
+  const BOX_ART_TALL = "https://cdn1.epicgames.com/offer/tall.png";
+  const BOX_ART_WIDE = "https://cdn1.epicgames.com/offer/wide.png";
+  const LOGO = "https://cdn1.epicgames.com/offer/logo.png";
+
+  beforeEach(async () => {
+    await flushDb();
+  });
+
+  it("resolves each type from the row with that catalogue item id", async () => {
+    createEpicGame({
+      catalogItemId: CATALOG_ITEM_ID,
+      boxArtTallUrl: BOX_ART_TALL,
+      boxArtWideUrl: BOX_ART_WIDE,
+      logoUrl: LOGO,
+    });
+
+    const resolve = (type: EpicArtType) =>
+      resolveArtSources({ provider: "epic", id: CATALOG_ITEM_ID, type });
+
+    expect(await resolve("icon")).toEqual([
+      { url: BOX_ART_TALL, derive: "epicIcon" },
+    ]);
+    expect(await resolve("poster")).toEqual([{ url: BOX_ART_TALL }]);
+    expect(await resolve("hero")).toEqual([{ url: BOX_ART_WIDE }]);
+    expect(await resolve("background")).toEqual([{ url: BOX_ART_WIDE }]);
+    expect(await resolve("logo")).toEqual([{ url: LOGO }]);
+  });
+
+  it("ignores a row whose epicId happens to match the requested id", async () => {
+    const other = createEpicGame({ boxArtTallUrl: BOX_ART_TALL });
+
+    expect(
+      await resolveArtSources({
+        provider: "epic",
+        id: String(other.epicId),
+        type: "poster",
+      }),
+    ).toEqual([]);
+  });
+
+  it("resolves nothing for an unknown catalogue item id", async () => {
+    expect(
+      await resolveArtSources({
+        provider: "epic",
+        id: CATALOG_ITEM_ID,
+        type: "poster",
+      }),
+    ).toEqual([]);
   });
 });

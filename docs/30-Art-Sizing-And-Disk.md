@@ -130,4 +130,5 @@ Idempotent: a dir with only masters and variants is a no-op.
 
 - Master quality for logos: lossy WebP with alpha is fine for `brightness`-dimmed heroes but logos are shown crisp; check a few at q80 vs lossless before fixing the number.
 - Whether to keep steam `hero` as an alias of `backdrop` for any external caller of `/art/steam/<id>/hero`. No known caller; lean delete.
+- Orphaned Epic directories. Epic art was keyed on the `EpicGame` autoincrement `epicId` until [33](33-Epic-Art-Cache-Key.md) rekeyed it on `catalogItemId`; the numeric `data/art/epic/<n>/` directories left behind are unreachable (the route rejects numeric Epic ids) and are not cleaned up automatically. `rm -rf data/art/epic` reclaims the space, or leave it to the §5 sweep.
 - Boot-time migration vs manual only. Boot is friendlier for other users; needs a "done" marker so it never re-scans a large cache on every start.

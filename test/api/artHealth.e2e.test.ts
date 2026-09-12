@@ -81,8 +81,20 @@ describe("GET /art/:provider/:id/:type", () => {
     expect(response.status).toBe(404);
   });
 
-  it("404s for an unknown epic id", async () => {
+  it("400s for a numeric epic id, which is no longer the art key", async () => {
     const response = await fetch("/art/epic/999999/poster");
+    expect(response.status).toBe(400);
+  });
+
+  it("400s for a traversal-shaped epic id", async () => {
+    const response = await fetch("/art/epic/..%2F..%2Fetc%2Fpasswd/poster");
+    expect(response.status).toBe(400);
+  });
+
+  it("404s for an unknown epic catalogue item id", async () => {
+    const response = await fetch(
+      "/art/epic/0123456789abcdef0123456789abcdef/poster",
+    );
     expect(response.status).toBe(404);
   });
 

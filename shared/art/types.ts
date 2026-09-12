@@ -25,6 +25,12 @@ export const GOG_ART_TYPES = [
 ] as const;
 export type GogArtType = (typeof GOG_ART_TYPES)[number];
 
+// Epic art is keyed on the store's catalogue item id, not the EpicGame
+// autoincrement id, which is reassigned whenever the library is re-imported.
+// The pattern also keeps the id safe to interpolate into a cache directory
+// path.
+export const EPIC_ART_ID_PATTERN = /^[0-9a-f]{32}$/;
+
 export const EPIC_ART_TYPES = [
   "icon",
   "poster",
@@ -44,6 +50,6 @@ export type ArtType = SteamArtType | GogArtType | EpicArtType;
 
 export interface ArtKey {
   provider: ArtProvider;
-  id: number;
+  id: number | string;
   type: ArtType;
 }

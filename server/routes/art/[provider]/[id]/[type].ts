@@ -5,33 +5,49 @@ import {
   ART_TYPES_BY_PROVIDER,
   ART_VARIANT_WIDTHS,
   ArtFetchError,
+  type ArtProvider,
   ArtSourceNotFoundError,
   artConditionalHeaders,
   contentTypeForPath,
+  EPIC_ART_ID_PATTERN,
   ensureArtCached,
   ensureArtVariantCached,
   isNotModified,
 } from "~~/server/services/art";
 
-const ProviderAndIdSchema = z.object({
-  provider: z.enum(ART_PROVIDERS),
-  id: z.coerce.number().int().positive(),
-});
+const ProviderSchema = z.enum(ART_PROVIDERS);
+
+// Steam and GOG art is keyed on their numeric store ids, Epic art on the
+// catalogue item id.
+const StoreNumberIdSchema = z.coerce.number().int().positive();
+
+const ID_SCHEMA_BY_PROVIDER = {
+  steam: StoreNumberIdSchema,
+  gog: StoreNumberIdSchema,
+  epic: z.string().regex(EPIC_ART_ID_PATTERN),
+} satisfies Record<ArtProvider, z.ZodType<number | string>>;
 
 const WidthSchema = z
   .union([z.literal(ART_VARIANT_WIDTHS[0]), z.literal(ART_VARIANT_WIDTHS[1])])
   .optional();
 
 export default defineEventHandler(async (event) => {
-  const providerAndId = ProviderAndIdSchema.safeParse({
-    provider: getRouterParam(event, "provider"),
-    id: getRouterParam(event, "id"),
-  });
-  if (!providerAndId.success) {
+  const parsedProvider = ProviderSchema.safeParse(
+    getRouterParam(event, "provider"),
+  );
+  if (!parsedProvider.success) {
     setResponseStatus(event, 400);
     return { error: "Invalid parameters" };
   }
-  const { provider, id } = providerAndId.data;
+  const provider = parsedProvider.data;
+  const parsedId = ID_SCHEMA_BY_PROVIDER[provider].safeParse(
+    getRouterParam(event, "id"),
+  );
+  if (!parsedId.success) {
+    setResponseStatus(event, 400);
+    return { error: "Invalid parameters" };
+  }
+  const id = parsedId.data;
 
   const type = z
     .enum(ART_TYPES_BY_PROVIDER[provider])

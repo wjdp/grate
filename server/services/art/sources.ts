@@ -179,13 +179,13 @@ async function resolveGogArtSources(
 }
 
 async function resolveEpicArtSources(
-  epicId: number,
+  catalogItemId: string,
   type: EpicArtType,
 ): Promise<ArtSource[]> {
   const row = db
     .select()
     .from(epicGame)
-    .where(eq(epicGame.epicId, epicId))
+    .where(eq(epicGame.catalogItemId, catalogItemId))
     .get();
   if (!row) {
     return [];
@@ -212,10 +212,10 @@ export async function resolveArtSources({
 }: ArtKey): Promise<ArtSource[]> {
   switch (provider) {
     case "steam":
-      return resolveSteamArtSources(id, type as SteamArtType);
+      return resolveSteamArtSources(id as number, type as SteamArtType);
     case "gog":
-      return resolveGogArtSources(id, type as GogArtType);
+      return resolveGogArtSources(id as number, type as GogArtType);
     case "epic":
-      return resolveEpicArtSources(id, type as EpicArtType);
+      return resolveEpicArtSources(id as string, type as EpicArtType);
   }
 }

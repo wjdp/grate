@@ -17,7 +17,7 @@ const CACHE_ART_CONCURRENCY = 8;
 
 // Resizing is local work, so it is not rate limited. A single unreadable
 // original must not abort the whole bulk run.
-async function warmPosterVariants(provider: ArtProvider, id: number) {
+async function warmPosterVariants(provider: ArtProvider, id: number | string) {
   try {
     await ensureArtVariantsCached({ provider, id, type: "poster" });
   } catch (error) {
@@ -27,7 +27,7 @@ async function warmPosterVariants(provider: ArtProvider, id: number) {
   }
 }
 
-async function cacheArtForGame(provider: ArtProvider, id: number) {
+async function cacheArtForGame(provider: ArtProvider, id: number | string) {
   for (const type of ART_TYPES_BY_PROVIDER[provider]) {
     try {
       await ensureArtCached({ provider, id, type }, { rateLimit: true });
@@ -55,7 +55,7 @@ async function cacheArtForGame(provider: ArtProvider, id: number) {
 }
 
 export default async (task: Task) => {
-  const rows: { provider: ArtProvider; id: number; name: string }[] = [
+  const rows: { provider: ArtProvider; id: number | string; name: string }[] = [
     ...db
       .select()
       .from(steamGame)
@@ -80,7 +80,7 @@ export default async (task: Task) => {
       .all()
       .map((row) => ({
         provider: "epic" as const,
-        id: row.epicId,
+        id: row.catalogItemId,
         name: row.name,
       })),
   ];

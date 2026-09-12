@@ -15,12 +15,14 @@ vi.mock("~~/server/tasks/queue", () => ({
 }));
 
 const { flushDb } = await import("~~/test/db");
-const { createGogGame } = await import("~~/test/fixtures/game");
+const { createEpicGame, createGogGame } = await import("~~/test/fixtures/game");
 const { artVariantFilePath } = await import("~~/server/services/art/paths");
 const cacheArt = (await import("./cacheArt")).default;
 const { ART_VARIANT_WIDTHS } = await import("~~/server/services/art");
 
 const POSTER_URL = "https://images.gog-statics.com/poster.jpg";
+const EPIC_BOX_ART_URL = "https://cdn1.epicgames.com/offer/tall.png";
+const EPIC_CATALOG_ITEM_ID = "0123456789abcdef0123456789abcdef";
 const HERO_URL = "https://images.gog-statics.com/hero.jpg";
 
 const task: Task = { id: 1, name: "cacheArt", state: "in_progress" };
@@ -82,6 +84,23 @@ describe("cacheArt", () => {
     for (const path of variantPaths(gogId, "hero")) {
       expect(existsSync(path)).toBe(false);
     }
+  });
+
+  it("caches epic art under the catalogue item id, not the epicId", async () => {
+    const { epicId } = createEpicGame({
+      catalogItemId: EPIC_CATALOG_ITEM_ID,
+      boxArtTallUrl: EPIC_BOX_ART_URL,
+    });
+    stubFetch(() => poster());
+
+    await cacheArt(task);
+
+    expect(existsSync(join(dataDir, "art", "epic", EPIC_CATALOG_ITEM_ID))).toBe(
+      true,
+    );
+    expect(existsSync(join(dataDir, "art", "epic", String(epicId)))).toBe(
+      false,
+    );
   });
 
   it("logs and continues when a variant cannot be generated", async () => {

@@ -62,7 +62,9 @@ export function resolveEpicImageUrl(
   return resized.toString();
 }
 
-export function getPrimarySteamGame(game: GameWithProviders) {
+export function getPrimarySteamGame<Game extends GameWithArtSources>(
+  game: Game,
+) {
   return game.steamGames[0] ?? null;
 }
 
@@ -91,7 +93,7 @@ export function artVariantUrl(url: string, width: number): string {
 }
 
 function artUrlWhenPresent(
-  provider: "gog" | "epic",
+  provider: "steam" | "gog" | "epic",
   id: number,
   type: string,
   ...sources: (string | null | undefined)[]
@@ -101,7 +103,37 @@ function artUrlWhenPresent(
     : null;
 }
 
-export function getGameArtUrls(game: GameWithProviders): ArtUrls | null {
+interface SteamLogoMetadata {
+  logoPath: string | null;
+  logo2xPath: string | null;
+}
+
+type GameWithArtSources = Omit<GameWithProviders, "steamGames"> & {
+  steamGames: (GameWithProviders["steamGames"][number] & {
+    picsMetadata?: SteamLogoMetadata | null;
+  })[];
+};
+
+// Steam only publishes a logo for some apps. PICS metadata tells us which;
+// without it (list queries, or apps PICS has not seen) we optimistically link
+// to the art route and let it fall back to the legacy CDN.
+function steamLogoUrl(
+  appId: number,
+  picsMetadata: SteamLogoMetadata | null | undefined,
+): string | null {
+  if (!picsMetadata) {
+    return artUrl("steam", appId, "logo");
+  }
+  return artUrlWhenPresent(
+    "steam",
+    appId,
+    "logo",
+    picsMetadata.logo2xPath,
+    picsMetadata.logoPath,
+  );
+}
+
+export function getGameArtUrls(game: GameWithArtSources): ArtUrls | null {
   const steamGame = getPrimarySteamGame(game);
   if (steamGame) {
     const { appId } = steamGame;
@@ -110,7 +142,7 @@ export function getGameArtUrls(game: GameWithProviders): ArtUrls | null {
       poster: artUrl("steam", appId, "poster"),
       hero: artUrl("steam", appId, "hero"),
       background: artUrl("steam", appId, "backdrop"),
-      logo: artUrl("steam", appId, "logo"),
+      logo: steamLogoUrl(appId, steamGame.picsMetadata),
     };
   }
   const gogGame = getPrimaryGogGame(game);

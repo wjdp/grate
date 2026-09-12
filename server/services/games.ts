@@ -42,7 +42,13 @@ const providerRows = {
 } as const;
 
 const providerRowsWithAppInfo = {
-  steamGames: { orderBy: asc(steamGame.appId), with: { appInfo: true } },
+  steamGames: {
+    orderBy: asc(steamGame.appId),
+    with: {
+      appInfo: true,
+      picsMetadata: { columns: { logoPath: true, logo2xPath: true } },
+    },
+  },
   gogGames: { orderBy: asc(gogGame.gogId) },
   epicGames: { orderBy: asc(epicGame.epicId) },
 } as const;

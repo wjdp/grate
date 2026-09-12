@@ -104,6 +104,38 @@ describe("getGameArtUrls", () => {
     });
   });
 
+  it("omits the steam logo when pics metadata records none", () => {
+    const art = getGameArtUrls(
+      makeGame({
+        steamGames: [
+          { ...steamRow, picsMetadata: { logoPath: null, logo2xPath: null } },
+        ],
+      }),
+    );
+    expect(art?.logo).toBeNull();
+  });
+
+  it("links the steam logo when pics metadata records one", () => {
+    const art = getGameArtUrls(
+      makeGame({
+        steamGames: [
+          {
+            ...steamRow,
+            picsMetadata: { logoPath: "abc/logo.png", logo2xPath: null },
+          },
+        ],
+      }),
+    );
+    expect(art?.logo).toBe("/art/steam/620/logo");
+  });
+
+  it("links the steam logo when pics metadata is absent", () => {
+    const art = getGameArtUrls(
+      makeGame({ steamGames: [{ ...steamRow, picsMetadata: null }] }),
+    );
+    expect(art?.logo).toBe("/art/steam/620/logo");
+  });
+
   it("prefers steam over gog and epic", () => {
     const art = getGameArtUrls(
       makeGame({

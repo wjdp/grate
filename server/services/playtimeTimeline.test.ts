@@ -8,6 +8,7 @@ import type {
 import {
   deriveTimeline,
   inferredLastPlayedAt,
+  snapshotCapacities,
 } from "~~/server/services/playtimeTimeline";
 
 const playDaySettings: PlayDaySettings = {
@@ -647,6 +648,32 @@ describe("deriveTimeline with corrections", () => {
     );
     expect(timeline.undatedMinutes).toBe(0);
     expect(timeline.baselineSnapshotId).toBeNull();
+  });
+
+  it("only treats the first ordered snapshot as the baseline, not a later null-start row", () => {
+    const snapshots: PlaytimeSnapshot[] = [
+      {
+        id: 1,
+        timestampStart: null,
+        timestampEnd: new Date("2026-08-30T14:14:45Z"),
+        playtimeMinutes: 0,
+      },
+      {
+        id: 2,
+        timestampStart: null,
+        timestampEnd: new Date("2026-08-31T14:14:45Z"),
+        playtimeMinutes: 60,
+      },
+    ];
+    const timeline = deriveTimeline(
+      snapshots,
+      cyberpunkRow,
+      [],
+      playDaySettings,
+    );
+    expect(timeline.undatedMinutes).toBe(0);
+    expect(timeline.baselineSnapshotId).toBeNull();
+    expect(snapshotCapacities(snapshots)).toEqual(new Map([[2, 60]]));
   });
 
   it("adds a manual correction as an extra session", () => {

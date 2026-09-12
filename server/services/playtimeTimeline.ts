@@ -113,12 +113,11 @@ function observeDeltas(snapshots: PlaytimeSnapshot[]): ObservedDelta[] {
 }
 
 function baselineSnapshot(snapshots: PlaytimeSnapshot[]) {
-  return (
-    orderedSnapshots(snapshots).find(
-      (snapshot) =>
-        snapshot.timestampStart === null && snapshot.playtimeMinutes > 0,
-    ) ?? null
-  );
+  const first = orderedSnapshots(snapshots)[0];
+  if (!first || first.timestampStart !== null || first.playtimeMinutes <= 0) {
+    return null;
+  }
+  return first;
 }
 
 // The minutes each correctable row can account for: the pre-history total on

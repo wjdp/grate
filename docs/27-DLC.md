@@ -29,7 +29,7 @@ Volume (dev account): Steam 317/615 games list DLC, 2614 DLC ids, PICS fetch und
 - **Auto-merge siblings by normalised name** across providers once their parents are merged.
 - **Game page only** for v1. No DLC in library, organise, dashboard, activity, stats, palette.
 - Term: **DLC** in UI and code.
-- Steam ownership via the optional QR web session ([doc 32](32-Steam-Auth-After-The-Hijack-Flag.md); WebBrowser platform, at most one cookie mint a day). Steam DLC import runs only when `hasSteamWebSession()` is true; otherwise skipped, GOG/Epic unaffected.
+- Steam ownership via the optional QR web session ([doc 32](32-Steam-Auth-After-The-Hijack-Flag.md); WebBrowser platform). Steam DLC import runs only when `hasSteamWebSession()` is true; otherwise skipped, GOG/Epic unaffected. **Not scheduled**: per doc 32's trigger policy it runs on link (catch-up), when `updateGames` finds a new app, when `recordPlaytimes` sees a delta on a `has_dlc` game, or on a manual "Refresh rich data" action — never on a timer.
 
 ## Schema
 

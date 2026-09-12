@@ -1,5 +1,9 @@
 import { DateTime } from "luxon";
-import { parseFuzzyDate, resolveFuzzyDateRange } from "#shared/fuzzyDate";
+import {
+  type FuzzyDate,
+  parseFuzzyDate,
+  resolveFuzzyDateRange,
+} from "#shared/fuzzyDate";
 import { type PlayDaySettings, playDayOf } from "#shared/playDay";
 import type {
   PlaytimeProvider,
@@ -229,11 +233,9 @@ function toCorrectedSession(
   );
   const from = parseFuzzyDate(correction.playedFrom);
   const to = parseFuzzyDate(correction.playedTo);
-  const exact =
-    from.precision === "minute" &&
-    to.precision === "minute" &&
-    !from.approximate &&
-    !to.approximate;
+  // `~` says the time is approximate, not that it is unusable: a corrected
+  // session is placed by its precision alone.
+  const exact = from.precision === "minute" && to.precision === "minute";
   return {
     ...row,
     minutes: correction.minutes,
@@ -322,13 +324,35 @@ function coarseBucket(session: UnbucketedSession, timezone: string) {
   };
 }
 
+function canonicalText(value: FuzzyDate) {
+  return value.approximate ? value.text.slice(0, -1) : value.text;
+}
+
+// A day-precision correction naming one date means that date, whatever the
+// play day boundary would make of the instants it resolves to.
+function singleCalendarDate(correction: {
+  playedFrom: string;
+  playedTo: string;
+}): string | null {
+  const from = parseFuzzyDate(correction.playedFrom);
+  const to = parseFuzzyDate(correction.playedTo);
+  if (from.precision !== "day" || to.precision !== "day") {
+    return null;
+  }
+  const date = canonicalText(from);
+  return date === canonicalText(to) ? date : null;
+}
+
 function bucketed(
   session: UnbucketedSession,
   settings: PlayDaySettings,
 ): DerivedSession {
   const { mergeable: _mergeable, ...rest } = session;
   if (session.correction && !session.anchored) {
-    return { ...rest, ...coarseBucket(session, settings.timezone) };
+    const date = singleCalendarDate(session.correction);
+    return date
+      ? { ...rest, ...bucketOfPlayDay(date) }
+      : { ...rest, ...coarseBucket(session, settings.timezone) };
   }
   const endsAt = session.correction
     ? session.estimatedEnd

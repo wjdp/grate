@@ -753,15 +753,81 @@ describe("deriveTimeline with corrections", () => {
     });
   });
 
-  it("treats an approximate minute-precision correction as imprecise", () => {
+  it("places an approximate minute-precision correction on its play day", () => {
     const sessions = deriveSessions(
       identifiedCyberpunkSnapshots,
       cyberpunkRow,
       [correction({ playedFrom: "2026-08-29T20:00~" })],
     );
-    expect(sessions[0]?.anchored).toBe(false);
-    expect(sessions[0]?.playDay).toBeNull();
-    expect(sessions[0]?.calendarMonth).toBe("2026-08");
+    expect(sessions[0]).toMatchObject({
+      anchored: true,
+      uncertaintyMinutes: 0,
+      playDay: "2026-08-29",
+      calendarMonth: "2026-08",
+      calendarYear: 2026,
+    });
+  });
+
+  it("buckets a day-precision correction naming one date to that date", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [
+        correction({
+          snapshotId: 1,
+          minutes: 200,
+          playedFrom: "2020-10-12",
+          playedTo: "2020-10-12",
+        }),
+      ],
+    );
+    expect(sessions.find((session) => session.correction)).toMatchObject({
+      anchored: false,
+      playDay: "2020-10-12",
+      calendarMonth: "2020-10",
+      calendarYear: 2020,
+    });
+  });
+
+  it("buckets a day-precision correction spanning two dates to the month", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [
+        correction({
+          snapshotId: 1,
+          minutes: 200,
+          playedFrom: "2020-10-12",
+          playedTo: "2020-10-13",
+        }),
+      ],
+    );
+    expect(sessions.find((session) => session.correction)).toMatchObject({
+      playDay: null,
+      calendarMonth: "2020-10",
+      calendarYear: 2020,
+    });
+  });
+
+  it("buckets a correction mixing minute and day precision to the month", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [
+        correction({
+          snapshotId: 1,
+          minutes: 200,
+          playedFrom: "2020-10-12T20:00",
+          playedTo: "2020-10-12",
+        }),
+      ],
+    );
+    expect(sessions.find((session) => session.correction)).toMatchObject({
+      anchored: false,
+      playDay: null,
+      calendarMonth: "2020-10",
+      calendarYear: 2020,
+    });
   });
 
   it("gives a merged Steam run no snapshot to correct", () => {

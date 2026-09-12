@@ -1,6 +1,6 @@
 ---
 type: task
-status: open
+status: superseded
 ---
 
 # Steam QR login
@@ -184,7 +184,7 @@ Options, in order of preference:
 2. Keep the MobileApp session but drop the `device_friendly_name` patch and any other platform spoofing. Still a fake "Galaxy S25" refreshing from a server; reduces the risk, does not remove it.
 3. Test WebBrowser properly. `refreshAccessToken()` is denied, but `getWebCookies()` worked and its `steamLoginSecure` value is a JWT access token. If that token satisfies `GetOwnedGames?access_token=`, a browser session is the most honest emulation. Untested.
 
-Decision pending.
+Decided 2026-09-12 in [32](32-Steam-Auth-After-The-Hijack-Flag.md): option 1, with the optional session moved to the WebBrowser platform.
 
 ## Open items
 

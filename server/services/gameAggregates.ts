@@ -1,6 +1,51 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { resolveFuzzyDateRange } from "#shared/fuzzyDate";
+import type { PlaytimeProvider } from "#shared/types/PlaytimeSession";
 import { db } from "~~/server/database/client";
-import { type Game, game } from "~~/server/database/schema";
+import {
+  type Game,
+  game,
+  type PlaytimeCorrection,
+  playtimeCorrection,
+} from "~~/server/database/schema";
+import { getPlayDaySettings } from "~~/server/services/settings";
+
+// Queried here rather than through playtimeCorrections, which refreshes
+// aggregates and would import this module back.
+function correctionsForRows(
+  rows: { provider: PlaytimeProvider; providerIds: number[] }[],
+): PlaytimeCorrection[] {
+  return rows
+    .filter(({ providerIds }) => providerIds.length > 0)
+    .flatMap(({ provider, providerIds }) =>
+      db
+        .select()
+        .from(playtimeCorrection)
+        .where(
+          and(
+            eq(playtimeCorrection.provider, provider),
+            inArray(playtimeCorrection.providerId, providerIds),
+          ),
+        )
+        .all(),
+    );
+}
+
+function latestCorrectedPlay(
+  corrections: PlaytimeCorrection[],
+  timezone: string,
+): Date | null {
+  return corrections
+    .map(
+      (correction) =>
+        resolveFuzzyDateRange(
+          correction.playedFrom,
+          correction.playedTo,
+          timezone,
+        ).latest,
+    )
+    .reduce<Date | null>(maxDate, null);
+}
 
 function steamLastPlayedAt(rTimeLastPlayed: number | null | undefined) {
   if (!rTimeLastPlayed) {
@@ -36,16 +81,38 @@ export async function refreshGameAggregates(gameId: number): Promise<Game> {
       (total, row) => total + (row.playtimeMinutes ?? 0),
       0,
     );
-  const lastPlayedAt = [
+  const corrections = correctionsForRows([
+    {
+      provider: "steam",
+      providerIds: gameRecord.steamGames.map((row) => row.appId),
+    },
+    {
+      provider: "gog",
+      providerIds: gameRecord.gogGames.map((row) => row.gogId),
+    },
+    {
+      provider: "epic",
+      providerIds: gameRecord.epicGames.map((row) => row.epicId),
+    },
+  ]);
+  const manualMinutes = corrections
+    .filter((correction) => correction.snapshotId === null)
+    .reduce((total, correction) => total + correction.minutes, 0);
+  const { timezone } = await getPlayDaySettings();
+  const observedLastPlayedAt = [
     ...gameRecord.steamGames.map((row) =>
       steamLastPlayedAt(row.rTimeLastPlayed),
     ),
     ...gameRecord.gogGames.map((row) => row.lastPlayedAt),
     ...gameRecord.epicGames.map((row) => row.lastPlayedAt),
   ].reduce<Date | null>(maxDate, null);
+  const lastPlayedAt = maxDate(
+    observedLastPlayedAt,
+    latestCorrectedPlay(corrections, timezone),
+  );
   return db
     .update(game)
-    .set({ playtimeMinutes, lastPlayedAt })
+    .set({ playtimeMinutes: playtimeMinutes + manualMinutes, lastPlayedAt })
     .where(eq(game.id, gameId))
     .returning()
     .get();

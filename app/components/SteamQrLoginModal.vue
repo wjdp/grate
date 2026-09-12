@@ -6,8 +6,15 @@ const AUTHORISED_DEVICES_URL =
 const POLL_INTERVAL_MS = 2000;
 const PLACEHOLDER_QR_TEXT = "https://s.team/q/1/placeholder";
 
+const { purpose } = defineProps<{ purpose: "identify" | "link" }>();
 const open = defineModel<boolean>("open", { default: false });
-const emit = defineEmits<{ connected: [] }>();
+const emit = defineEmits<{
+  connected: [{ id: string; steamId: string; personaName: string }];
+}>();
+
+const title = computed(() =>
+  purpose === "link" ? "Link Steam web session" : "Scan to identify your account",
+);
 
 type Phase = "starting" | "pending" | "expired" | "error";
 
@@ -62,7 +69,11 @@ const poll = async () => {
   attemptId.value = null;
   if (login.state === "authenticated") {
     open.value = false;
-    emit("connected");
+    emit("connected", {
+      id,
+      steamId: login.steamId ?? "",
+      personaName: login.personaName ?? "",
+    });
     return;
   }
   phase.value = login.state;
@@ -124,7 +135,7 @@ onBeforeUnmount(() => {
     <template #title>
       <span class="flex items-center gap-2">
         <ProviderIcon provider="steam" class="size-5" />
-        Connect Steam account
+        {{ title }}
       </span>
     </template>
     <template #body>
@@ -182,13 +193,17 @@ onBeforeUnmount(() => {
           color="warning"
           variant="subtle"
           icon="i-lucide-shield-alert"
-          title="Full account access, including purchases"
+          title="A browser-style login, opted into knowingly"
         >
           <template #description>
             <p>
-              Same session the Steam app holds. grate only reads your
-              library, but anyone with access to its database could do more,
-              so keep the install private. Revoke at any time under Steam's
+              grate uses this session at most once a day for data the Web API
+              key cannot reach — owned DLC today, more later. Steam's terms
+              forbid automated access, and grate's earlier mobile-style login
+              got an account restricted, so link it only if you accept that
+              risk. The session grants full account access, including
+              purchases. grate cannot renew it: it expires after about seven
+              months. Revoke it at any time under Steam's
               <ULink
                 :to="AUTHORISED_DEVICES_URL"
                 target="_blank"

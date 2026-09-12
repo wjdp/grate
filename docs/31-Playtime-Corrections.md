@@ -57,7 +57,7 @@ PlaytimeCorrection
   createdAt
 ```
 
-- A correction targets one snapshot row: the row that introduced a positive cumulative delta, or the baseline row. Its capacity is that delta (baseline: the cumulative total on the first row). A lone correction re-places the whole delta: the session renders with the store's minutes, and the correction's own minutes only cap what it may claim. Several corrections may target the same row to split it into several played periods; their minutes sum to at most the capacity, and any remainder stays as a residual session in the original observation window. The baseline is the exception: its remainder is always reported as undated pre-history, so a lone baseline correction does not absorb it.
+- A correction targets one snapshot row: the row that introduced a positive cumulative delta, or the baseline row. Its capacity is that delta (baseline: the cumulative total on the first row). A lone correction re-places the whole delta: the session renders with the store's minutes, and the correction's own minutes only cap what it may claim. Several corrections may target the same row to split it into several played periods; their minutes sum to at most the capacity, and any remainder stays as a residual session in the original observation window. The baseline is the exception: its remainder is always reported as undated pre-history, bounded by the baseline row's `timestampEnd` (for Steam this is grounded on `rTimeLastPlayed`, the last time the game was played before grate), so a lone baseline correction does not absorb it.
 - Snapshot rows are never deleted (verified: no code deletes from the playtime tables), so the reference is stable. It is polymorphic across three tables, so no FK; the service checks ownership.
 - Manual sessions (`snapshotId` null) are additive. If the store later reports the play, the user binds the correction to that delta by patching `snapshotId`, or deletes it. No automatic matching.
 - No Steam merged-run claims: corrections target single deltas. A merged Steam sitting is already anchored and rarely needs correcting; the UI does not offer Correct… on multi-delta sessions.
@@ -104,7 +104,7 @@ Validation on write: minutes a positive integer; `playedTo` not before `playedFr
 
 ## Consumers
 
-- `getGameTimeline` returns `{ sessions, undated }`; `undated` lists per provider row the pre-history minutes not yet dated, with the baseline `snapshotId` so the UI can offer Date this…. Sessions carry `snapshotId` (single-delta observed/residual sessions only) and `correction` (`{ id, playedFrom, playedTo, note }` or null).
+- `getGameTimeline` returns `{ sessions, undated }`; `undated` lists per provider row the pre-history minutes not yet dated, with the baseline `snapshotId` and its `before` bound (the baseline's `timestampEnd`) so the UI can offer Date this…. Sessions carry `snapshotId` (single-delta observed/residual sessions only) and `correction` (`{ id, playedFrom, playedTo, note }` or null).
 - `getDailyPlaytime` moves onto `deriveTimeline` so the activity chart and the game page agree. Its response gains imprecise totals for the year: per-month minutes and year-only minutes, never assigned to days. Cross-year ranges are omitted from yearly activity.
 - `refreshGameAggregates` adds manual minutes and the latest correction end.
 - API: `GET/POST /api/games/[id]/corrections`, `PATCH/DELETE /api/games/[id]/corrections/[correctionId]`. Mutations verify the correction's provider row belongs to the game and refresh aggregates.
@@ -147,7 +147,6 @@ Validation on write: minutes a positive integer; `playedTo` not before `playedFr
 ## Follow-ups
 
 - `lastPlayedAt` lowered by backdated corrections (needed once state automation lands).
-- Steam baseline bound by `rTimeLastPlayed` rather than the first row's `timestampEnd`.
 - Achievement-proposed corrections.
 - Correcting merged Steam runs.
 - Save-file sitting detection should split on any playthrough-time stall of a few minutes; GOG logs once per exit, verified 12 Sep 2026.

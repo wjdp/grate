@@ -47,6 +47,10 @@ export interface DerivedTimeline {
   sessions: DerivedSession[];
   undatedMinutes: number;
   baselineSnapshotId: number | null;
+  // The baseline snapshot's timestampEnd: the real upper bound on undated
+  // pre-history (Steam grounds this on rTimeLastPlayed; GOG/Epic on the first
+  // sync). Null when there is no baseline.
+  baselineBefore: Date | null;
 }
 
 interface ObservedDelta {
@@ -432,6 +436,7 @@ export function deriveTimeline(
     ),
     undatedMinutes,
     baselineSnapshotId: baseline?.id ?? null,
+    baselineBefore: baseline?.timestampEnd ?? null,
   };
 }
 

@@ -523,6 +523,7 @@ describe("getGameTimeline", () => {
         providerName: gog.name,
         snapshotId: baseline.id,
         minutes: 400,
+        before: new Date("2020-10-30T00:00:00.000Z"),
       },
     ]);
     expect(

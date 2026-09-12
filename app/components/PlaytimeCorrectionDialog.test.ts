@@ -170,6 +170,15 @@ describe("PlaytimeCorrectionDialog", () => {
     expect(field("correction-from")?.value).toBe("2020-10-12");
   });
 
+  it("shows the baseline bound when dating undated pre-history", async () => {
+    await mount({
+      mode: "date",
+      before: "2020-10-30T00:00:00.000Z",
+    });
+
+    expect(document.body.textContent).toContain("Played before 30 Oct 2020.");
+  });
+
   it("patches an existing correction in edit mode", async () => {
     await mount({
       existing: {

@@ -694,6 +694,18 @@ describe("deriveTimeline with corrections", () => {
     );
     expect(timeline.undatedMinutes).toBe(0);
     expect(timeline.baselineSnapshotId).toBeNull();
+    expect(timeline.baselineBefore).toBeNull();
+  });
+
+  it("bounds undated pre-history by the baseline snapshot's timestampEnd", () => {
+    const timeline = deriveTimeline(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [],
+      playDaySettings,
+    );
+    const baseline = identifiedCyberpunkSnapshots[0];
+    expect(timeline.baselineBefore).toEqual(baseline?.timestampEnd);
   });
 
   it("only treats the first ordered snapshot as the baseline, not a later null-start row", () => {

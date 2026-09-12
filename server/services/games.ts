@@ -199,11 +199,16 @@ export async function getGameTimeline(id: number): Promise<GameTimeline> {
       playDaySettings,
     );
     sessions.push(...timeline.sessions);
-    if (timeline.undatedMinutes > 0 && timeline.baselineSnapshotId !== null) {
+    if (
+      timeline.undatedMinutes > 0 &&
+      timeline.baselineSnapshotId !== null &&
+      timeline.baselineBefore !== null
+    ) {
       undated.push({
         ...row,
         snapshotId: timeline.baselineSnapshotId,
         minutes: timeline.undatedMinutes,
+        before: timeline.baselineBefore,
       });
     }
   }

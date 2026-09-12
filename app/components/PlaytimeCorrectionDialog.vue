@@ -25,6 +25,8 @@ const props = withDefaults(
     existing?: ExistingCorrection | null;
     // Only changes the title: undated pre-history is dated, not corrected.
     mode?: "correct" | "date";
+    // Set when mode is "date": the baseline's real upper bound.
+    before?: string;
   }>(),
   { existing: null, mode: "correct" },
 );
@@ -71,6 +73,13 @@ const timezoneHint = computed(() =>
     ? ` Times are read in ${settings.value.effectiveTimezone}.`
     : "",
 );
+
+const formatBeforeDate = (before: string) =>
+  new Date(before).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
 const title = computed(() => {
   if (props.existing) return "Edit correction";
@@ -183,6 +192,9 @@ const remove = async () => {
 
       <p v-if="!target" class="text-muted text-sm">
         Counts towards playtime and last played; the store did not report it.
+      </p>
+      <p v-if="mode === 'date' && before" class="text-muted text-sm">
+        Played before {{ formatBeforeDate(before) }}.
       </p>
 
       <UAlert

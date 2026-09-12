@@ -152,9 +152,19 @@ const correctionTarget = ref<{ snapshotId: number; maxMinutes: number } | null>(
 );
 const correctionMode = ref<"correct" | "date">("correct");
 
+const correctionBefore = ref<string | null>(null);
+
+const formatUndatedBefore = (before: string) =>
+  new Date(before).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
 const dateUndated = (entry: CorrectableRow & {
   snapshotId: number;
   minutes: number;
+  before: string;
 }) => {
   correctionRow.value = entry;
   correctionTarget.value = {
@@ -162,6 +172,7 @@ const dateUndated = (entry: CorrectableRow & {
     maxMinutes: entry.minutes,
   };
   correctionMode.value = "date";
+  correctionBefore.value = entry.before;
   correctionOpen.value = true;
 };
 
@@ -169,6 +180,7 @@ const addManualSession = (row: CorrectableRow) => {
   correctionRow.value = row;
   correctionTarget.value = null;
   correctionMode.value = "correct";
+  correctionBefore.value = null;
   correctionOpen.value = true;
 };
 
@@ -299,8 +311,8 @@ const manualSessionItems = computed(() =>
                 <span>{{ entry.providerName }}</span>
                 <span>·</span>
                 <span class="tabular-nums">
-                  {{ formatPlaytime(entry.minutes) }} before grate started
-                  watching
+                  {{ formatPlaytime(entry.minutes) }} before
+                  {{ formatUndatedBefore(entry.before) }}
                 </span>
                 <UButton
                   variant="ghost"
@@ -328,6 +340,7 @@ const manualSessionItems = computed(() =>
               :provider-name="correctionRow.providerName"
               :target="correctionTarget"
               :mode="correctionMode"
+              :before="correctionBefore ?? undefined"
               @saved="refreshPlaytime"
             />
           </section>

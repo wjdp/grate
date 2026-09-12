@@ -1,43 +1,20 @@
-import { hostname } from "node:os";
-import { eq } from "drizzle-orm";
 import { EAuthTokenPlatformType, LoginSession } from "steam-session";
 import { z } from "zod";
 import { db } from "~~/server/database/client";
-import { steamUser } from "~~/server/database/schema";
+import { removeSteamWebSession } from "./service";
 
-const ACCESS_TOKEN_EXPIRY_BUFFER_MS = 60 * 1000;
-const RENEW_ATTEMPT_INTERVAL_MS = 20 * 60 * 60 * 1000;
+const COOKIE_EXPIRY_BUFFER_MS = 60 * 1000;
 const USERDATA_URL = "https://store.steampowered.com/dynamicstore/userdata/";
 const STORE_URL = "https://store.steampowered.com/";
-
-// steam-session hardcodes device_friendly_name per platform ("Galaxy S25" for
-// MobileApp) with no public option, so the private handler is patched to make
-// the session recognisable on Steam's authorised devices page. Version-pinned
-// against steam-session 1.9.4.
-interface PlatformDataHandler {
-  _getPlatformData(): { deviceDetails: { device_friendly_name: string } };
-}
-
-function deviceFriendlyName(): string {
-  const host = hostname();
-  return host ? `grate on ${host}` : "grate";
-}
+const STORE_DOMAIN = "store.steampowered.com";
 
 /**
- * A MobileApp login session whose device name identifies grate. The QR login
- * endpoints share it; the private `_handler` patch is version-pinned.
+ * A browser login session, as "remember me" in a browser would create. It
+ * backs the optional rich-data requests the Web API key cannot serve; the
+ * games and playtime poll never touches it.
  */
 export function createSession(): LoginSession {
-  const session = new LoginSession(EAuthTokenPlatformType.MobileApp);
-  const handler = (session as unknown as { _handler: PlatformDataHandler })
-    ._handler;
-  const getPlatformData = handler._getPlatformData.bind(handler);
-  handler._getPlatformData = () => {
-    const platformData = getPlatformData();
-    platformData.deviceDetails.device_friendly_name = deviceFriendlyName();
-    return platformData;
-  };
-  return session;
+  return new LoginSession(EAuthTokenPlatformType.WebBrowser);
 }
 
 export function decodeJwtExpiry(token: string): Date {
@@ -56,9 +33,15 @@ interface StoredSession {
   refreshToken: string;
 }
 
-let accessTokenCache: { token: string; expiresAt: Date } | null = null;
-let lastRenewAttemptAt: Date | null = null;
-let lastRenewedAt: Date | null = null;
+// Keyed on the refresh token so a removed or re-scanned session invalidates it
+// without any explicit clearing.
+let cookieCache: {
+  refreshToken: string;
+  cookies: string[];
+  expiresAt: Date;
+} | null = null;
+let lastUsedAt: Date | null = null;
+let lastError: string | null = null;
 
 async function storedSession(): Promise<StoredSession | null> {
   const row = await db.query.steamUser.findFirst();
@@ -67,55 +50,21 @@ async function storedSession(): Promise<StoredSession | null> {
   return { steamId: row.steamId, refreshToken: row.refreshToken };
 }
 
-function cacheAccessToken(token: string): string {
-  accessTokenCache = {
-    token,
-    expiresAt: new Date(
-      decodeJwtExpiry(token).getTime() - ACCESS_TOKEN_EXPIRY_BUFFER_MS,
-    ),
-  };
-  return token;
-}
-
-export function clearAccessTokenCache() {
-  accessTokenCache = null;
+export async function hasSteamWebSession(): Promise<boolean> {
+  return (await storedSession()) !== null;
 }
 
 export function resetWebSessionState() {
-  accessTokenCache = null;
-  lastRenewAttemptAt = null;
-  lastRenewedAt = null;
+  cookieCache = null;
+  lastUsedAt = null;
+  lastError = null;
 }
 
-export function getSessionRenewal(): {
-  lastRenewAttemptAt: Date | null;
-  lastRenewedAt: Date | null;
+export function getWebSessionActivity(): {
+  lastUsedAt: Date | null;
+  lastError: string | null;
 } {
-  return { lastRenewAttemptAt, lastRenewedAt };
-}
-
-function sessionWithStoredToken(stored: StoredSession): LoginSession {
-  const session = createSession();
-  session.refreshToken = stored.refreshToken;
-  return session;
-}
-
-export async function getAccessToken(): Promise<string | null> {
-  if (accessTokenCache && accessTokenCache.expiresAt > new Date()) {
-    return accessTokenCache.token;
-  }
-  const stored = await storedSession();
-  if (!stored) return null;
-  const session = sessionWithStoredToken(stored);
-  try {
-    await session.refreshAccessToken();
-  } catch (error) {
-    if (isDeadTokenError(error)) {
-      clearStoredSession(stored.steamId);
-    }
-    throw error;
-  }
-  return cacheAccessToken(session.accessToken);
+  return { lastUsedAt, lastError };
 }
 
 // Steam reports a dead refresh token as an EResult; these mean re-scanning is
@@ -137,68 +86,94 @@ function isDeadTokenError(error: unknown): boolean {
   );
 }
 
-function clearStoredSession(steamId: string) {
-  db.update(steamUser)
-    .set({ refreshToken: null, refreshTokenExpiresAt: null })
-    .where(eq(steamUser.steamId, steamId))
-    .run();
-  clearAccessTokenCache();
+function splitCookie(cookie: string): { pair: string; domain?: string } {
+  const [pair, ...attributes] = cookie.split(";").map((part) => part.trim());
+  const domain = attributes
+    .map((attribute) => /^domain=(.+)$/i.exec(attribute)?.[1])
+    .find((value) => value !== undefined);
+  return domain === undefined ? { pair } : { pair, domain };
 }
 
-export async function tryRenewRefreshToken(): Promise<boolean> {
-  if (
-    lastRenewAttemptAt &&
-    Date.now() - lastRenewAttemptAt.getTime() < RENEW_ATTEMPT_INTERVAL_MS
-  ) {
-    return false;
-  }
-  const stored = await storedSession();
-  if (!stored) return false;
-  lastRenewAttemptAt = new Date();
-  try {
-    const session = sessionWithStoredToken(stored);
-    const renewed = await session.renewRefreshToken();
-    if (session.accessToken) {
-      cacheAccessToken(session.accessToken);
+// A WebBrowser session mints cookies for several Steam domains; only the store
+// ones are ever sent, and only as name=value.
+function storeCookiePairs(cookies: string[]): string[] {
+  return cookies
+    .map(splitCookie)
+    .filter(
+      ({ domain }) =>
+        domain === undefined || domain.replace(/^\./, "") === STORE_DOMAIN,
+    )
+    .map(({ pair }) => pair);
+}
+
+function cookiePairValue(pairs: string[], name: string): string | null {
+  for (const pair of pairs) {
+    const separator = pair.indexOf("=");
+    if (separator > 0 && pair.slice(0, separator) === name) {
+      return pair.slice(separator + 1);
     }
-    if (!renewed) return false;
-    db.update(steamUser)
-      .set({
-        refreshToken: session.refreshToken,
-        refreshTokenExpiresAt: decodeJwtExpiry(session.refreshToken),
-      })
-      .where(eq(steamUser.steamId, stored.steamId))
-      .run();
-    lastRenewedAt = new Date();
-    return true;
-  } catch (error) {
-    console.error("Steam refresh token renewal failed", error);
-    if (isDeadTokenError(error)) {
-      clearStoredSession(stored.steamId);
-    }
-    return false;
   }
+  return null;
+}
+
+// steamLoginSecure is `<steamid>||<jwt>`, url-encoded; its JWT expiry is how
+// long the cookie jar is good for.
+function cookieExpiry(pairs: string[]): Date {
+  const value = cookiePairValue(pairs, "steamLoginSecure");
+  const token = value ? decodeURIComponent(value).split("||")[1] : undefined;
+  if (!token) {
+    throw new Error("Steam web cookies carry no steamLoginSecure token");
+  }
+  return new Date(decodeJwtExpiry(token).getTime() - COOKIE_EXPIRY_BUFFER_MS);
 }
 
 export async function getWebCookies(): Promise<string[] | null> {
   const stored = await storedSession();
   if (!stored) return null;
-  const session = sessionWithStoredToken(stored);
-  return session.getWebCookies();
+  if (
+    cookieCache &&
+    cookieCache.refreshToken === stored.refreshToken &&
+    cookieCache.expiresAt > new Date()
+  ) {
+    return cookieCache.cookies;
+  }
+  const session = createSession();
+  session.refreshToken = stored.refreshToken;
+  const cookies = storeCookiePairs(await session.getWebCookies());
+  cookieCache = {
+    refreshToken: stored.refreshToken,
+    cookies,
+    expiresAt: cookieExpiry(cookies),
+  };
+  return cookies;
 }
 
 const userDataSchema = z.object({ rgOwnedApps: z.array(z.number()) });
 
 export async function getOwnedAppIds(): Promise<Set<number> | null> {
-  const cookies = await getWebCookies();
-  if (!cookies) return null;
-  const response = await fetch(`${USERDATA_URL}?_=${Date.now()}`, {
-    headers: { Cookie: cookies.join("; "), Referer: STORE_URL },
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Steam store userdata request failed: ${response.status} ${response.statusText}`,
+  try {
+    const cookies = await getWebCookies();
+    if (!cookies) return null;
+    const response = await fetch(`${USERDATA_URL}?_=${Date.now()}`, {
+      headers: { Cookie: cookies.join("; "), Referer: STORE_URL },
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Steam store userdata request failed: ${response.status} ${response.statusText}`,
+      );
+    }
+    const ownedAppIds = new Set(
+      userDataSchema.parse(await response.json()).rgOwnedApps,
     );
+    lastUsedAt = new Date();
+    lastError = null;
+    return ownedAppIds;
+  } catch (error) {
+    lastError = error instanceof Error ? error.message : String(error);
+    if (isDeadTokenError(error)) {
+      cookieCache = null;
+      await removeSteamWebSession();
+    }
+    throw error;
   }
-  return new Set(userDataSchema.parse(await response.json()).rgOwnedApps);
 }

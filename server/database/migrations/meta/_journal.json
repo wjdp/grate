@@ -78,6 +78,13 @@
       "when": 1788380158422,
       "tag": "0010_steam_qr_login",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1789230825827,
+      "tag": "0011_steam_api_key_returns",
+      "breakpoints": true
     }
   ]
 }

@@ -15,7 +15,7 @@ Stores expose DLC per game. Most is junk (cosmetics, soundtracks, map packs) but
 
 | | Owned list | Full list per game | Parent link | Release date | Playtime | Art / metadata |
 | --- | --- | --- | --- | --- | --- | --- |
-| Steam | **Not via Web API key.** `GetOwnedGames` never returns DLC apps. Web session (QR login, doc 28) → `store.steampowered.com/dynamicstore/userdata` `rgOwnedApps`: 1367 apps, 663 DLC in dev account | PICS `extended.listofdlc` — **capped at 64** (Cities: Skylines 64 vs 76 real); store `appdetails.dlc` complete but rate-limited | PICS `common.parent` on the DLC app | PICS `steam_release_date` on 60%; `IStoreBrowseService/GetItems` (works with existing API key, bulk) has it for all live items | None — folded into parent | `GetItems`: price, review count/score, tag ids, header/capsule assets. PICS: no `library_assets_full` for 90% |
+| Steam | **Not via Web API key.** `GetOwnedGames` never returns DLC apps. Optional web session (QR login, WebBrowser, [doc 32](32-Steam-Auth-After-The-Hijack-Flag.md)) → `store.steampowered.com/dynamicstore/userdata` `rgOwnedApps`: 1367 apps, 663 DLC in dev account | PICS `extended.listofdlc` — **capped at 64** (Cities: Skylines 64 vs 76 real); store `appdetails.dlc` complete but rate-limited | PICS `common.parent` on the DLC app | PICS `steam_release_date` on 60%; `IStoreBrowseService/GetItems` (works with existing API key, bulk) has it for all live items | None — folded into parent | `GetItems`: price, review count/score, tag ids, header/capsule assets. PICS: no `library_assets_full` for 90% |
 | GOG | `/user/data/games` owned ids include DLC (28 in dev) | base `v2/games/{id}._links.isRequiredByGames` | DLC `v2/games/{id}._links.requiresGames` (edition-specific: 4/28 point at an unowned Witcher 3 edition, `[A]` variants) | `globalReleaseDate` | `time_sum` 0 | icon/logo/boxArt links on some; cosmetics have empty description, tags, properties |
 | Epic | library records include DLC entitlements (22 in dev) | main item with `includeDLCDetails=true` → `dlcItemList` | DLC item `mainGameItem.id` | weak: `releaseInfo[].dateAdded` is date added to Epic; store pages mostly lack it | **some DLC have playtime** (Control's two expansions, identical totals → duplicated parent time, not real) | keyImages; categories `addons` vs `games` inconsistent |
 
@@ -29,7 +29,7 @@ Volume (dev account): Steam 317/615 games list DLC, 2614 DLC ids, PICS fetch und
 - **Auto-merge siblings by normalised name** across providers once their parents are merged.
 - **Game page only** for v1. No DLC in library, organise, dashboard, activity, stats, palette.
 - Term: **DLC** in UI and code.
-- Steam ownership via QR web login (doc 28). Steam DLC import runs only when a web session exists; otherwise skipped, GOG/Epic unaffected.
+- Steam ownership via the optional QR web session ([doc 32](32-Steam-Auth-After-The-Hijack-Flag.md); WebBrowser platform). Steam DLC import runs only when `hasSteamWebSession()` is true; otherwise skipped, GOG/Epic unaffected. **Not scheduled**: per doc 32's trigger policy it runs on link (catch-up), when `updateGames` finds a new app, when `recordPlaytimes` sees a delta on a `has_dlc` game, or on a manual "Refresh rich data" action — never on a timer.
 
 ## Schema
 
@@ -72,12 +72,12 @@ All in each provider's `updateGames`, after base games, so parents exist. Progre
 3. Release date: min `releaseInfo[].dateAdded`, else `creationDate`. Stored in the existing `releaseDate` column; no "approximate" flag, the weakness is documented here only.
 4. Playtime: `recordEpicPlaytimes` will now find rows for DLC artifacts. Record them on the child (provider truth) but children are excluded from every aggregate (below), so the duplicated Control totals never double count.
 
-### Steam (`server/providers/steam/service.ts`, needs doc 28)
+### Steam (`server/providers/steam/service.ts`, needs [doc 32](32-Steam-Auth-After-The-Hijack-Flag.md))
 
 1. Owned DLC ids = `rgOwnedApps` ∩ apps whose PICS `type === "DLC"` (also `Music`, `Video` — import as DLC, triage hides them). Parent = PICS `parent` → `SteamGame` → `Game`. Complete regardless of the 64 cap.
 2. Unowned: PICS `listofdlc` of each top-level `SteamGame`, minus owned. Accept the 64 cap for v1 (8 games affected); note in UI nothing. Follow-up: `appdetails.dlc` for capped games.
 3. Metadata: new queueable `updateSteamStoreItems` fetches `GetItems` for all DLC app ids (and later games), upserts `SteamStoreItem`; queued by `providerFollowUps` after a Steam games sync alongside PICS. PICS metadata task already covers DLC app ids once they are `SteamGame` rows — it gives `parent` and release dates.
-4. No Steam web session → skip both steps, log once.
+4. `hasSteamWebSession()` false → skip both steps, log one line.
 
 ### Triage (`server/services/dlcTriage.ts`)
 
@@ -127,7 +127,7 @@ Debug page `app/pages/debug/dlc-triage.vue` + `GET /api/debug/dlc-triage`: every
 - `server/services/dlcTriage.test.ts`: table-driven over real names (Far Harbor visible via reviews; "Civilization V - Explorer's Map Pack" hidden; Temerian Armor Set hidden via empty GOG description; Phantom Liberty visible).
 - GOG service: DLC becomes a child of the right `GogGame`'s game; `[A]` orphan → `DLC_ORPHAN`; unowned `isRequiredByGames` created `owned: false`; PACK still ignored.
 - Epic service: `mainGameItem` child creation; `dlcItemList` unowned; DLC playtime recorded on child; parent aggregate unaffected.
-- Steam service: no web session → no DLC rows; with session → owned ∩ type DLC parented via PICS `parent`; store items upserted.
+- Steam service: `hasSteamWebSession()` false → no DLC rows, one log line; with session → owned ∩ type DLC parented via PICS `parent`; store items upserted.
 - `server/services/games`: `getGames` hides children; `getGame` returns ordered `dlc`; `mergeGames` re-points children and merges siblings by name across providers; sibling-only merge validation; split moves single-provider children; `setGameHidden` sets `hiddenByUser`.
 - `activity`/`recent`/`duplicates` exclude children.
 - Game page: DLC section render, collapsed groups, provider icon owned/unowned states; child page breadcrumb.
@@ -140,7 +140,7 @@ Debug page `app/pages/debug/dlc-triage.vue` + `GET /api/debug/dlc-triage`: every
 4. Reads: `getGames` filter, `getGame.dlc`, aggregate/activity/recent/duplicates exclusions.
 5. Mutations: merge/split/hidden changes + `mergeSiblingDlc`.
 6. Game page section + child page + composable cache handling.
-7. After doc 28: Steam import, `SteamStoreItem`, `updateSteamStoreItems` queueable, follow-up wiring.
+7. After [doc 32](32-Steam-Auth-After-The-Hijack-Flag.md): Steam import, `SteamStoreItem`, `updateSteamStoreItems` queueable, follow-up wiring.
 8. Tune triage on the debug page against the dev DB; commit thresholds.
 
 ## Out of scope

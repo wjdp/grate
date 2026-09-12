@@ -4,9 +4,11 @@ import {
   getQrLogin,
   resetQrRegistry,
   startQrLogin,
+  takeHeldQrLogin,
 } from "~~/server/providers/steam/qrRegistry";
 
 const STEAM_ID = "76561198000000001";
+const PERSONA_NAME = "Fixture Persona";
 const CHALLENGE_URL = "https://s.team/q/1/first";
 const ROTATED_URL = "https://s.team/q/1/second";
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
@@ -24,11 +26,6 @@ const steamSession = vi.hoisted(() => {
 
   class FakeLoginSession {
     static latest: FakeLoginSession | null = null;
-    _handler = {
-      _getPlatformData: () => ({
-        deviceDetails: { device_friendly_name: "Galaxy S25" },
-      }),
-    };
     loginTimeout = 0;
     accessToken = "";
     refreshToken = "";
@@ -66,17 +63,23 @@ const steamSession = vi.hoisted(() => {
 });
 
 const service = vi.hoisted(() => ({
-  linkSteamAccount: vi.fn(),
+  getSteamUser: vi.fn(),
+  attachSteamWebSession: vi.fn(),
+  removeSteamWebSession: vi.fn(),
+}));
+
+const api = vi.hoisted(() => ({
+  getCommunityProfile: vi.fn(),
 }));
 
 vi.mock("steam-session", () => ({
   LoginSession: steamSession.FakeLoginSession,
-  EAuthTokenPlatformType: { MobileApp: 2 },
+  EAuthTokenPlatformType: { MobileApp: 2, WebBrowser: 4 },
 }));
 
-vi.mock("~~/server/providers/steam/service", () => ({
-  linkSteamAccount: service.linkSteamAccount,
-}));
+vi.mock("~~/server/providers/steam/service", () => service);
+
+vi.mock("~~/server/providers/steam/api", () => api);
 
 const { FakeLoginSession } = steamSession;
 
@@ -89,9 +92,23 @@ function session() {
 beforeEach(() => {
   resetQrRegistry();
   FakeLoginSession.latest = null;
-  service.linkSteamAccount.mockReset();
-  service.linkSteamAccount.mockResolvedValue(undefined);
+  service.getSteamUser.mockReset();
+  service.getSteamUser.mockResolvedValue(null);
+  service.attachSteamWebSession.mockReset();
+  service.attachSteamWebSession.mockResolvedValue(undefined);
+  api.getCommunityProfile.mockReset();
+  api.getCommunityProfile.mockResolvedValue({ steamID: PERSONA_NAME });
 });
+
+function scan(
+  expiresAt = new Date(Math.floor(Date.now() / 1000) * 1000 + 86400000),
+) {
+  const refreshToken = jwt(expiresAt);
+  session().steamID = { getSteamID64: () => STEAM_ID };
+  session().refreshToken = refreshToken;
+  session().emit("authenticated");
+  return { refreshToken, refreshTokenExpiresAt: expiresAt };
+}
 
 afterEach(() => {
   vi.useRealTimers();
@@ -128,44 +145,100 @@ describe("startQrLogin", () => {
 });
 
 describe("authentication", () => {
-  it("links the scanned account and reports it once", async () => {
-    const expiresAt = new Date(Math.floor(Date.now() / 1000) * 1000 + 86400000);
-    const refreshToken = jwt(expiresAt);
+  it("attaches the web session to an existing account", async () => {
+    service.getSteamUser.mockResolvedValue({
+      steamId: STEAM_ID,
+      apiKey: "API-KEY",
+    });
     const { id } = await startQrLogin();
-    session().steamID = { getSteamID64: () => STEAM_ID };
-    session().refreshToken = refreshToken;
+    const { refreshToken, refreshTokenExpiresAt } = scan();
 
-    session().emit("authenticated");
     await vi.waitFor(() =>
-      expect(service.linkSteamAccount).toHaveBeenCalledTimes(1),
+      expect(service.attachSteamWebSession).toHaveBeenCalledWith({
+        steamId: STEAM_ID,
+        refreshToken,
+        refreshTokenExpiresAt,
+      }),
     );
 
-    expect(service.linkSteamAccount).toHaveBeenCalledWith({
-      steamId: STEAM_ID,
-      refreshToken,
-      refreshTokenExpiresAt: expiresAt,
-    });
     expect(getQrLogin(id)).toEqual({
       state: "authenticated",
       qrChallengeUrl: CHALLENGE_URL,
+      steamId: STEAM_ID,
+      personaName: PERSONA_NAME,
+    });
+    expect(takeHeldQrLogin(id)).toBeNull();
+  });
+
+  it("holds the token when no account exists yet", async () => {
+    const { id } = await startQrLogin();
+    const { refreshToken, refreshTokenExpiresAt } = scan();
+
+    await vi.waitFor(() => expect(getQrLogin(id)?.state).toBe("authenticated"));
+
+    expect(service.attachSteamWebSession).not.toHaveBeenCalled();
+    expect(api.getCommunityProfile).toHaveBeenCalledWith({
+      steamId: STEAM_ID,
+    });
+    const status = getQrLogin(id);
+    expect(status).toEqual({
+      state: "authenticated",
+      qrChallengeUrl: CHALLENGE_URL,
+      steamId: STEAM_ID,
+      personaName: PERSONA_NAME,
+    });
+    expect(getQrLogin(id)).not.toBeNull();
+
+    expect(takeHeldQrLogin(id)).toEqual({
+      steamId: STEAM_ID,
+      refreshToken,
+      refreshTokenExpiresAt,
     });
     expect(getQrLogin(id)).toBeNull();
   });
 
+  it("holds the token when the row has no api key", async () => {
+    service.getSteamUser.mockResolvedValue({
+      steamId: STEAM_ID,
+      apiKey: null,
+    });
+    const { id } = await startQrLogin();
+    const { refreshToken, refreshTokenExpiresAt } = scan();
+
+    await vi.waitFor(() => expect(getQrLogin(id)?.state).toBe("authenticated"));
+
+    expect(service.attachSteamWebSession).not.toHaveBeenCalled();
+    expect(takeHeldQrLogin(id)).toEqual({
+      steamId: STEAM_ID,
+      refreshToken,
+      refreshTokenExpiresAt,
+    });
+  });
+
+  it("has nothing to take for an unknown or unscanned login", async () => {
+    const { id } = await startQrLogin();
+    expect(takeHeldQrLogin(id)).toBeNull();
+    expect(takeHeldQrLogin("nope")).toBeNull();
+  });
+
   it("surfaces the single-account guard as an error state", async () => {
-    service.linkSteamAccount.mockRejectedValue(
+    service.getSteamUser.mockResolvedValue({
+      steamId: "76561198000000002",
+      apiKey: "API-KEY",
+    });
+    service.attachSteamWebSession.mockRejectedValue(
       new Error("grate only supports a single Steam account"),
     );
     const { id } = await startQrLogin();
-    session().steamID = { getSteamID64: () => STEAM_ID };
-    session().refreshToken = jwt(new Date(Date.now() + 86400000));
+    scan();
 
-    session().emit("authenticated");
     await vi.waitFor(() =>
       expect(getQrLogin(id)).toEqual({
         state: "error",
         qrChallengeUrl: CHALLENGE_URL,
         message: "grate only supports a single Steam account",
+        steamId: STEAM_ID,
+        personaName: PERSONA_NAME,
       }),
     );
   });
@@ -219,6 +292,21 @@ describe("sweeping", () => {
 
     expect(getQrLogin(id)).toBeNull();
     expect(session().cancelCalls).toBe(1);
+  });
+
+  it("keeps a held token for fifteen minutes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-02T12:00:00Z"));
+    const { id } = await startQrLogin();
+    scan(new Date("2027-04-01T00:00:00Z"));
+    await vi.waitFor(() => expect(getQrLogin(id)?.state).toBe("authenticated"));
+
+    vi.setSystemTime(new Date("2026-09-02T12:14:00Z"));
+    expect(getQrLogin(id)?.state).toBe("authenticated");
+
+    vi.setSystemTime(new Date("2026-09-02T12:15:01Z"));
+    expect(getQrLogin(id)).toBeNull();
+    expect(takeHeldQrLogin(id)).toBeNull();
   });
 
   it("keeps attempts inside the login timeout", async () => {

@@ -1,22 +1,13 @@
 <script setup lang="ts">
-import { steamSessionState } from "#shared/providers/steamSession";
 import { getPageTitle } from "#shared/title";
 
-type ProviderState =
-  | "connected"
-  | "expiring"
-  | "expired"
-  | "removed"
-  | "disconnected";
+type ProviderState = "connected" | "disconnected";
 
 const BADGE_BY_STATE: Record<
   ProviderState,
-  { color: "success" | "warning" | "error" | "neutral"; icon?: string }
+  { color: "success" | "neutral"; icon?: string }
 > = {
   connected: { color: "success", icon: "i-lucide-check" },
-  expiring: { color: "warning", icon: "i-lucide-clock" },
-  expired: { color: "error", icon: "i-lucide-triangle-alert" },
-  removed: { color: "warning", icon: "i-lucide-unplug" },
   disconnected: { color: "neutral" },
 };
 
@@ -33,8 +24,8 @@ const providers = computed(() => [
     provider: "steam" as const,
     name: "Steam",
     connectedAs: steam.value?.personaName ?? null,
-    state: steam.value
-      ? steamSessionState(steam.value.sessionExpiresAt)
+    state: steam.value?.hasApiKey
+      ? ("connected" as const)
       : ("disconnected" as const),
   },
   {
@@ -51,33 +42,11 @@ const providers = computed(() => [
   },
 ]);
 
-const badgeLabel = (state: ProviderState, connectedAs: string | null) => {
-  switch (state) {
-    case "connected":
-      return `Connected as ${connectedAs}`;
-    case "expiring":
-      return `${connectedAs} — session expiring`;
-    case "expired":
-      return `${connectedAs} — session expired`;
-    case "removed":
-      return `${connectedAs} — session removed`;
-    default:
-      return "Not connected";
-  }
-};
+const badgeLabel = (state: ProviderState, connectedAs: string | null) =>
+  state === "connected" ? `Connected as ${connectedAs}` : "Not connected";
 
-const manageButtonLabel = (state: ProviderState) => {
-  switch (state) {
-    case "connected":
-    case "expiring":
-      return "Manage";
-    case "expired":
-    case "removed":
-      return "Reconnect";
-    default:
-      return "Connect";
-  }
-};
+const manageButtonLabel = (state: ProviderState) =>
+  state === "connected" ? "Manage" : "Connect";
 </script>
 
 <template>
@@ -114,7 +83,7 @@ const manageButtonLabel = (state: ProviderState) => {
           </UBadge>
 
           <ProviderSyncButton
-            v-if="entry.state === 'connected' || entry.state === 'expiring'"
+            v-if="entry.state === 'connected'"
             :provider="entry.provider"
             block
           />

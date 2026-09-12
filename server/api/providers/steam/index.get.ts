@@ -1,15 +1,16 @@
 import { getSteamUser } from "~~/server/providers/steam/service";
-import { getSessionRenewal } from "~~/server/providers/steam/webSession";
+import { getWebSessionActivity } from "~~/server/providers/steam/webSession";
 
 export default defineEventHandler(async () => {
   const steamUser = await getSteamUser();
   if (!steamUser) return null;
-  const { lastRenewAttemptAt, lastRenewedAt } = getSessionRenewal();
+  const { lastUsedAt, lastError } = getWebSessionActivity();
   return {
     steamId: steamUser.steamId,
     personaName: steamUser.personaName,
-    sessionExpiresAt: steamUser.refreshTokenExpiresAt?.toISOString() ?? null,
-    lastRenewAttemptAt: lastRenewAttemptAt?.toISOString() ?? null,
-    lastRenewedAt: lastRenewedAt?.toISOString() ?? null,
+    hasApiKey: !!steamUser.apiKey,
+    webSessionExpiresAt: steamUser.refreshTokenExpiresAt?.toISOString() ?? null,
+    webSessionLastUsedAt: lastUsedAt?.toISOString() ?? null,
+    webSessionLastError: lastError,
   };
 });

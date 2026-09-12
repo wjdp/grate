@@ -34,7 +34,9 @@ const qrWrapper = () =>
   document.querySelector<HTMLElement>('[data-testid="steam-qr"] > div');
 
 const openModal = async () => {
-  modal = await mountSuspended(SteamQrLoginModal, { props: { open: true } });
+  modal = await mountSuspended(SteamQrLoginModal, {
+    props: { open: true, purpose: "link" as const },
+  });
   await vi.waitFor(() => {
     const wrapper = qrWrapper();
     expect(wrapper).not.toBeNull();
@@ -59,11 +61,11 @@ describe("SteamQrLoginModal", () => {
   it("renders the QR code and the access warning", async () => {
     await openModal();
 
-    expect(document.body.textContent).toContain("Connect Steam account");
+    expect(document.body.textContent).toContain("Link Steam web session");
     expect(document.body.textContent).toContain("Steam Guard");
     expect(document.body.textContent).toContain("Waiting for scan");
     expect(document.body.textContent).toContain(
-      "Full account access, including purchases",
+      "A browser-style login, opted into knowingly",
     );
     expect(document.body.innerHTML).toContain(
       "https://store.steampowered.com/account/authorizeddevices",
@@ -84,7 +86,14 @@ describe("SteamQrLoginModal", () => {
 
   it("emits connected and closes once the scan is authenticated", async () => {
     const component = await openModal();
-    pollResponses = [{ state: "authenticated", qrChallengeUrl: CHALLENGE_URL }];
+    pollResponses = [
+      {
+        state: "authenticated",
+        qrChallengeUrl: CHALLENGE_URL,
+        steamId: "76561197960287930",
+        personaName: "Rincewind",
+      },
+    ];
 
     await vi.waitFor(
       () => expect(component.emitted("connected")).toBeTruthy(),
@@ -93,6 +102,13 @@ describe("SteamQrLoginModal", () => {
       },
     );
 
+    expect(component.emitted("connected")?.at(-1)).toEqual([
+      {
+        id: ATTEMPT_ID,
+        steamId: "76561197960287930",
+        personaName: "Rincewind",
+      },
+    ]);
     expect(component.emitted("update:open")?.at(-1)).toEqual([false]);
     expect(deleteCalls).toBe(0);
   }, 15000);

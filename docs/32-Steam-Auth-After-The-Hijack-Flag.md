@@ -18,29 +18,40 @@ Written 2026-09-12. Supersedes the auth model in [28](28-Steam-QR-Login.md); tha
 
 - **Web API key is required again** and carries everything the poller does: `GetOwnedGames` (games + playtime), profile via community XML. Reverses doc 28's "drop the key entirely".
 - **MobileApp platform is dead.** Never again: no client-platform emulation, no `_handler` patch, no `refreshAccessToken`/`renewRefreshToken`.
-- **QR login stays, on `EAuthTokenPlatformType.WebBrowser`, optional, for rich data only.** Rich data = anything the key cannot reach: owned DLC via `dynamicstore/userdata` ([27](27-DLC.md)) first; later candidates wishlist, ignored/followed apps, achievement and stats pages, store pages that need a logged-in user. Low frequency by design: cookies minted at most once a day, a handful of requests per sync, never the games/playtime poll. No session → rich-data steps are skipped, library and playtime are unaffected. This is the same thing a browser does with "remember me"; still Automation in the strict 4.C reading, so it is opt-in with the risk stated in the UI.
+- **QR login stays, on `EAuthTokenPlatformType.WebBrowser`, optional, for rich data only.** Rich data = anything the key cannot reach: owned DLC via `dynamicstore/userdata` ([27](27-DLC.md)) first; later candidates wishlist, ignored/followed apps, achievement and stats pages, store pages that need a logged-in user. Low frequency and **event-triggered, never scheduled** (see "Trigger policy" below); never the games/playtime poll. No session → rich-data steps are skipped, library and playtime are unaffected. This is the same thing a browser does with "remember me"; still Automation in the strict 4.C reading, so it is opt-in with the risk stated in the UI.
 - Not "session primary, key fallback": the hot path must sit on the sanctioned channel, and a fallback means both secrets are required anyway. Key required + session optional is simpler and fails softer.
 - **Onboarding is two steps: identify, then key.** Step 1 yields a SteamID64 either by scanning a QR (recommended; also links the web session for rich data) or by pasting a profile URL / vanity / SteamID64 (parser restored from `f150c63`). Step 2 asks for the API key, addressed to the persona found in step 1. Nothing is written until the key is validated. Vanity resolution goes through community XML (`/id/<vanity>/?xml=1` returns `steamID64`), so `ResolveVanityURL` and `GetPlayerSummaries` stay deleted and the key is used for `GetOwnedGames` alone.
 - Not "QR then key, both mandatory": that makes the web session a prerequisite for every user, and a web token cannot be renewed, so the "both present" invariant only holds at setup anyway. The session stays optional; QR is merely the nicer way to do step 1.
 - Keep the QR endpoint/registry/modal code; retarget rather than rebuild.
 
-## Spike before implementing (main account, restrictions now lifted)
+## Verification in the app, not spikes (2026-09-12)
 
-Goal: confirm a WebBrowser refresh token can mint store cookies repeatedly from a server without `refreshAccessToken`, and that Steam does not flag it. Reuse `tmp/steam-qr/login.mjs` / `probe.mjs`; no token strings into git.
+No more PoC logins: every extra authentication is another anomaly signal on the account. The WebBrowser session is verified by the shipped code on the dev instance, one scan only:
 
-1. `new LoginSession(EAuthTokenPlatformType.WebBrowser)` → `startWithQR()`, **no** platform-data patch. Note what the Authorised Devices page shows (expect "Web browser — Chrome on Windows" from steam-session's hard-coded UA; decide whether to set `userAgent` in the constructor options to something honest like `grate/<version>`).
-2. `getWebCookies()` immediately; extract the store-domain `steamLoginSecure`; hit `dynamicstore/userdata` with `Referer`. Expect 200 (doc 28 already saw this).
-3. Persist `session.refreshToken`. Construct a fresh `LoginSession(WebBrowser)`, set `refreshToken`, call `getWebCookies()` again at +1 h, +25 h (access token expired), +72 h. Record: works / `AccessDenied` / new access-token `exp` each time.
-4. Check `store.steampowered.com/account/authorizeddevices` after each step. Watch the inbox for an Account Alert for a week. Any flag → drop the session entirely, key-only (doc 27 Steam ownership becomes unachievable; record that there).
-5. Also try `GetOwnedGames?access_token=<store cookie token>` once, purely to record whether a web token could ever serve the poller. Not to be used.
+1. Link once via the app (no platform-data patch, WebBrowser). Note what the Authorised Devices page shows.
+2. The rich-data path records `lastWebSessionUseAt` / `lastWebSessionError` in memory and shows them on the Steam provider page; a daily `dynamicstore/userdata` call exercises `getWebCookies()` from the stored refresh token at +24 h, +48 h, ….
+3. Watch the inbox for an Account Alert for a week. Any flag → remove the web session in the app and treat the session feature as dead: strip it (Sequencing step 3) and mark doc 27 Steam ownership unachievable.
+4. Record the outcome here under "Web session results".
 
-Outcome table goes into this doc under "Spike results" before the code work starts.
+## Trigger policy for web-session use (2026-09-12, not yet implemented)
+
+Every session use is a `finalizelogin` cookie mint plus a store GET from a server IP with no page load, so the request shape already looks non-browser. Timing regularity is the second signal and the cheapest to remove: a call at 06:00 daily is a cron signature. Policy:
+
+- **No schedule.** Rich-data requests fire only from events that correlate with real activity on the account:
+  - a new app appears in `GetOwnedGames` (a purchase or redemption just happened; a store look moments later is plausible) — the primary trigger;
+  - a playtime delta on a game with `has_dlc` (the user just played it);
+  - the user's own action: the Steam sync button, a "Refresh rich data" button, opening a game page in grate.
+- A quiet account gets no rich-data calls at all. Nothing changed, nothing to fetch.
+- First run after linking is a catch-up, triggered by the link itself (user action).
+- Cookie cache still bounds mints to at most one per ~24 h if several triggers land in a day.
+- Limits: this removes the cron signature but not the request fingerprint. If Steam scores the stored-token cookie mint from a server IP on its own, trigger timing does not help. The first weeks of production use decide; any flag → strip the session (Sequencing step 3).
+- Wiring lives with the consumer: doc 27's Steam DLC import becomes event-driven (hook off `updateGames` new-game detection and `recordPlaytimes` deltas) rather than a scheduled task. Design there when it lands.
 
 ## Design
 
 ### Storage
 
-Migration `0013_steam_api_key_returns.sql` (0012 is the playtime projection, uncommitted at time of writing; do not clash):
+Migration `0011_steam_api_key_returns.sql` (the untracked `0012_playtime_timeline_projection.sql` belongs to other work and is ignored):
 
 ```sql
 ALTER TABLE SteamUser ADD apiKey text;
@@ -70,9 +81,10 @@ UPDATE SteamUser SET refreshToken = NULL, refreshTokenExpiresAt = NULL;
 
 Shrinks to the rich-data session helper:
 
-- `createSession()` → `new LoginSession(EAuthTokenPlatformType.WebBrowser, { userAgent })` if the spike settles on a custom UA; **delete** the `_handler` patch, `PlatformDataHandler`, `deviceFriendlyName`.
+- `createSession()` → `new LoginSession(EAuthTokenPlatformType.WebBrowser)` with steam-session's default user agent (a custom one is an open item); **delete** the `_handler` patch, `PlatformDataHandler`, `deviceFriendlyName`.
 - Delete `getAccessToken`, `tryRenewRefreshToken`, `getSessionRenewal`, the access-token cache, `RENEW_ATTEMPT_INTERVAL_MS`. `decodeJwtExpiry` stays.
 - `getWebCookies()` → cache cookies in memory until the `steamLoginSecure` JWT `exp` minus a minute, so a session hits `finalizelogin` at most once per ~24 h. Filter to the `store.steampowered.com` cookies (WebBrowser returns 16 across five domains — the doc 28 "no filtering" note was MobileApp-specific).
+- `hasSteamWebSession()` — the row check used by rich-data steps and the status endpoint. `getWebSessionActivity()` → `{ lastUsedAt, lastError }` kept in memory by `getOwnedAppIds()`; exposed on the status endpoint for in-app verification.
 - `getOwnedAppIds()` unchanged in shape; dead-token handling (`AccessDenied`, expired) clears the two columns via `removeSteamWebSession()` so the UI shows "session removed" rather than looping.
 - `package.json` comment about the `_handler` patch goes; the exact pin on `steam-session` stays for the `debug`-event QR rotation hook.
 
@@ -86,7 +98,7 @@ Shrinks to the rich-data session helper:
 - `POST /api/providers/steam/identify` — body `{ profile: string }`, returns `{ steamId, personaName, avatar }`. No write.
 - `POST /api/providers/steam/auth` (restore the shape from `a085e56~1`) — body `{ apiKey, steamId, qrLoginId? }` via `steamAuthBodySchema` in `shared/schemas/providers.ts`. When `qrLoginId` is given the server takes the refresh token from the QR registry entry (which must be `authenticated` for the same SteamID) and passes it to `connectSteamAccount` as `webSession`; the entry is deleted on success. Returns `{ steamId, personaName }`.
 - QR registry: on `authenticated`, when no `SteamUser` row exists the entry **holds** the token (`state: authenticated`, `steamId`, `personaName` from the community XML) instead of writing — TTL extended to 15 min so the user has time to fetch a key. When a row exists, behaviour as now via `attachSteamWebSession`. `GET qr/:id` returns `steamId`/`personaName` alongside `state` so the client can move to step 2.
-- `GET /api/providers/steam` → `{ steamId, personaName, hasApiKey, webSessionExpiresAt }`; `lastRenewAttemptAt`/`lastRenewedAt` go.
+- `GET /api/providers/steam` → `{ steamId, personaName, hasApiKey, webSessionExpiresAt, webSessionLastUsedAt, webSessionLastError }`; `lastRenewAttemptAt`/`lastRenewedAt` go.
 - `unlink.post.ts` stays (full disconnect); add `web-session.delete.ts` for session-only removal.
 
 ### `shared/providers/steamSession.ts`
@@ -103,7 +115,7 @@ Not connected: a two-step setup (`USStepper` or two stacked cards, second disabl
 Connected: two cards.
 
 1. **Account**: persona badge, SteamID, sync button, Disconnect (clears everything, cancels nothing on Steam's side).
-2. **Web session** (optional), described as "Rich data: owned DLC, and later achievements, wishlist and other things the Web API key cannot see". Not linked: "Link web session" → existing `SteamQrLoginModal`, retargeted. Modal warning copy changes: this is a browser-style login used at most once a day for data the key cannot reach; Steam's terms forbid automated access and grate's earlier mobile-style login got an account restricted, so opt in knowingly; the token grants full account access; revoke from Authorised Devices. Linked: "Valid until <date>. Steam does not let grate extend it — re-scan after that date to keep rich data syncing." plus Remove. `expiring` → inline warning only; `expired` → inline "expired, re-scan" only. **Not** routed through the doc 29 global banner: the poller is unaffected and the instance is not broken.
+2. **Web session** (optional), described as "Rich data: owned DLC, and later achievements, wishlist and other things the Web API key cannot see". Not linked: "Link web session" → existing `SteamQrLoginModal`, retargeted. Modal warning copy changes: this is a browser-style login used only when something changes (a new game, a manual sync) for data the key cannot reach; Steam's terms forbid automated access and grate's earlier mobile-style login got an account restricted, so opt in knowingly; the token grants full account access; revoke from Authorised Devices. Linked: "Valid until <date>. Steam does not let grate extend it — re-scan after that date to keep rich data syncing." plus Remove. `expiring` → inline warning only; `expired` → inline "expired, re-scan" only. **Not** routed through the doc 29 global banner: the poller is unaffected and the instance is not broken.
 
 ### Tests
 
@@ -115,15 +127,15 @@ Connected: two cards.
 
 ### Docs to update
 
-- `README.md` line ~68 → scan QR or paste profile URL, then API key; web session optional, rich data (DLC and later achievements, wishlist).
-- `docs/21-Providers.md` Steam Auth bullet; `docs/04-App-structure.md` secrets line; `docs/19-Provider-Job-Normalisation.md` line 46; `docs/27-DLC.md` Steam ownership rows (session optional, WebBrowser, daily); `docs/29-Provider-Fault-Banners.md` (Steam fault = missing key, not session); `docs/28-Steam-QR-Login.md` → `status: superseded` with a one-line pointer here.
+- ✅ `README.md` line ~68 → scan QR or paste profile URL, then API key; web session optional, rich data (DLC and later achievements, wishlist).
+- ✅ `docs/21-Providers.md` Steam Auth bullet; ✅ `docs/04-App-structure.md` secrets line; ✅ `docs/19-Provider-Job-Normalisation.md` line 46; ✅ `docs/27-DLC.md` Steam ownership rows (session optional, WebBrowser, daily); ✅ `docs/29-Provider-Fault-Banners.md` (Steam fault = missing key, not session); `docs/28-Steam-QR-Login.md` → `status: superseded` with a one-line pointer here.
 - `bruno/.env.example`: `STEAM_API_KEY` back, `STEAM_ACCESS_TOKEN` out; `get-games.bru` to `key=`.
 
 ## Codebase change list
 
 Restore from history: `shared/steam-profile.ts` + test, `steamAuthBodySchema`, `server/api/providers/steam/auth.post.ts` (`a085e56~1`); `key=` branch of `getUserGames` (`39ed473~1`).
 
-Add: migration 0013 + schema + snapshot/journal; `identify.post.ts`, `web-session.delete.ts`; two-step setup UI.
+Add: migration 0011 + schema + snapshot/journal; `identify.post.ts`, `web-session.delete.ts`; two-step setup UI.
 
 Change: `api.ts`, `service.ts`, `webSession.ts` (shrink), `qrRegistry.ts` (hold-or-attach, `steamId`/`personaName` in status), `jobs.ts`, `index.get.ts`, `qr.post.ts`, `index.vue`, `SteamQrLoginModal.vue` copy, fixtures, tests, docs above.
 
@@ -131,15 +143,17 @@ Delete: `_handler` patch and everything renewal-related in `webSession.ts`; `war
 
 ## Sequencing
 
-1. Spike (above), a few days of elapsed time; record results here.
-2. If the spike passes: implement all of the above in one branch. Order: migration → api/service → routes → UI → docs.
+1. Implement all of the above on branch `steam-auth-key`. Order: migration → api/service → routes → UI → docs.
+2. Deploy, link once, observe for a week (above).
 3. If it fails or Steam flags again: same branch minus the web-session card, the QR option in step 1, `webSession.ts`, `qrRegistry.ts`, QR routes and `steam-session`/`qrcode` dependencies; doc 27 Steam ownership marked unachievable. The paste path is the only step-1 option, which is why it exists.
-4. Deployed instance still holds a revoked MobileApp token. Migration 0013 also nulls `refreshToken`/`refreshTokenExpiresAt` so no code path ever presents a mobile-platform token to a WebBrowser session (steam-session rejects the audience mismatch client-side anyway). User enters the key, then optionally re-scans.
+4. Deployed instance still holds a revoked MobileApp token. Migration 0011 also nulls `refreshToken`/`refreshTokenExpiresAt` so no code path ever presents a mobile-platform token to a WebBrowser session (steam-session rejects the audience mismatch client-side anyway). User enters the key, then optionally re-scans.
 
 ## Open items
 
-- Does a WebBrowser `getWebCookies()` keep working from a stored refresh token for the token's whole ~210-day life, or does Steam bind it to the first `finalizelogin`? Spike step 3 answers the first 72 h only; the rest is observed in production.
-- Custom `userAgent` for the WebBrowser session: honest (`grate/x.y`) may itself look anomalous; the default Chrome UA is a lie. Decide after seeing the Authorised Devices entry.
+- Trigger policy above is a design decision, unimplemented: no code calls `getOwnedAppIds()` yet. Manual "Refresh rich data" button and the hooks in `updateGames`/`recordPlaytimes` belong to doc 27's Steam step.
+
+- Does a WebBrowser `getWebCookies()` keep working from a stored refresh token for the token's whole ~210-day life, or does Steam bind it to the first `finalizelogin`? Observed in production via the status endpoint.
+- Custom `userAgent` for the WebBrowser session: honest (`grate/x.y`) may itself look anomalous; the default Chrome UA is a lie. Decide after seeing the Authorised Devices entry for the first in-app link.
 - Key validation in `connectSteamAccount` is a full `GetOwnedGames` fetch; fine for one call at setup, but if it turns out slow for large libraries, `GetOwnedGames` with `include_appinfo=0` or `IPlayerService/GetRecentlyPlayedGames` is a cheaper probe.
 - Is `apiKey` nullable long-term, or does a follow-up make it `NOT NULL` once the dev row is populated? Cheap either way.
 - Family Sharing / free-weekend grants in `rgOwnedApps` (carried from doc 28).

@@ -7,14 +7,14 @@ export type SteamSessionState =
   | "expired"
   | "removed";
 
-// Classifies a Steam row's session, given no row is missing entirely (that
-// case — no row at all — is "disconnected" and is decided by the caller).
+// Classifies the optional Steam web session behind rich data. "removed" means
+// no session; the API key, which the poller needs, is tracked separately.
 export function steamSessionState(
-  sessionExpiresAt: string | null,
+  webSessionExpiresAt: string | null,
   now = new Date(),
 ): SteamSessionState {
-  if (sessionExpiresAt === null) return "removed";
-  const expiresAt = new Date(sessionExpiresAt);
+  if (webSessionExpiresAt === null) return "removed";
+  const expiresAt = new Date(webSessionExpiresAt);
   if (expiresAt <= now) return "expired";
   if (
     expiresAt.getTime() - now.getTime() <

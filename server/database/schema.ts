@@ -43,6 +43,7 @@ export const steamUser = sqliteTable(
     avatar: text().notNull(),
     avatarMedium: text().notNull(),
     avatarFull: text().notNull(),
+    apiKey: text(),
     refreshToken: text(),
     refreshTokenExpiresAt: datetime(),
   },

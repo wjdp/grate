@@ -30,6 +30,7 @@ import type {
   RecordPlaytimesResult,
 } from "~~/server/providers/jobs";
 import { countProviderRows } from "~~/server/providers/rows";
+import { deleteCachedArt } from "~~/server/services/art";
 import { refreshGameAggregates } from "~~/server/services/gameAggregates";
 import { inferredLastPlayedAt } from "~~/server/services/playtimeTimeline";
 
@@ -268,6 +269,17 @@ async function storeEnrichment(namespace: string): Promise<StoreFields> {
   return data;
 }
 
+const ART_URL_FIELDS = ["boxArtTallUrl", "boxArtWideUrl", "logoUrl"] as const;
+
+// Epic CDN URLs embed a content hash, so a changed URL is new art and the
+// cached copy has to go.
+function artUrlsChanged(
+  existing: EpicGame,
+  fields: ReturnType<typeof epicGameFields>,
+): boolean {
+  return ART_URL_FIELDS.some((field) => existing[field] !== fields[field]);
+}
+
 async function updateOrCreateEpicGame(
   record: EpicLibraryRecord,
   item: EpicCatalogItem,
@@ -295,6 +307,9 @@ async function updateOrCreateEpicGame(
       }
       return row;
     });
+    if (artUrlsChanged(existing, fields)) {
+      await deleteCachedArt({ provider: "epic", id: existing.catalogItemId });
+    }
     await refreshGameAggregates(updated.gameId);
     console.log(`Updated game ${fields.name}`);
     return;

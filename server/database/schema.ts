@@ -322,6 +322,7 @@ export const epicGame = sqliteTable(
   (table) => [
     uniqueIndex("EpicGame_appName_key").on(table.appName),
     index("EpicGame_gameId_idx").on(table.gameId),
+    index("EpicGame_catalogItemId_idx").on(table.catalogItemId),
   ],
 );
 

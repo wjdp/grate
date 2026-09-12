@@ -35,8 +35,14 @@ import {
   updateEpicGames,
   updateEpicUser,
 } from "~~/server/providers/epic/service";
+import { deleteCachedArt } from "~~/server/services/art";
 import { flushDb } from "~~/test/db";
 import { createEpicGame } from "~~/test/fixtures/game";
+
+vi.mock("~~/server/services/art", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("~~/server/services/art")>()),
+  deleteCachedArt: vi.fn(),
+}));
 
 vi.mock("~~/server/providers/epic/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("~~/server/providers/epic/api")>()),
@@ -576,6 +582,67 @@ describe("updateEpicGames", () => {
     expect(stored.gameId).toBe(existing.gameId);
     expect(stored.name).toBe("New Name");
     expect(stored.game.name).toBe("New Name");
+  });
+
+  it("invalidates cached art when an art URL changes", async () => {
+    await createEpicUser();
+    const catalogItemId = "0123456789abcdef0123456789abcdef";
+    createEpicGame({
+      appName: "AppArt",
+      catalogItemId,
+      boxArtTallUrl: "https://cdn/old-tall.png",
+      boxArtWideUrl: "https://cdn/wide.png",
+    });
+    vi.mocked(getEpicLibraryItems).mockResolvedValue([
+      generateFakeEpicLibraryRecord({ appName: "AppArt", catalogItemId }),
+    ]);
+    vi.mocked(getEpicCatalogItems).mockResolvedValue(
+      catalogResponse(
+        generateFakeEpicCatalogItem({
+          id: catalogItemId,
+          keyImages: [
+            { type: "DieselGameBoxTall", url: "https://cdn/new-tall.png" },
+            { type: "DieselGameBox", url: "https://cdn/wide.png" },
+          ],
+        }),
+      ),
+    );
+
+    await updateEpicGames();
+
+    expect(deleteCachedArt).toHaveBeenCalledWith({
+      provider: "epic",
+      id: catalogItemId,
+    });
+  });
+
+  it("leaves cached art alone when the art URLs are unchanged", async () => {
+    await createEpicUser();
+    const catalogItemId = "fedcba9876543210fedcba9876543210";
+    createEpicGame({
+      appName: "AppArtSame",
+      catalogItemId,
+      boxArtTallUrl: "https://cdn/tall.png",
+      boxArtWideUrl: "https://cdn/wide.png",
+    });
+    vi.mocked(getEpicLibraryItems).mockResolvedValue([
+      generateFakeEpicLibraryRecord({ appName: "AppArtSame", catalogItemId }),
+    ]);
+    vi.mocked(getEpicCatalogItems).mockResolvedValue(
+      catalogResponse(
+        generateFakeEpicCatalogItem({
+          id: catalogItemId,
+          keyImages: [
+            { type: "DieselGameBoxTall", url: "https://cdn/tall.png" },
+            { type: "DieselGameBox", url: "https://cdn/wide.png" },
+          ],
+        }),
+      ),
+    );
+
+    await updateEpicGames();
+
+    expect(deleteCachedArt).not.toHaveBeenCalled();
   });
 
   it("does not rename a Game that owns more than one provider row", async () => {

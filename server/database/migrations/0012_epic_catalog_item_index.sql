@@ -1,0 +1,1 @@
+CREATE INDEX `EpicGame_catalogItemId_idx` ON `EpicGame` (`catalogItemId`);

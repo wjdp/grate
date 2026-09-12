@@ -57,7 +57,7 @@ PlaytimeCorrection
   createdAt
 ```
 
-- A correction targets one snapshot row: the row that introduced a positive cumulative delta, or the baseline row. Its capacity is that delta (baseline: the cumulative total on the first row). Several corrections may target the same row to split it into several played periods; their minutes sum to at most the capacity. Any remainder stays as a residual session in the original observation window (baseline: as undated pre-history).
+- A correction targets one snapshot row: the row that introduced a positive cumulative delta, or the baseline row. Its capacity is that delta (baseline: the cumulative total on the first row). A lone correction re-places the whole delta: the session renders with the store's minutes, and the correction's own minutes only cap what it may claim. Several corrections may target the same row to split it into several played periods; their minutes sum to at most the capacity, and any remainder stays as a residual session in the original observation window. The baseline is the exception: its remainder is always reported as undated pre-history, so a lone baseline correction does not absorb it.
 - Snapshot rows are never deleted (verified: no code deletes from the playtime tables), so the reference is stable. It is polymorphic across three tables, so no FK; the service checks ownership.
 - Manual sessions (`snapshotId` null) are additive. If the store later reports the play, the user binds the correction to that delta by patching `snapshotId`, or deletes it. No automatic matching.
 - No Steam merged-run claims: corrections target single deltas. A merged Steam sitting is already anchored and rarely needs correcting; the UI does not offer Correct… on multi-delta sessions.
@@ -92,7 +92,7 @@ Defer `?`, `XX` and seasons until a real need appears.
 `deriveTimeline(snapshots, row, corrections, playDaySettings)` in `server/services/playtimeTimeline.ts`, replacing `deriveSessions`:
 
 1. Observe deltas as now, each carrying the id of the row that introduced it.
-2. A delta with corrections emits one session per correction, plus a residual session with the original window if the corrections sum to less than the delta. Corrected deltas never take part in Steam contiguity merging.
+2. A delta with exactly one correction emits one session, placed by the correction and carrying the delta's minutes: a lone correction re-places the whole delta; the store's minutes are grate's unit. A delta with several corrections emits one session per correction with that correction's minutes, plus a residual session with the original window if they sum to less than the delta. Residuals only arise when several corrections split a delta. Corrected deltas never take part in Steam contiguity merging.
 3. The baseline (first row, `timestampStart` null, cumulative > 0) is treated the same: corrections against it become sessions; any remainder is reported as undated pre-history minutes, not as a session.
 4. Manual corrections become additive sessions.
 5. A session from a correction: exact when both ends are minute-precision → `anchored`, `uncertaintyMinutes` 0, bounds are the resolved instants. Otherwise unanchored, bounds `[earliest, latest]`, `uncertaintyMinutes` = width. `~` marks a time as approximate for display only and never affects placement: `2026-09-12T00:33~` is placed exactly as `2026-09-12T00:33` is.

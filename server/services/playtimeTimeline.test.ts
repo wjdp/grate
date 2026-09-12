@@ -553,6 +553,29 @@ describe("deriveTimeline with corrections", () => {
     });
   });
 
+  it("re-places the whole delta from a lone correction that claims fewer minutes", () => {
+    const sessions = deriveSessions(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [correction({ minutes: 60 })],
+    );
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({
+      minutes: 70,
+      anchored: true,
+      uncertaintyMinutes: 0,
+      estimatedStart: new Date("2026-08-29T20:00:00Z"),
+      estimatedEnd: new Date("2026-08-29T21:10:00Z"),
+      snapshotId: null,
+      correction: {
+        id: 1,
+        playedFrom: "2026-08-29T20:00",
+        playedTo: "2026-08-29T21:10",
+        note: null,
+      },
+    });
+  });
+
   it("leaves a residual session in the original window when corrections cover part of a delta", () => {
     const sessions = deriveSessions(
       identifiedCyberpunkSnapshots,
@@ -609,6 +632,29 @@ describe("deriveTimeline with corrections", () => {
         .filter((session) => session.correction)
         .map((session) => session.minutes),
     ).toEqual([200, 100]);
+  });
+
+  it("keeps the undated remainder when a lone correction dates part of the baseline", () => {
+    const timeline = deriveTimeline(
+      identifiedCyberpunkSnapshots,
+      cyberpunkRow,
+      [
+        correction({
+          id: 1,
+          snapshotId: 1,
+          minutes: 200,
+          playedFrom: "2020-10",
+          playedTo: "2020-10",
+        }),
+      ],
+      playDaySettings,
+    );
+    expect(timeline.undatedMinutes).toBe(400);
+    expect(
+      timeline.sessions
+        .filter((session) => session.correction)
+        .map((session) => session.minutes),
+    ).toEqual([200]);
   });
 
   it("reports no undated pre-history once the baseline is fully dated", () => {

@@ -218,7 +218,7 @@ describe("getDailyPlaytime", () => {
     ]);
   });
 
-  it("splits a corrected delta into the correction and its residual", async () => {
+  it("splits a corrected delta into its corrections and their residual", async () => {
     const gogGame = createGogGame();
     recordGog(gogGame.gogId, "2025-04-01T12:00:00.000Z", 10);
     const observed = recordGog(gogGame.gogId, "2025-04-10T12:00:00.000Z", 100);
@@ -230,9 +230,18 @@ describe("getDailyPlaytime", () => {
       playedFrom: "2025-04-05T20:00",
       playedTo: "2025-04-05T22:00",
     });
+    createPlaytimeCorrection({
+      provider: "gog",
+      providerId: gogGame.gogId,
+      snapshotId: observed.id,
+      minutes: 20,
+      playedFrom: "2025-04-06T20:00",
+      playedTo: "2025-04-06T20:20",
+    });
     expect(await playDays(2025)).toStrictEqual([
       { date: "2025-04-05", minutes: 50 },
-      { date: "2025-04-10", minutes: 40 },
+      { date: "2025-04-06", minutes: 20 },
+      { date: "2025-04-10", minutes: 20 },
     ]);
   });
 

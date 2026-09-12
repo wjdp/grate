@@ -221,10 +221,13 @@ function toSession(
   };
 }
 
+// A lone correction re-places its whole delta, so the minutes it renders with
+// are the store's figure, not the correction's own.
 function toCorrectedSession(
   correction: CorrectionInput,
   row: PlaytimeProviderRow,
   timezone: string,
+  minutes: number = correction.minutes,
 ): UnbucketedSession {
   const { earliest, latest } = resolveFuzzyDateRange(
     correction.playedFrom,
@@ -238,7 +241,7 @@ function toCorrectedSession(
   const exact = from.precision === "minute" && to.precision === "minute";
   return {
     ...row,
-    minutes: correction.minutes,
+    minutes,
     endedAfter: earliest,
     endedBefore: latest,
     estimatedStart: earliest,
@@ -390,6 +393,13 @@ export function deriveTimeline(
       delta.snapshotId === null ? [] : (bySnapshot.get(delta.snapshotId) ?? []);
     if (applied.length === 0) {
       observed.push(toSession(delta, row, delta.minutes, true));
+      continue;
+    }
+    const lone = applied.length === 1 ? applied[0] : undefined;
+    if (lone) {
+      corrected.push(
+        toCorrectedSession(lone, row, settings.timezone, delta.minutes),
+      );
       continue;
     }
     for (const correction of applied) {

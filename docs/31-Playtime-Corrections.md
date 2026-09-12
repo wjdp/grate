@@ -95,8 +95,8 @@ Defer `?`, `XX` and seasons until a real need appears.
 2. A delta with corrections emits one session per correction, plus a residual session with the original window if the corrections sum to less than the delta. Corrected deltas never take part in Steam contiguity merging.
 3. The baseline (first row, `timestampStart` null, cumulative > 0) is treated the same: corrections against it become sessions; any remainder is reported as undated pre-history minutes, not as a session.
 4. Manual corrections become additive sessions.
-5. A session from a correction: exact when both ends are minute-precision and not approximate → `anchored`, `uncertaintyMinutes` 0, bounds are the resolved instants. Otherwise unanchored, bounds `[earliest, latest]`, `uncertaintyMinutes` = width.
-6. Bucketing. Observed and exact sessions: end-bound play day as today. Imprecise corrected sessions: coarsest calendar unit containing the range — month if within one month, else year, else unallocated — never a day. Every session carries `playDay`, `calendarMonth` and `calendarYear`, each null when not applicable; exact sessions fill all three from the play day.
+5. A session from a correction: exact when both ends are minute-precision → `anchored`, `uncertaintyMinutes` 0, bounds are the resolved instants. Otherwise unanchored, bounds `[earliest, latest]`, `uncertaintyMinutes` = width. `~` marks a time as approximate for display only and never affects placement: `2026-09-12T00:33~` is placed exactly as `2026-09-12T00:33` is.
+6. Bucketing. Observed and exact sessions: end-bound play day as today. A correction whose ends are both day-precision and name the same date buckets to that calendar date — a user writing `2026-09-03` means that day, so the play day boundary is not applied. Coarser or mixed precision buckets to the coarsest calendar unit containing the range — month if within one month, else year, else unallocated — never a day. Every session carries `playDay`, `calendarMonth` and `calendarYear`, each null when not applicable; exact sessions fill all three from the play day.
 7. `inferredLastPlayedAt` unchanged (GOG/Epic, raw deltas). `Game.lastPlayedAt` = max of the provider-derived value and the latest correction end. Dating a late delta backwards does not yet lower it; revisit with state automation.
 8. `Game.playtimeMinutes` = store totals + manual correction minutes.
 
@@ -150,6 +150,7 @@ Validation on write: minutes a positive integer; `playedTo` not before `playedFr
 - Steam baseline bound by `rTimeLastPlayed` rather than the first row's `timestampEnd`.
 - Achievement-proposed corrections.
 - Correcting merged Steam runs.
+- Save-file sitting detection should split on any playthrough-time stall of a few minutes; GOG logs once per exit, verified 12 Sep 2026.
 
 ## Unanswered questions
 

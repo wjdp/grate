@@ -9,7 +9,7 @@ Scaffold written 2026-09-02. Motivated by [28](28-Steam-QR-Login.md): an unatten
 
 ## Problem
 
-- Provider auth breaks quietly: Epic already throws "refresh token has expired, reconnect your Epic account" from `server/providers/epic/service.ts`, GOG can do the same, Steam will once doc 28 lands. Today the only trace is the failed task in the tasks page and the server log.
+- Provider auth breaks quietly: Epic already throws "refresh token has expired, reconnect your Epic account" from `server/providers/epic/service.ts`, GOG can do the same, Steam's fault is a missing or invalid API key (not the web session — expiry of the optional web session is shown only on the Steam provider page, per [32](32-Steam-Auth-After-The-Hijack-Flag.md)). Today the only trace is the failed task in the tasks page and the server log.
 - The instance runs for months without anyone opening the providers page. The timeline stops accruing and nobody notices until they look.
 - Need one global surface: a banner in the app shell whenever a provider is in a fault state, linking to the fix.
 

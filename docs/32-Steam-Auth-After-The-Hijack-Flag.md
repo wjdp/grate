@@ -113,8 +113,8 @@ Connected: two cards.
 
 ### Docs to update
 
-- `README.md` line ~68 → scan QR or paste profile URL, then API key; web session optional, rich data (DLC and later achievements, wishlist).
-- `docs/21-Providers.md` Steam Auth bullet; `docs/04-App-structure.md` secrets line; `docs/19-Provider-Job-Normalisation.md` line 46; `docs/27-DLC.md` Steam ownership rows (session optional, WebBrowser, daily); `docs/29-Provider-Fault-Banners.md` (Steam fault = missing key, not session); `docs/28-Steam-QR-Login.md` → `status: superseded` with a one-line pointer here.
+- ✅ `README.md` line ~68 → scan QR or paste profile URL, then API key; web session optional, rich data (DLC and later achievements, wishlist).
+- ✅ `docs/21-Providers.md` Steam Auth bullet; ✅ `docs/04-App-structure.md` secrets line; ✅ `docs/19-Provider-Job-Normalisation.md` line 46; ✅ `docs/27-DLC.md` Steam ownership rows (session optional, WebBrowser, daily); ✅ `docs/29-Provider-Fault-Banners.md` (Steam fault = missing key, not session); `docs/28-Steam-QR-Login.md` → `status: superseded` with a one-line pointer here.
 - `bruno/.env.example`: `STEAM_API_KEY` back, `STEAM_ACCESS_TOKEN` out; `get-games.bru` to `key=`.
 
 ## Codebase change list

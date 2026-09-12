@@ -21,7 +21,7 @@ A provider has two halves: a server half in `server/providers/<name>/` (api + se
 
 ### Steam
 
-- **Auth**: QR login via `steam-session` (MobileApp platform), refresh token stored in `SteamUser`, no API key.
+- **Auth**: Web API key (required, drives `GetOwnedGames`), profile via community XML (keyless). Optional web session, QR login on the WebBrowser platform, for rich data the key can't reach (owned DLC, later achievements/wishlist) — see [32](32-Steam-Auth-After-The-Hijack-Flag.md).
 - **Library**: `GetOwnedGames` — full library in one call, with per-platform playtime totals.
 - **Playtime**: cumulative totals per game; recorder derives sessions from deltas between hourly ticks, and creates unknown games inline (new purchase played immediately).
 - **Extras**: PICS metadata (library assets, tags), store API descriptions (`populateStoreData`), rich art.

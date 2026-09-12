@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BACKDROP_LIGHT_MIN_BRIGHTNESS,
   BACKDROP_MIN_BRIGHTNESS,
   backdropBrightness,
   meanLuminance,
@@ -19,6 +20,13 @@ describe("backdropBrightness", () => {
 
   it("eases the dimming off between the two", () => {
     expect(backdropBrightness(64)).toBeCloseTo(0.75);
+  });
+
+  it("honours a raised floor for light heroes", () => {
+    expect(backdropBrightness(190, BACKDROP_LIGHT_MIN_BRIGHTNESS)).toBe(
+      BACKDROP_LIGHT_MIN_BRIGHTNESS,
+    );
+    expect(backdropBrightness(20, BACKDROP_LIGHT_MIN_BRIGHTNESS)).toBe(1);
   });
 });
 

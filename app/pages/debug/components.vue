@@ -78,6 +78,30 @@ const providerFilter = ref<ProviderFilter>("all");
     <section class="flex flex-col gap-3">
       <h2 class="text-highlighted font-semibold">Art hero</h2>
       <ArtHero :background="null" :logo="null" title="A game with no art" />
+      <ArtHero
+        background="/art/steam/287980/backdrop"
+        logo="/art/steam/287980/logo"
+        title="A game with a dark logo"
+      >
+        <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-eye-off"
+            label="Hide"
+          />
+          <PlayButton href="steam://run/287980" />
+        </div>
+      </ArtHero>
+      <ArtHero
+        background="/art/steam/264710/backdrop"
+        logo="/art/steam/264710/logo"
+        title="A game with a wide logo"
+      >
+        <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <PlayButton href="steam://run/264710" />
+        </div>
+      </ArtHero>
     </section>
 
     <section class="flex flex-col gap-3">

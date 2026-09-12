@@ -1,3 +1,5 @@
+import { sampleImagePixels } from "~/utils/sampleImage";
+
 // Backdrops are dimmed so the hero text reads over them, but many store
 // backgrounds (Steam's generated page backgrounds especially) are already
 // dark and tinted. Dimming those by the full amount leaves them invisible, so
@@ -6,19 +8,22 @@ export const BACKDROP_TARGET_LUMINANCE = 48;
 export const BACKDROP_MIN_BRIGHTNESS = 0.5;
 export const BACKDROP_MAX_BRIGHTNESS = 1;
 
+// A dark logo needs a light hero behind it, so the backdrop is barely dimmed.
+export const BACKDROP_LIGHT_MIN_BRIGHTNESS = 0.85;
+
 const SAMPLE_WIDTH = 32;
 const SAMPLE_HEIGHT = 18;
 
-export function backdropBrightness(meanLuminance: number): number {
+export function backdropBrightness(
+  meanLuminance: number,
+  minBrightness: number = BACKDROP_MIN_BRIGHTNESS,
+): number {
   if (meanLuminance <= 0) {
     return BACKDROP_MAX_BRIGHTNESS;
   }
   return Math.min(
     BACKDROP_MAX_BRIGHTNESS,
-    Math.max(
-      BACKDROP_MIN_BRIGHTNESS,
-      BACKDROP_TARGET_LUMINANCE / meanLuminance,
-    ),
+    Math.max(minBrightness, BACKDROP_TARGET_LUMINANCE / meanLuminance),
   );
 }
 
@@ -38,19 +43,6 @@ export function meanLuminance(pixels: Uint8ClampedArray): number {
 
 // Returns null when the image cannot be sampled (cross-origin, decode error).
 export function measureImageLuminance(image: HTMLImageElement): number | null {
-  const canvas = document.createElement("canvas");
-  canvas.width = SAMPLE_WIDTH;
-  canvas.height = SAMPLE_HEIGHT;
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) {
-    return null;
-  }
-  try {
-    context.drawImage(image, 0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT);
-    return meanLuminance(
-      context.getImageData(0, 0, SAMPLE_WIDTH, SAMPLE_HEIGHT).data,
-    );
-  } catch {
-    return null;
-  }
+  const pixels = sampleImagePixels(image, SAMPLE_WIDTH, SAMPLE_HEIGHT);
+  return pixels === null ? null : meanLuminance(pixels);
 }

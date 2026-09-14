@@ -13,7 +13,7 @@ status: done
 2. Run `pnpm typecheck`; fix errors. Expect: `server/tasks/router.ts` vs `TASK_NAMES`, existing `@ts-ignore`s (`server/providers/steam/api.ts:116` env vars, `server/routes/art/steam/[appId]/[type].ts`, `nuxt.config.ts` tailwind plugin), untyped `data` in `getGogUserGames`.
 3. Env vars: add `env.d.ts` `ProcessEnv` declarations for `STEAM_API_KEY`, `STEAM_USER_ID`, `DATABASE_URL` instead of `@ts-ignore`.
 4. Add `pnpm typecheck` to CI alongside `lint:ci` and `test`. Add to `lint-staged`? No — too slow; CI only.
-5. Stop `nuxt typecheck` attempting a DB migrate (observed "Not migrating the database" output from `@prisma/nuxt`); goes away with [02](02-Prisma-To-Drizzle-Migration.md).
+5. Stop `nuxt typecheck` attempting a DB migrate (observed "Not migrating the database" output from `@prisma/nuxt`); goes away with [02](02-Prisma-to-Drizzle-migration.md).
 
 ## Outcome
 
@@ -21,7 +21,7 @@ status: done
 - The mass `@prisma/client has no exported member` errors came from the explicit `output = "../node_modules/.prisma/client"` in `schema.prisma`: under pnpm, `@prisma/client` resolves `.prisma/client` from the store and so saw a stub. Removed `output`; Prisma now generates to the default (store) location and the `index-browser` vite alias is no longer needed.
 - `GameWithSteam` now derives from the tRPC router output, not the Prisma model (superjson-less serialisation turns Dates into strings, BigInt into `never`).
 - CI already ran typecheck; only the step name was wrong.
-- The "Not migrating the database" noise comes from `@prisma/nuxt` and stays until [02](02-Prisma-To-Drizzle-Migration.md).
+- The "Not migrating the database" noise comes from `@prisma/nuxt` and stays until [02](02-Prisma-to-Drizzle-migration.md).
 
 ## Verification
 

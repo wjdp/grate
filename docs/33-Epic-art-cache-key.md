@@ -18,7 +18,7 @@ A second, smaller gap: Epic CDN URLs embed a content hash, so a changed `boxArtT
 ## Decisions
 
 - Key: `catalogItemId`. 32 lowercase hex, unique across the author's 241 rows, URL-safe, and the identifier Epic's catalogue art actually belongs to. `appName` was the alternative (has the unique index) but is mixed-format.
-- Old `data/art/epic/<epicId>/` directories are left orphaned. No boot-time wipe or rename. The new route rejects numeric Epic ids, so they are unreachable; `rm -rf data/art/epic` reclaims the space. Note this in `docs/30-Art-Sizing-And-Disk.md`.
+- Old `data/art/epic/<epicId>/` directories are left orphaned. No boot-time wipe or rename. The new route rejects numeric Epic ids, so they are unreachable; `rm -rf data/art/epic` reclaims the space. Note this in `docs/30-Art-sizing-and-disk.md`.
 - Invalidate on art URL change in the same task.
 - `epicId` stays the primary key; playtime rows, provider rows UI and corrections keep using it. This task changes only the art key.
 
@@ -65,7 +65,7 @@ In `updateOrCreateEpicGame`, existing-row branch: after the update, if any of `b
 ### Docs
 
 - `docs/11-Epic-Games.md`: note that art is keyed on `catalogItemId`, not `epicId`.
-- `docs/30-Art-Sizing-And-Disk.md`: note orphaned numeric `data/art/epic/<n>/` dirs from before this change and the manual cleanup.
+- `docs/30-Art-sizing-and-disk.md`: note orphaned numeric `data/art/epic/<n>/` dirs from before this change and the manual cleanup.
 
 ## Tests
 

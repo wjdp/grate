@@ -1,6 +1,6 @@
 ---
 type: task
-status: open
+status: todo
 ---
 
 # Library navigation and surfaces
@@ -10,8 +10,8 @@ Written 2026-09-07 against `a8652f5`. Restructures the library page (the app's m
 ## Problem
 
 1. **Filters scroll away.** `games.vue` renders title, stat strip and filter row at the top of the scrolling panel body. Any filter change from deep in an 800-game wall means scrolling back up.
-2. **State is buried.** State is the primary way the library is organised (the whole of [17](17-Product-Goals.md) is about it) but reaching "Played" or "Abandoned" is: scroll up, open a 12-item select, pick. No overview of how the library is split.
-3. **No surface hierarchy.** Sidebar, panel body, stat strip, filter inputs and empty states all sit on `--ui-bg`. The only `bg-elevated` use on the page is poster card backgrounds. Bordered boxes on the same colour as their surroundings (stat strip, inputs) read as outlines, not surfaces, and nothing frames the art. [12](12-UI-Overhaul.md) planned "bg elevated: cards, sidebar" but the sidebar never got it.
+2. **State is buried.** State is the primary way the library is organised (the whole of [17](17-Product-goals.md) is about it) but reaching "Played" or "Abandoned" is: scroll up, open a 12-item select, pick. No overview of how the library is split.
+3. **No surface hierarchy.** Sidebar, panel body, stat strip, filter inputs and empty states all sit on `--ui-bg`. The only `bg-elevated` use on the page is poster card backgrounds. Bordered boxes on the same colour as their surroundings (stat strip, inputs) read as outlines, not surfaces, and nothing frames the art. [12](12-UI-overhaul.md) planned "bg elevated: cards, sidebar" but the sidebar never got it.
 
 ## Current state
 
@@ -74,7 +74,7 @@ Give chrome a surface and keep the wall on the base colour so art is the brighte
 | Light `--ui-bg-elevated` | `grey-50` | `white` — base stays `grey-100`; dark keeps `grey-900` |
 | Poster card, list row hover | `bg-elevated` | unchanged |
 
-Rule from [12](12-UI-Overhaul.md) stands: amber only on chrome as accent; state hues only with meaning. No blur, no glow.
+Rule from [12](12-UI-overhaul.md) stands: amber only on chrome as accent; state hues only with meaning. No blur, no glow.
 
 ### 5. Mobile (below `lg`)
 

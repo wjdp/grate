@@ -5,7 +5,7 @@ status: done
 
 # Nuxt 4 upgrade
 
-Written 2026-08-30 against `14877b7`. Nuxt 3.21 → 4.5. Do after [10](10-Drop-tRPC.md) (removes `trpc-nuxt` + `build.transpile`, the most likely breakage) and before [12](12-UI-Overhaul.md) (every client file gets rewritten there; move them once).
+Written 2026-08-30 against `14877b7`. Nuxt 3.21 → 4.5. Do after [10](10-Drop-tRPC.md) (removes `trpc-nuxt` + `build.transpile`, the most likely breakage) and before [12](12-UI-overhaul.md) (every client file gets rewritten there; move them once).
 
 ## What changes for us
 

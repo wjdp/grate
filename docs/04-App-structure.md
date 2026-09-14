@@ -59,7 +59,7 @@ Rule: `app/` and `shared/` never import `~~/server/**`. Anything the client need
 
 ## Steps
 
-0. **Delete the Prisma adoption path.** `db/adopt/` holds the old Prisma migration SQL for adopting a pre-Drizzle database ([02](02-Prisma-To-Drizzle-Migration.md)). Every install is on Drizzle now, so remove:
+0. **Delete the Prisma adoption path.** `db/adopt/` holds the old Prisma migration SQL for adopting a pre-Drizzle database ([02](02-Prisma-to-Drizzle-migration.md)). Every install is on Drizzle now, so remove:
    - `db/adopt/`
    - in `db/migrate.ts`: `adoptPrismaDatabase`, `adoptSqlPath`, `appliedPrismaMigrations`, `recordPrismaMigration`, `recordDrizzleBaseline`, `PRISMA_MIGRATIONS_COVERED_BY_BASELINE`, `FINAL_PRISMA_MIGRATION`, and the `_prisma_migrations` branch in `runMigrations`. Keep `migrateWithoutForeignKeyEnforcement`.
    - adoption cases in `db/migrate.test.ts` (`fixtureAtPrismaHead` and anything reading `db/adopt`) and the "adoption of a real database" describe in `db/realDb.test.ts`

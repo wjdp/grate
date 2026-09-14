@@ -5,7 +5,7 @@ status: done
 
 # Duplicate game matching
 
-Follow-up to [08-Cross-Provider-Game-Linking](08-Cross-Provider-Game-Linking.md), which built manual `mergeGames`/`splitGame`. This adds the suggestion pass: find `Game` rows that are probably the same title, present them for review, merge on confirm, remember opt-outs.
+Follow-up to [08-Cross-Provider-Game-Linking](08-Cross-provider-game-linking.md), which built manual `mergeGames`/`splitGame`. This adds the suggestion pass: find `Game` rows that are probably the same title, present them for review, merge on confirm, remember opt-outs.
 
 ## What the live db shows (dev.db, 2026-08-31)
 
@@ -144,12 +144,12 @@ Design stance: **lean permissive**. The user dismisses wrong suggestions with "N
 
 ### Provider signals checked and rejected for now
 
-- `SteamAppInfo.type` is almost all `game` — the soundtrack bundle is typed `game`, most test-build rows have no app-info row at all, and there is no parent/`fullgame` column until [18-Steam-PICS-Metadata](18-Steam-PICS-Metadata.md)/[27-DLC](27-DLC.md) PICS work lands.
+- `SteamAppInfo.type` is almost all `game` — the soundtrack bundle is typed `game`, most test-build rows have no app-info row at all, and there is no parent/`fullgame` column until [18-Steam-PICS-Metadata](18-Steam-PICS-metadata.md)/[27-DLC](27-DLC.md) PICS work lands.
 - `EpicGame.namespace` groups 5 pairs, 4 genuine + Telltale Batman S1/S2 (a hard negative) — adds nothing over names.
 
 Revisit when PICS parents land.
 
 ### Open follow-ups
 
-- Test builds and demos are merged like editions, so demo playtime folds into the game's total, timeline and `lastPlayedAt` (Eriksholm demo 99 min, Stanley Parable demo 36) and could trip the playtime-driven state automation in [17-Product-Goals](17-Product-Goals.md). Options: a non-retail flag on the provider row, or a parent relation like the [27-DLC](27-DLC.md) design.
+- Test builds and demos are merged like editions, so demo playtime folds into the game's total, timeline and `lastPlayedAt` (Eriksholm demo 99 min, Stanley Parable demo 36) and could trip the playtime-driven state automation in [17-Product-Goals](17-Product-goals.md). Options: a non-retail flag on the provider row, or a parent relation like the [27-DLC](27-DLC.md) design.
 - Bundle/soundtrack rows should eventually be hidden by triage (doc 27); matching them here is intentional in the meantime.

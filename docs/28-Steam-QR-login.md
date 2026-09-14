@@ -62,7 +62,7 @@ Full raw output in `tmp/steam-qr/FINDINGS.md`. No token strings recorded anywher
 - **SteamID comes from the session**, so profile-URL/vanity input and `ResolveVanityURL` are deleted outright.
 - **Profile from the community XML endpoint**, keyless. Drop the fields it does not carry.
 - **Renew on every sync; a running instance should never need a re-scan.** `renewRefreshToken()` refreshes the access token each call and issues a new refresh token once inside Steam's near-expiry window; persist it immediately. Re-scan is the recovery path only for an instance that was offline through the whole window.
-- **Expiry must not be silent.** The instance may run unattended for months: surface a missing/expired session app-wide via the provider fault banners in [29](29-Provider-Fault-Banners.md), not just on the providers page or in logs.
+- **Expiry must not be silent.** The instance may run unattended for months: surface a missing/expired session app-wide via the provider fault banners in [29](29-Provider-fault-banners.md), not just on the providers page or in logs.
 - Single account per instance, as today: a scan for a different SteamID is rejected.
 
 ## Design
@@ -129,7 +129,7 @@ New module, the only place `steam-session` is imported:
 - Remove both inputs and the save button.
 - Not connected: "Connect Steam account" button → Nuxt UI modal with the QR (SVG via the `qrcode` package, rendered client-side, no external image), the instruction "Scan with the Steam mobile app → Steam Guard → scan QR", a spinner while polling, and a warning that this grants grate full account access (including purchases) — the same token the Steam mobile app holds.
 - The QR re-renders whenever the poll returns a changed `qrChallengeUrl`; no visible flicker, no user action.
-- Connected: persona name badge as now, plus "Session valid until <date>, renews automatically" and the sync button. If the token is within 14 days of expiry and renewal has not succeeded, show a warning alert "Re-scan to keep Steam syncing" here and via the global banner ([29](29-Provider-Fault-Banners.md)); once expired, the banner escalates to an error until re-scanned. A sync skipped for a missing/expired token logs once.
+- Connected: persona name badge as now, plus "Session valid until <date>, renews automatically" and the sync button. If the token is within 14 days of expiry and renewal has not succeeded, show a warning alert "Re-scan to keep Steam syncing" here and via the global banner ([29](29-Provider-fault-banners.md)); once expired, the banner escalates to an error until re-scanned. A sync skipped for a missing/expired token logs once.
 - Disconnect button clears the columns. `steam-session` exposes no revoke; the copy points at Steam's Authorized Devices page under account security (exact location still to verify).
 
 ### Tests
@@ -167,8 +167,8 @@ Docs to update:
 - `README.md` line ~68 (API key + profile URL → scan a QR with the Steam mobile app).
 - `docs/21-Providers.md` Steam **Auth** bullet.
 - `docs/04-App-structure.md` secrets line ("Steam API key lives in DB settings").
-- `docs/19-Provider-Job-Normalisation.md` line 46 (`isActive` definition).
-- `docs/05-Test-Infrastructure.md` and `docs/13-Nuxt-4-Upgrade.md` mention `shared/steam-profile` — they are point-in-time reviews, so leave them; note the file is gone only if editing them for another reason.
+- `docs/19-Provider-job-normalisation.md` line 46 (`isActive` definition).
+- `docs/05-Test-infrastructure.md` and `docs/13-Nuxt-4-upgrade.md` mention `shared/steam-profile` — they are point-in-time reviews, so leave them; note the file is gone only if editing them for another reason.
 
 ## Incident (2026-09-03): Steam flagged the session as a hijack
 
@@ -176,7 +176,7 @@ Steam sent an "Account Alert" on 2026-09-03 for the dev account: "unexpected dev
 
 - Timing matches the spike sessions above plus the deployed MobileApp session, all from the author's home IP. Not a real compromise; confirm on `store.steampowered.com/account/authorizeddevices` that only grate and the spike sessions are listed.
 - Likely triggers: a MobileApp-platform login with a non-phone `device_friendly_name` from a Linux box, then `refreshAccessToken()`/`renewRefreshToken()` from a server, and several fresh logins across two platforms within minutes. Emulating a client platform is what Steam's anomaly detection targets. The threat model above only covers the token; it should have covered this.
-- Recovery: Steam Support will likely force a password change, revoking every refresh token. grate then needs a re-scan and the fault banner ([29](29-Provider-Fault-Banners.md)) should show the expired session. Do not re-scan with the current build until the account is restored.
+- Recovery: Steam Support will likely force a password change, revoking every refresh token. grate then needs a re-scan and the fault banner ([29](29-Provider-fault-banners.md)) should show the expired session. Do not re-scan with the current build until the account is restored.
 
 Options, in order of preference:
 
@@ -184,7 +184,7 @@ Options, in order of preference:
 2. Keep the MobileApp session but drop the `device_friendly_name` patch and any other platform spoofing. Still a fake "Galaxy S25" refreshing from a server; reduces the risk, does not remove it.
 3. Test WebBrowser properly. `refreshAccessToken()` is denied, but `getWebCookies()` worked and its `steamLoginSecure` value is a JWT access token. If that token satisfies `GetOwnedGames?access_token=`, a browser session is the most honest emulation. Untested.
 
-Decided 2026-09-12 in [32](32-Steam-Auth-After-The-Hijack-Flag.md): option 1, with the optional session moved to the WebBrowser platform.
+Decided 2026-09-12 in [32](32-Steam-auth-after-the-hijack-flag.md): option 1, with the optional session moved to the WebBrowser platform.
 
 ## Open items
 

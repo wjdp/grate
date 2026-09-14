@@ -14,7 +14,7 @@ Replace Prisma with Drizzle ORM + `better-sqlite3`, keeping the existing product
 
 ## Why
 
-See [01](01-Stack-Review.md) §2. Drizzle removes the generate step, the `@prisma/nuxt` alias hack, the openssl dependency in Docker, and gives SQL-shaped queries (joins/ordering across relations) and trivial in-memory test DBs.
+See [01](01-Stack-review.md) §2. Drizzle removes the generate step, the `@prisma/nuxt` alias hack, the openssl dependency in Docker, and gives SQL-shaped queries (joins/ordering across relations) and trivial in-memory test DBs.
 
 ## Current breakage (2026-08-30) — why this is urgent
 
@@ -41,13 +41,13 @@ Drizzle has no generate step and no `.prisma` resolution dance, which removes th
 - Keep `run.sh` semantics: migrate on boot, then start.
 - Keep table and column names identical so the Drizzle schema maps onto the existing tables with no data movement. Only `_prisma_migrations` becomes obsolete.
 - Datetime columns: **corrected** — Prisma wrote `DATETIME` as unix _milliseconds_ INTEGER, not ISO text. The one exception is the `20260830020956_gog_playtime` backfill, whose raw SQL wrote ISO text (`2026-08-30T02:09:56.000Z`) into `Game.lastPlayedAt`. SQLite sorts integers before text, so mixed rows would break `getRecentGames`. Migration `0001` rewrites the text rows to milliseconds in place, before rebuilding `Game`.
-- `BigInt` columns (`SteamUser.steamId`, `SteamGame.appId`, `SteamAppInfo.appId`, `SteamGamePlaytime.steamAppId`): Prisma stores as INTEGER. Resolved by [06](06-Drop-BigInt-AppId.md), folded into migration `0001`.
+- `BigInt` columns (`SteamUser.steamId`, `SteamGame.appId`, `SteamAppInfo.appId`, `SteamGamePlaytime.steamAppId`): Prisma stores as INTEGER. Resolved by [06](06-Drop-BigInt-appid.md), folded into migration `0001`.
 - `Json` columns (`tags`, `properties`, `developers`, `publishers`, `categories`, `genres`, `screenshots`): Prisma stores JSON text in `JSONB`-declared columns; Drizzle `text({ mode: "json" })` reads them as-is.
 - Enums (`GameState`, `SteamAppInfoState`) are stored as TEXT; Drizzle `text({ enum: [...] })`.
 
 ## Steps
 
-1. Land [05](05-Test-Infrastructure.md)/[03](03-Enable-Typecheck.md) first so the swap is verified by tests + types.
+1. Land [05](05-Test-infrastructure.md)/[03](03-Enable-typecheck.md) first so the swap is verified by tests + types.
 2. Add `drizzle-orm`, `better-sqlite3`, `drizzle-kit`. Write `db/schema.ts` mirroring `prisma/schema.prisma` exactly (names, nullability, defaults, FKs, unique indexes).
 3. `drizzle-kit introspect` against a copy of a real DB; diff the generated schema against the hand-written one until identical. This is the data-preservation check.
 4. Baseline migration: `drizzle-kit generate` produces `0000_*.sql` that creates all tables. For existing databases this must not run. Options: (a) on boot, if `_prisma_migrations` exists and is fully applied, insert the baseline row into `__drizzle_migrations` and skip; (b) ship a one-off `scripts/adopt-drizzle.ts` run by `run.sh` once. Prefer (a): idempotent, no operator action.
@@ -63,7 +63,7 @@ Shipped:
 
 - `db/schema.ts` mirrors the Prisma tables one-for-one; verified against `drizzle-kit introspect` on a real database copy.
 - Native Drizzle column modes throughout: `integer({ mode: "timestamp_ms" })`, `text({ mode: "json" })`, `integer({ mode: "boolean" })`, `text({ enum })`. No custom column types; `db/customTypes.ts` was an interim step and is gone, as is `defaultSafeIntegers`.
-- Migration `0001_native_types` converts the adopted Prisma DDL to those types by rebuilding every table, and normalises the ISO text `Game.lastPlayedAt` rows first. Steam appids became `integer` and `SteamUser.steamId` became `text` in the same migration (see [06](06-Drop-BigInt-AppId.md)).
+- Migration `0001_native_types` converts the adopted Prisma DDL to those types by rebuilding every table, and normalises the ISO text `Game.lastPlayedAt` rows first. Steam appids became `integer` and `SteamUser.steamId` became `text` in the same migration (see [06](06-Drop-BigInt-appid.md)).
 - `db/migrate.ts` adopts an existing Prisma database: refuses anything older than the baseline, applies the final Prisma migration from `db/adopt/` if missing, then records the Drizzle baseline and runs `0001`. Foreign keys are disabled for the duration (drizzle-kit's own `PRAGMA foreign_keys=OFF` is a no-op inside the migrator transaction, and `defer_foreign_keys` cannot clear a violation counter raised by dropping a referenced table) and `PRAGMA foreign_key_check` verifies integrity afterwards. Idempotent.
 - `server/plugins/migrate.ts` migrates on boot, so `run.sh` no longer shells out to the Prisma CLI and the Docker image needs neither openssl nor `prisma generate`.
 - Tests get an in-memory database per file (`test/setup.ts`, `DATABASE_URL=":memory:"`), so file parallelism is back.

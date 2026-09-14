@@ -1,11 +1,11 @@
 ---
 type: task
-status: open
+status: todo
 ---
 
 # Generating and importing playtime corrections
 
-Written 2026-09-12 against the `playtime-correction` branch. Builds on the model in [31](31-Playtime-Corrections.md). Question: how does a user get corrections *into* grate at scale, when the evidence lives outside it and differs per game?
+Written 2026-09-12 against the `playtime-correction` branch. Builds on the model in [35](35-Playtime-corrections.md). Question: how does a user get corrections *into* grate at scale, when the evidence lives outside it and differs per game?
 
 ## What we learnt from Cyberpunk
 
@@ -14,7 +14,7 @@ One game, one script (`tmp/cyberpunk-save-sessions.py`), 84 saves → 45 session
 - Cyberpunk saves are unusually rich: wall-clock timestamp plus two monotonic counters (`playTime`, `playthroughTime`) and a `playthroughID`. Session start can be inferred, sittings split on counter stalls, playthroughs separated. Most games give less.
 - Matching a session to a snapshot row needed the raw history (ids, delta windows) and a tolerance. That logic belongs server-side, not in every script.
 - The document had to be in the server's timezone; the setting was unset and every delta match was rejected until fixed.
-- Store minutes exceed save minutes by launch overhead; a lone correction now absorbs the whole delta ([31](31-Playtime-Corrections.md)).
+- Store minutes exceed save minutes by launch overhead; a lone correction now absorbs the whole delta ([35](35-Playtime-corrections.md)).
 - A relaunch inside the script's 10-minute sitting gap merged two store deltas into one session. Sitting detection is the generator's problem; the importer should report the cap rather than silently drop.
 - Re-running the script double-posted. Import must be idempotent.
 
@@ -27,7 +27,7 @@ Ordered by how generic they are. A user will have several; none is universal.
 | Launcher logs | Exact launch and exit per game | Steam `logs/console_log.txt` ("Game process added/removed", includes non-Steam shortcuts, so Heroic launches via Steam appear); Heroic per-game logs; Lutris | Best generic source. Logs rotate, so older launches may already be gone. Catches sessions the store lost. |
 | Save file mtimes | Session end, sitting clusters | Nearly every game | Start unknown; rotating autosaves hide short sittings. Cloud-save folders (GOG, Steam `userdata/<id>/<app>/remote`) too. |
 | Save file contents | Playtime counters, playthrough ids, quest/level | Per game: Cyberpunk, Witcher 3, Skyrim/Fallout headers, Stardew, BG3, RimWorld… | Highest value, needs a parser per format. |
-| Achievement unlocks | Instants inside a session; bounds pre-history | Steam, GOG, Epic APIs | Grate can fetch these itself once achievement sync exists; proposes, never applies ([31](31-Playtime-Corrections.md)). |
+| Achievement unlocks | Instants inside a session; bounds pre-history | Steam, GOG, Epic APIs | Grate can fetch these itself once achievement sync exists; proposes, never applies ([35](35-Playtime-corrections.md)). |
 | Screenshots | Instants inside a session | Steam screenshot folder, user capture dirs | Same role as achievements, local. |
 | Other trackers | Whole sessions | Playnite, GOG Galaxy local DB, Lutris | One-off migration, mostly pre-history. |
 | Memory / diary | Rough ranges | Everything else | The manual form; the fuzzy-date grammar exists for this. |

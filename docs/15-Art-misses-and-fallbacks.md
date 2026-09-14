@@ -5,7 +5,7 @@ status: done
 
 # Art misses and poster fallbacks
 
-Written 2026-08-31 against `22aa5f8`. Follow-up to [14](14-Art-Caching.md).
+Written 2026-08-31 against `22aa5f8`. Follow-up to [14](14-Art-caching.md).
 
 ## Problem
 

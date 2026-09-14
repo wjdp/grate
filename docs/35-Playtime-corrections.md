@@ -1,11 +1,11 @@
 ---
 type: task
-status: open
+status: todo
 ---
 
 # Playtime corrections
 
-Written 2026-09-08 against `4f42a0d`. Builds on the timeline layer in [22](22-Playtime-Timeline.md) and the backfill / playthrough goals in [17](17-Product-Goals.md).
+Written 2026-09-08 against `4f42a0d`. Builds on the timeline layer in [22](22-Playtime-timeline.md) and the backfill / playthrough goals in [17](17-Product-goals.md).
 
 ## Revision
 
@@ -34,7 +34,7 @@ Three cases, one mechanism:
 
 ## Principles
 
-- Raw snapshot rows stay immutable evidence ([22](22-Playtime-Timeline.md)). Corrections are a read layer over derivation.
+- Raw snapshot rows stay immutable evidence ([22](22-Playtime-timeline.md)). Corrections are a read layer over derivation.
 - A correction normally **re-places observed minutes**. The one additive form is a manual session with no snapshot: an explicit user declaration that the store missed play. Manual entry for games with no store row (consoles, unsupported stores) is still a separate feature and a separate provider.
 - Precision is stored honestly. A rough date is stored rough, never as a fabricated datetime.
 - The user is the authority. Grate validates against the evidence it holds (a claim cannot exceed its delta, cannot end after the store observed it) and otherwise obeys.

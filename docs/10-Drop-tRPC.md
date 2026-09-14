@@ -11,14 +11,14 @@ Remove `@trpc/server`, `@trpc/client`, `trpc-nuxt` and `plugins/trpc.ts`; serve 
 
 ## Why
 
-See [01](01-Stack-Review.md) §8. tRPC's value here is typed procedures + zod input; Nuxt provides both natively, without the `build.transpile` hack, the plugin, batching links, or a second serialisation layer.
+See [01](01-Stack-review.md) §8. tRPC's value here is typed procedures + zod input; Nuxt provides both natively, without the `build.transpile` hack, the plugin, batching links, or a second serialisation layer.
 
 ## How typing works without tRPC
 
 - Nitro generates `.nuxt/types/nitro-routes.d.ts`; `$fetch("/api/games")` and `useFetch("/api/games")` infer the handler's return type. Route params typed via literal paths (`` `/api/games/${id}` `` matches `/api/games/:id`).
 - Input: `getValidatedQuery(event, schema.parse)`, `readValidatedBody(event, schema.parse)`, `getValidatedRouterParams(event, schema.parse)`. Zod errors become 400s via `createError`.
-- Dates: `$fetch` JSON-serialises `Date` → ISO string exactly as tRPC does today without superjson; keep the `formatLastPlayed` handling, or wrap responses with a small `serialise()` and a matching client `useApi` composable if richer types are wanted. `BigInt` goes away with [06](06-Drop-BigInt-AppId.md); do that first or keep `server/bigint.ts` until then.
-- Requires [03](03-Enable-Typecheck.md) so route type inference is actually checked.
+- Dates: `$fetch` JSON-serialises `Date` → ISO string exactly as tRPC does today without superjson; keep the `formatLastPlayed` handling, or wrap responses with a small `serialise()` and a matching client `useApi` composable if richer types are wanted. `BigInt` goes away with [06](06-Drop-BigInt-appid.md); do that first or keep `server/bigint.ts` until then.
+- Requires [03](03-Enable-typecheck.md) so route type inference is actually checked.
 
 ## Route map
 
@@ -42,7 +42,7 @@ Existing `/api/setup`, `/api/sse`, `/api/push`, `/health`, `/art/steam/**` uncha
 2. Error mapping: `lib` errors → `createError({ statusCode, statusMessage })`; replace `utils/createErrorFromSteamApiError.ts`/`createUnknownError.ts` usage accordingly.
 3. Client: replace `$client.x.useQuery()` with `useFetch`, `$client.x.mutate()` with `$fetch(..., { method })`. Delete `composables/useGames.ts`, `useGame.ts`, `useRecentGames.ts` (fixed `useAsyncData` keys; `useFetch` keys on URL). Pages: `index`, `games`, `organise`, `game/[id]`, `debug/tasks`, `providers/gog/index`.
 4. Remove `server/trpc/**`, `server/api/trpc/[trpc].ts`, `plugins/trpc.ts`, `build.transpile` in `nuxt.config.ts`, the three packages.
-5. Tests: `@nuxt/test-utils` `setup()` + `$fetch` for each route (see [05](05-Test-Infrastructure.md) §3) — this is where API tests get written for the first time.
+5. Tests: `@nuxt/test-utils` `setup()` + `$fetch` for each route (see [05](05-Test-infrastructure.md) §3) — this is where API tests get written for the first time.
 
 ## Verification
 

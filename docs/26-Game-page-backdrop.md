@@ -1,6 +1,6 @@
 ---
 type: task
-status: open
+status: todo
 ---
 
 # Game page backdrop

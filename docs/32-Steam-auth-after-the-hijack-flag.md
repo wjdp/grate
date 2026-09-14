@@ -1,11 +1,11 @@
 ---
 type: task
-status: open
+status: todo
 ---
 
 # Steam auth after the hijack flag
 
-Written 2026-09-12. Supersedes the auth model in [28](28-Steam-QR-Login.md); that doc stays as the record of the spikes and the incident. Unblocks the Steam half of [27](27-DLC.md).
+Written 2026-09-12. Supersedes the auth model in [28](28-Steam-QR-login.md); that doc stays as the record of the spikes and the incident. Unblocks the Steam half of [27](27-DLC.md).
 
 ## What happened
 
@@ -90,7 +90,7 @@ Shrinks to the rich-data session helper:
 
 ### `server/providers/jobs.ts`
 
-- `isActive()` → `!!user?.apiKey`. `warnSteamSessionExpiredOnce` goes (a missing session is no longer a fault). Update [19](19-Provider-Job-Normalisation.md) line 46.
+- `isActive()` → `!!user?.apiKey`. `warnSteamSessionExpiredOnce` goes (a missing session is no longer a fault). Update [19](19-Provider-job-normalisation.md) line 46.
 - Each rich-data step (Steam DLC import in doc 27 first) checks `hasSteamWebSession()` (`refreshToken && refreshTokenExpiresAt > now`) itself and logs one skip line when absent.
 
 ### API routes
@@ -128,7 +128,7 @@ Connected: two cards.
 ### Docs to update
 
 - ✅ `README.md` line ~68 → scan QR or paste profile URL, then API key; web session optional, rich data (DLC and later achievements, wishlist).
-- ✅ `docs/21-Providers.md` Steam Auth bullet; ✅ `docs/04-App-structure.md` secrets line; ✅ `docs/19-Provider-Job-Normalisation.md` line 46; ✅ `docs/27-DLC.md` Steam ownership rows (session optional, WebBrowser, daily); ✅ `docs/29-Provider-Fault-Banners.md` (Steam fault = missing key, not session); `docs/28-Steam-QR-Login.md` → `status: superseded` with a one-line pointer here.
+- ✅ `docs/21-Providers.md` Steam Auth bullet; ✅ `docs/04-App-structure.md` secrets line; ✅ `docs/19-Provider-job-normalisation.md` line 46; ✅ `docs/27-DLC.md` Steam ownership rows (session optional, WebBrowser, daily); ✅ `docs/29-Provider-fault-banners.md` (Steam fault = missing key, not session); `docs/28-Steam-QR-login.md` → `status: superseded` with a one-line pointer here.
 - `bruno/.env.example`: `STEAM_API_KEY` back, `STEAM_ACCESS_TOKEN` out; `get-games.bru` to `key=`.
 
 ## Codebase change list
@@ -157,4 +157,4 @@ Delete: `_handler` patch and everything renewal-related in `webSession.ts`; `war
 - Key validation in `connectSteamAccount` is a full `GetOwnedGames` fetch; fine for one call at setup, but if it turns out slow for large libraries, `GetOwnedGames` with `include_appinfo=0` or `IPlayerService/GetRecentlyPlayedGames` is a cheaper probe.
 - Is `apiKey` nullable long-term, or does a follow-up make it `NOT NULL` once the dev row is populated? Cheap either way.
 - Family Sharing / free-weekend grants in `rgOwnedApps` (carried from doc 28).
-- The two `31-` docs collide (`31-Library-Navigation-And-Surfaces.md`, `31-Playtime-Corrections.md`); numbers are never reused, so this doc is 32 and the collision stands.
+- The two `31-` docs collided; the later one was renumbered to [35](35-Playtime-corrections.md).

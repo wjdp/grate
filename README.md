@@ -20,7 +20,7 @@ grate is single-user per instance, built by the author for the author and publis
 - **Cross-provider duplicate matching** — the same game owned on two stores is detected and can be merged, so playtime and state live on one record.
 - **Command palette** — keyboard-driven navigation and search.
 
-On the roadmap (see [`docs/17-Product-Goals.md`](docs/17-Product-Goals.md)): playtime-driven state automation (games that go idle get a shelve suggestion, backlog games you start playing flip to Playing automatically), playthrough tracking for games replayed years apart, manual entry for consoles and unsupported stores, ratings and a per-game journal.
+On the roadmap (see [`docs/17-Product-goals.md`](docs/17-Product-goals.md)): playtime-driven state automation (games that go idle get a shelve suggestion, backlog games you start playing flip to Playing automatically), playthrough tracking for games replayed years apart, manual entry for consoles and unsupported stores, ratings and a per-game journal.
 
 ## Installation
 

@@ -5,7 +5,7 @@ status: done
 
 # Hidden games
 
-Let the user hide library items they don't want to see — tooling, launchers, soundtracks, benchmarks, anything a store lists as a game that isn't one to them — without losing the game, its provider rows or its playtime history. Rationale and the state-vs-flag distinction in `docs/17-Product-Goals.md` (Hidden games).
+Let the user hide library items they don't want to see — tooling, launchers, soundtracks, benchmarks, anything a store lists as a game that isn't one to them — without losing the game, its provider rows or its playtime history. Rationale and the state-vs-flag distinction in `docs/17-Product-goals.md` (Hidden games).
 
 ## Principles
 

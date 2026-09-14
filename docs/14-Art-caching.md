@@ -28,7 +28,7 @@ Defects in the existing cache:
 ### GOG (hotlinked, resize broken)
 
 - 6 URL columns on `GogGame` (`server/database/schema.ts:178-183`), from `_links` in the detail API.
-- `shared/art.ts` `resolveGogImageUrl` expects templated `…_{formatter}.{ext}` URLs and substitutes presets (`glx_logo_2x` etc). **All 22 stored rows are plain `https://images.gog-statics.com/<hash>.png|jpg` — no template, so the formatter never applies and full-size originals are served.** Already flagged unverified in [09](09-GOG-Playtime.md).
+- `shared/art.ts` `resolveGogImageUrl` expects templated `…_{formatter}.{ext}` URLs and substitutes presets (`glx_logo_2x` etc). **All 22 stored rows are plain `https://images.gog-statics.com/<hash>.png|jpg` — no template, so the formatter never applies and full-size originals are served.** Already flagged unverified in [09](09-GOG-playtime.md).
 - The CDN does support presets on hash URLs via suffix (`<hash>_<preset>.<ext>`); the URL must be reconstructed, not string-replaced.
 
 ### Epic (hotlinked, grossly oversized)

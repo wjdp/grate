@@ -5,7 +5,7 @@ status: done
 
 # Steam PICS metadata and library assets
 
-Written 2026-08-31 against `04a038d`. Follow-up to [14](14-Art-Caching.md)/[15](15-Art-Misses-And-Fallbacks.md).
+Written 2026-08-31 against `04a038d`. Follow-up to [14](14-Art-caching.md)/[15](15-Art-misses-and-fallbacks.md).
 
 ## Problem
 

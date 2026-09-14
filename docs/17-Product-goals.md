@@ -48,7 +48,7 @@ Completed is not strictly terminal — replays return a game to Playing (see Pla
 
 ### Hidden games
 
-Hidden is a **flag on the game, not a state**. It answers "do I want to see this?" where state answers "what is my intent?". Tooling, launchers, soundtracks and benchmarks that a store lists as games (Wallpaper Engine, Proton, VR Home) are hidden, not Ignored — Ignored means never played and no intention to, and a hidden item can have hundreds of hours and a legitimate state. Hiding removes a game from every default view, from stats and from automation, but its provider rows stay linked and playtime keeps being recorded, so unhiding restores full history. Provider-level ignore lists (`GogIgnoredProduct`, `EpicIgnoredItem`) are a different layer: pre-import filtering of things that are not games at all. See `docs/24-Hidden-Games.md`.
+Hidden is a **flag on the game, not a state**. It answers "do I want to see this?" where state answers "what is my intent?". Tooling, launchers, soundtracks and benchmarks that a store lists as games (Wallpaper Engine, Proton, VR Home) are hidden, not Ignored — Ignored means never played and no intention to, and a hidden item can have hundreds of hours and a legitimate state. Hiding removes a game from every default view, from stats and from automation, but its provider rows stay linked and playtime keeps being recorded, so unhiding restores full history. Provider-level ignore lists (`GogIgnoredProduct`, `EpicIgnoredItem`) are a different layer: pre-import filtering of things that are not games at all. See `docs/24-Hidden-games.md`.
 
 ### Classes of play
 

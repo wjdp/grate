@@ -1,11 +1,11 @@
 ---
 type: task
-status: open
+status: todo
 ---
 
 # Art sizing and disk use
 
-Written 2026-09-06 against `32063e8`, from a scroll-performance trace of the library wall and a survey of every image the app renders. Revises the "cache generously" principle in [14](14-Art-Caching.md): the LAN link is cheap but client decode, disk and first-paint are not, and no rendered slot needs more than ~2000 px.
+Written 2026-09-06 against `32063e8`, from a scroll-performance trace of the library wall and a survey of every image the app renders. Revises the "cache generously" principle in [14](14-Art-caching.md): the LAN link is cheap but client decode, disk and first-paint are not, and no rendered slot needs more than ~2000 px.
 
 ## Problem
 
@@ -130,5 +130,5 @@ Idempotent: a dir with only masters and variants is a no-op.
 
 - Master quality for logos: lossy WebP with alpha is fine for `brightness`-dimmed heroes but logos are shown crisp; check a few at q80 vs lossless before fixing the number.
 - Whether to keep steam `hero` as an alias of `backdrop` for any external caller of `/art/steam/<id>/hero`. No known caller; lean delete.
-- Orphaned Epic directories. Epic art was keyed on the `EpicGame` autoincrement `epicId` until [33](33-Epic-Art-Cache-Key.md) rekeyed it on `catalogItemId`; the numeric `data/art/epic/<n>/` directories left behind are unreachable (the route rejects numeric Epic ids) and are not cleaned up automatically. `rm -rf data/art/epic` reclaims the space, or leave it to the §5 sweep.
+- Orphaned Epic directories. Epic art was keyed on the `EpicGame` autoincrement `epicId` until [33](33-Epic-art-cache-key.md) rekeyed it on `catalogItemId`; the numeric `data/art/epic/<n>/` directories left behind are unreachable (the route rejects numeric Epic ids) and are not cleaned up automatically. `rm -rf data/art/epic` reclaims the space, or leave it to the §5 sweep.
 - Boot-time migration vs manual only. Boot is friendlier for other users; needs a "done" marker so it never re-scans a large cache on every start.

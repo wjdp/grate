@@ -152,7 +152,7 @@ Real account, all calls via curl with the launcher client (`token_type=eg1`). Fi
 
 ## Data mapping
 
-Mirrors the GOG tables. Provider rows stay the source of truth; `Game` is the agnostic layer (see `08-Cross-Provider-Game-Linking.md` — Epic rows must be 1:N on `Game` from the start).
+Mirrors the GOG tables. Provider rows stay the source of truth; `Game` is the agnostic layer (see `08-Cross-provider-game-linking.md` — Epic rows must be 1:N on `Game` from the start).
 
 `EpicUser` (one row, like `GogUser`):
 
@@ -197,7 +197,7 @@ Identity is the triple `(namespace, catalogItemId, appName)`. `appName` alone is
 
 Art helpers (`shared/art.ts`) gain an Epic branch; Epic image URLs are absolute CDN links with no size formatter, so they are simpler than GOG's `{formatter}` templates.
 
-Cached art is keyed on `catalogItemId`, not `epicId` (see [33](33-Epic-Art-Cache-Key.md)): `/art/epic/<catalogItemId>/<type>`, cached at `data/art/epic/<catalogItemId>/`. The `epicId` autoincrement is reassigned whenever the library is re-imported, which served the wrong game's art. Sync drops a game's cached art when any of `boxArtTallUrl`, `boxArtWideUrl` or `logoUrl` changes, since Epic CDN URLs embed a content hash.
+Cached art is keyed on `catalogItemId`, not `epicId` (see [33](33-Epic-art-cache-key.md)): `/art/epic/<catalogItemId>/<type>`, cached at `data/art/epic/<catalogItemId>/`. The `epicId` autoincrement is reassigned whenever the library is re-imported, which served the wrong game's art. Sync drops a game's cached art when any of `boxArtTallUrl`, `boxArtWideUrl` or `logoUrl` changes, since Epic CDN URLs embed a content hash.
 
 ## Differences from Steam and GOG that affect design
 
@@ -207,7 +207,7 @@ Cached art is keyed on `catalogItemId`, not `epicId` (see [33](33-Epic-Art-Cache
 - **Heavy non-game noise.** UE marketplace assets, Fab items, mods, DLC, mobile-only titles, and third-party-managed entries (Ubisoft/EA) all arrive in the same list. Filtering is a first-class concern, not an afterthought as it was for GOG's three product types. Confirmed live: the same noise reaches the playtime endpoint too (DLC and UE artifacts both had entries), so playtime sync needs the same ignore list as the library sync, applied before any per-game total is computed.
 - **Third-party-managed games** (`ThirdPartyManagedApp`) are owned via Epic but launch through another launcher. They are real games and should sync, but the launch URI is unreliable for them.
 - **Short-lived codes and tokens.** The authorization code is single-use and expires quickly (same as GOG). Access token lifetime is confirmed at ~36h (`expires_in: 129483`) for the launcher client; refresh token lifetime is still unmeasured — confirm it before relying on a daily schedule.
-- **No public documentation and no stable contract.** Everything here is reverse-engineered; Epic can and does change it. Errors must be non-fatal per game, as `07-Sync-Robustness.md` established.
+- **No public documentation and no stable contract.** Everything here is reverse-engineered; Epic can and does change it. Errors must be non-fatal per game, as `07-Sync-robustness.md` established.
 
 ## Open questions (verify against a real account)
 

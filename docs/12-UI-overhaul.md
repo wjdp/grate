@@ -32,7 +32,7 @@ Findings:
 - **Colour mode**: `useColorMode()` from Nuxt UI (system default, toggle in the sidebar footer). Nuxt UI adds `@custom-variant dark (&:where(.dark, .dark *))` itself.
 - **Fonts**: `@nuxt/fonts` inside Nuxt UI; declare families in `@theme` (`--font-sans`, `--font-display`, `--font-mono`).
 - **Histoire**: alpha plugin, 3 stories, will fight Nuxt UI's app.config/Reka setup. Drop it and the `story:*` scripts; keep `/debug/components` as a lightweight gallery page (Nuxt UI has its own docs for its components). Revisit Storybook-style tooling only if component count warrants.
-- Order: [10](10-Drop-tRPC.md) → [13](13-Nuxt-4-Upgrade.md) → this. Nuxt UI v4 runs on Nuxt 3, but the `app/` move should land before every client file is rewritten here.
+- Order: [10](10-Drop-tRPC.md) → [13](13-Nuxt-4-upgrade.md) → this. Nuxt UI v4 runs on Nuxt 3, but the `app/` move should land before every client file is rewritten here.
 
 ## Design direction
 
@@ -126,7 +126,7 @@ All answered before implementation:
 2. ~~Light mode: tinted warm neutral or pure cool grey?~~ Cool grey, reusing the existing `grey-*` scale; light background is `grey-100`.
 3. ~~Do 10 before this?~~ Decided: 10 → 13 → 12.
 4. ~~Activity page in scope now, or defer?~~ In scope; the per-day aggregate endpoint landed with it.
-5. ~~Keep any Histoire stories, or fully drop?~~ Fully dropped (in [13](13-Nuxt-4-Upgrade.md)).
+5. ~~Keep any Histoire stories, or fully drop?~~ Fully dropped (in [13](13-Nuxt-4-upgrade.md)).
 
 ## Done
 
@@ -156,7 +156,7 @@ Decisions taken along the way:
 ## Follow-ups
 
 - Light-mode primary: amber-800 is a compromise. The alternative is a button theme override that puts dark text on bright amber, keeping the brand colour in both modes.
-- Re-enable `noUncheckedIndexedAccess` (45 errors at the time of writing, carried from [13](13-Nuxt-4-Upgrade.md)).
+- Re-enable `noUncheckedIndexedAccess` (45 errors at the time of writing, carried from [13](13-Nuxt-4-upgrade.md)).
 - The state filter trigger on `/games` shows the state name but no colour dot; the dot only appears in the open menu.
 - `test/api/routes.e2e.test.ts` spawns its own `nuxt dev`, which is fragile alongside a dev server already running.
-- Remaining items in [04](04-Server-Only-Provider-Code.md): ESLint `no-restricted-imports` for `server/` from client code, `debug/steam-art.vue` still importing `server/providers/steam/art.ts`, and secrets via `runtimeConfig`.
+- Remaining items in [04](04-App-structure.md): ESLint `no-restricted-imports` for `server/` from client code, `debug/steam-art.vue` still importing `server/providers/steam/art.ts`, and secrets via `runtimeConfig`.
